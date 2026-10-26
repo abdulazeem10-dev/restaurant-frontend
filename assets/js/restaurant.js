@@ -2,6 +2,7 @@ const msg = document.querySelector("#message");
 const openingDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 let restaurantStaffRole = null;
 let restaurantOrdersCache = [];
+let restaurantOrderMode = "all";
 let restaurantMenuItems = [];
 let restaurantCurrentUser = null;
 let restaurantCurrentRestaurant = null;
@@ -14,7 +15,9 @@ const restaurantViewInfo = {
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
   subscription: ["Subscription", "View your access term and renew securely online."],
   reviews: ["Customer reviews", "Read feedback from your customers."],
-  orders: ["Incoming orders", "Manage dine-in table bills and customer delivery orders."],
+  orders: ["Incoming orders", "Manage all restaurant orders."],
+  "dine-in": ["Dine-in tables", "Manage occupied tables, running bills, and dine-in payments."],
+  delivery: ["Home delivery", "Manage orders placed through the customer website or app."],
   reports: ["Sales reports", "Track paid sales, completed orders, and best-selling dishes."],
   notifications: ["Notifications", "Order completion updates for your restaurant."]
 };
@@ -22,8 +25,12 @@ function showRestaurantView(view) {
   if (!restaurantViewInfo[view]) return;
   const button = document.querySelector(`[data-restaurant-view="${view}"]`);
   if (!button || button.hidden) return;
+  if (view === "dine-in") restaurantOrderMode = "dine_in";
+  else if (view === "delivery") restaurantOrderMode = "delivery";
+  else if (view === "orders") restaurantOrderMode = "all";
+  const sectionView = ["dine-in", "delivery"].includes(view) ? "orders" : view;
   document.querySelectorAll("[data-restaurant-section]").forEach(section => {
-    section.hidden = section.dataset.restaurantSection !== view;
+    section.hidden = section.dataset.restaurantSection !== sectionView;
   });
   document.querySelectorAll("[data-restaurant-view]").forEach(navButton => {
     if (navButton.dataset.restaurantView === view) navButton.setAttribute("aria-current", "page");
@@ -31,6 +38,18 @@ function showRestaurantView(view) {
   });
   document.querySelector("#restaurant-page-title").textContent = restaurantViewInfo[view][0];
   document.querySelector("#restaurant-page-description").textContent = restaurantViewInfo[view][1];
+  if (sectionView === "orders") {
+    const dineInMode = restaurantOrderMode === "dine_in";
+    document.querySelector("#active-table-panel").hidden = !dineInMode;
+    document.querySelector("#dine-in-start-panel").hidden = !dineInMode;
+    document.querySelector("#orders-heading-title").textContent = dineInMode ? "Dine-in orders" : restaurantOrderMode === "delivery" ? "Home delivery orders" : "All orders";
+    document.querySelector("#orders-heading-description").textContent = dineInMode
+      ? "Open table bills, add dishes, print bills, and record payment."
+      : restaurantOrderMode === "delivery"
+        ? "Orders placed through the Sunrise Tiffin House website or app."
+        : "Review dine-in and home-delivery activity.";
+    loadOrders(false).catch(error => { msg.textContent = error.message; });
+  }
 }
 document.querySelectorAll("[data-restaurant-view]").forEach(button => button.addEventListener("click", () => showRestaurantView(button.dataset.restaurantView)));
 document.querySelectorAll("[data-open-restaurant-view]").forEach(button => button.addEventListener("click", () => showRestaurantView(button.dataset.openRestaurantView)));
@@ -857,6 +876,7 @@ function filterRestaurantOrders(orders) {
   const query = document.querySelector("#order-search")?.value.trim().toLocaleLowerCase() || "";
   const status = document.querySelector("#order-status-filter")?.value || "all";
   return orders.filter(order => {
+    if (restaurantOrderMode !== "all" && order.orderType !== restaurantOrderMode) return false;
     const normalizedStatus = order.status === "confirmed" ? "placed" : order.status === "picked_up" ? "out_for_delivery" : order.status;
     if (status !== "all" && status !== normalizedStatus) return false;
     if (!query) return true;
@@ -874,7 +894,9 @@ async function loadOrders(fetchLatest = true) {
   renderActiveTableBoard(orders);
   const visibleOrders = filterRestaurantOrders(orders);
   const count = document.querySelector("#order-filter-count");
-  if (count) count.textContent = `${visibleOrders.length} of ${orders.length} orders`;
+  const scopedCount = restaurantOrderMode === "all" ? orders.length : orders.filter(order => order.orderType === restaurantOrderMode).length;
+  const scopeLabel = restaurantOrderMode === "dine_in" ? "dine-in" : restaurantOrderMode === "delivery" ? "home delivery" : "all";
+  if (count) count.textContent = `${visibleOrders.length} of ${scopedCount} ${scopeLabel} orders`;
   for (const order of visibleOrders) {
     const card = document.createElement("article"); card.dataset.orderId = String(order._id); const itemText = order.items.map(item => `${item.quantity} × ${item.name}`).join(", ");
     const recipient = order.deliveryDetails;
@@ -976,8 +998,12 @@ async function loadOrders(fetchLatest = true) {
     if (restaurantStaffRole !== "viewer") for (const status of next) { const button = document.createElement("button"); button.textContent = statusActionLabels[status] || `Mark ${status}`; if (status === "cancelled") button.className = "secondary"; button.addEventListener("click", async () => { try { await api(`/orders/restaurant/${order._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); await loadOrders(); } catch (error) { msg.textContent = error.message; } }); card.append(button); }
     root.append(card);
   }
-  if (!orders.length) root.textContent = "No orders yet.";
-  else if (!visibleOrders.length) root.textContent = "No orders match your search or status filter.";
+  if (!visibleOrders.length) {
+    if (restaurantOrderMode === "dine_in" && scopedCount === 0) root.textContent = "No dine-in orders yet. Start a table order above when a customer is seated.";
+    else if (restaurantOrderMode === "delivery" && scopedCount === 0) root.textContent = "No home delivery orders yet.";
+    else if (!orders.length) root.textContent = "No orders yet.";
+    else root.textContent = "No orders match your search or status filter.";
+  }
 }
 document.querySelector("#order-search")?.addEventListener("input", () => loadOrders(false).catch(error => { msg.textContent = error.message; }));
 document.querySelector("#order-status-filter")?.addEventListener("change", () => loadOrders(false).catch(error => { msg.textContent = error.message; }));
@@ -1072,8 +1098,8 @@ async function initializeRestaurantDashboard() {
   if (restaurantStaffRole) {
     document.querySelector("#subscription-nav").hidden = true;
     const allowedViews = restaurantStaffRole === "secondary_admin"
-      ? ["overview", "menu", "hours", "delivery-areas", "delivery-team", "reviews", "orders", "reports", "notifications"]
-      : ["overview", "menu", "reviews", "orders", "notifications"];
+      ? ["overview", "menu", "hours", "delivery-areas", "delivery-team", "reviews", "orders", "dine-in", "delivery", "reports", "notifications"]
+      : ["overview", "menu", "reviews", "orders", "dine-in", "delivery", "notifications"];
     document.querySelectorAll("[data-restaurant-view]").forEach(button => {
       button.hidden = !allowedViews.includes(button.dataset.restaurantView);
     });
