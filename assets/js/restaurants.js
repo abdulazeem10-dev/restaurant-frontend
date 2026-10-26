@@ -17,6 +17,11 @@ const cuisineImageFiles = Object.freeze({
   burger: "burger.webp",
   biryani: "biryani.webp",
   "south-indian": "south-indian.webp",
+  maharashtrian: "other.webp",
+  "vada-pav": "vada.jpg",
+  idli: "south-indian.webp",
+  momos: "momo.webp",
+  kachori: "north-indian.webp",
   noodles: "noodles.webp",
   rolls: "rolls.webp",
   shawarma: "shawarma.webp",
@@ -27,16 +32,37 @@ const cuisineImageFiles = Object.freeze({
   other: "other.webp"
 });
 const cuisineLabels = Object.freeze({
-  "north-indian": "North Indian", pizza: "Pizza", chinese: "Chinese", desserts: "Desserts",
-  burger: "Burger", biryani: "Biryani", "south-indian": "South Indian", noodles: "Noodles",
-  rolls: "Rolls", shawarma: "Shawarma", vada: "Vada", dosa: "Dosa", momo: "Momo",
-  salads: "Salads", other: "Local favourites"
+  "north-indian": "North Indian", "south-indian": "South Indian", maharashtrian: "Maharashtrian",
+  "vada-pav": "Vada Pav", dosa: "Dosa", idli: "Idli", momos: "Momos", kachori: "Kachori",
+  vada: "Vada", momo: "Momos", other: "Breakfast favourites"
 });
 let selectedFoodFilter = "all";
 let selectedBudgetFilter = "all";
 let selectedCuisineFilter = "all";
 let allRestaurants = [];
 let allFeaturedDishes = [];
+const breakfastStylePatterns = Object.freeze({
+  "south-indian": /\b(south.?indian|dosa|idli|sambar|sambhar|uttapam|upma|medu.?vada)\b/i,
+  "north-indian": /\b(north.?indian|paratha|puri|chole|aloo.?paratha)\b/i,
+  maharashtrian: /\b(maharashtrian|vada.?pav|puran.?poli|misal|poha|sabudana|thalipeeth)\b/i,
+  "vada-pav": /\b(vada.?pav|batata.?vada)\b/i,
+  dosa: /\b(dosa|uttapam)\b/i,
+  idli: /\b(idli|sambar|sambhar)\b/i,
+  momos: /\bmomos?\b/i,
+  kachori: /\bkachori\b/i
+});
+function matchesBreakfastStyle(item, filter = selectedCuisineFilter) {
+  if (filter === "all") return true;
+  const pattern = breakfastStylePatterns[filter];
+  if (!pattern) return false;
+  const searchable = [item.name, item.category, item.cuisine, ...(item.cuisines || [])].filter(Boolean).join(" ");
+  return pattern.test(searchable);
+}
+function getVisibleFeaturedDishes() {
+  return allFeaturedDishes.filter(dish =>
+    (selectedFoodFilter === "all" || dish.foodType === selectedFoodFilter) && matchesBreakfastStyle(dish)
+  );
+}
 const favouriteRestaurantIds = new Set(JSON.parse(localStorage.getItem("foodway-favourite-restaurants") || "[]"));
 
 function saveFavouriteRestaurants() {
@@ -206,15 +232,19 @@ function renderFeaturedDishes(dishes = []) {
   const section = document.querySelector(".featured-dishes-section");
   const heading = document.querySelector("#featured-dishes-title");
   featuredDishesTrack.replaceChildren();
-  heading.textContent = selectedFoodFilter === "veg"
-    ? "Veg dishes to explore"
-    : selectedFoodFilter === "nonVeg" ? "Non‑Veg dishes to explore" : "Dishes to explore";
+  const selectedLabel = cuisineLabels[selectedCuisineFilter] || "Breakfast";
+  heading.textContent = selectedCuisineFilter !== "all"
+    ? `${selectedLabel} breakfast favourites`
+    : selectedFoodFilter === "veg" ? "Veg breakfast dishes"
+      : selectedFoodFilter === "nonVeg" ? "Non‑Veg breakfast dishes" : "Sunrise breakfast favourites";
   if (!dishes.length) {
     section.hidden = !allFeaturedDishes.length;
     if (!section.hidden) {
       const empty = document.createElement("p");
       empty.className = "featured-dishes-empty";
-      empty.textContent = `No ${selectedFoodFilter === "veg" ? "Veg" : "Non‑Veg"} dishes are available right now.`;
+      empty.textContent = selectedCuisineFilter !== "all"
+        ? `No ${selectedLabel} breakfast items are available right now.`
+        : `No ${selectedFoodFilter === "veg" ? "Veg" : "Non‑Veg"} breakfast dishes are available right now.`;
       featuredDishesTrack.append(empty);
     }
     return;
@@ -294,7 +324,10 @@ function renderRestaurants() {
     const restaurantCuisines = Array.isArray(restaurant.cuisines) && restaurant.cuisines.length
       ? restaurant.cuisines
       : [restaurant.cuisine || "other"];
-    const cuisineMatches = selectedCuisineFilter === "all" || restaurantCuisines.includes(selectedCuisineFilter);
+    const restaurantDishes = allFeaturedDishes.filter(dish => String(dish.restaurantId) === String(restaurant._id));
+    const cuisineMatches = selectedCuisineFilter === "all"
+      || restaurantCuisines.includes(selectedCuisineFilter)
+      || restaurantDishes.some(dish => matchesBreakfastStyle(dish));
     const pinMatches = !hasCompletePin || (restaurant.deliveryPincodes || []).includes(pin);
     return searchMatches && foodTypeMatches && budgetMatches && cuisineMatches && pinMatches;
   });
@@ -478,7 +511,7 @@ async function loadRestaurants() {
     const sunriseRestaurantIds = new Set(allRestaurants.map(restaurant => String(restaurant._id)));
     allFeaturedDishes = (data.featuredDishes || []).filter(dish => sunriseRestaurantIds.has(String(dish.restaurantId)));
     renderSearchSuggestions();
-    renderFeaturedDishes(allFeaturedDishes);
+    renderFeaturedDishes(getVisibleFeaturedDishes());
     restaurantGrid.setAttribute("aria-busy", "false");
     renderRestaurants();
     error.textContent = "";
@@ -488,7 +521,7 @@ async function loadRestaurants() {
     const state = document.createElement("div");
     state.className = "empty-state restaurant-load-error";
     const title = document.createElement("h3");
-    title.textContent = "Restaurants aren’t available right now";
+    title.textContent = "Sunrise Tiffin House menu isn’t available right now";
     const message = document.createElement("p");
     message.textContent = "Check your connection and try loading the Sunrise menu again.";
     const retry = document.createElement("button");
@@ -508,9 +541,7 @@ sortSelect.addEventListener("change", renderRestaurants);
 deliveryPincodeFilter.addEventListener("input", renderRestaurants);
 quickFoodFilters.forEach(button => button.addEventListener("click", () => {
   selectedFoodFilter = button.dataset.quickFood;
-  renderFeaturedDishes(selectedFoodFilter === "all"
-    ? allFeaturedDishes
-    : allFeaturedDishes.filter(dish => dish.foodType === selectedFoodFilter));
+  renderFeaturedDishes(getVisibleFeaturedDishes());
   renderRestaurants();
 }));
 budgetFilters.forEach(button => button.addEventListener("click", () => {
@@ -520,6 +551,7 @@ budgetFilters.forEach(button => button.addEventListener("click", () => {
 }));
 cuisineFilters.forEach(button => button.addEventListener("click", () => {
   selectedCuisineFilter = button.dataset.cuisineFilter;
+  renderFeaturedDishes(getVisibleFeaturedDishes());
   renderRestaurants();
   document.querySelector("#restaurant-listing").scrollIntoView({ behavior: "smooth", block: "start" });
 }));
@@ -548,7 +580,7 @@ clearFiltersButton.addEventListener("click", () => {
   selectedBudgetFilter = "all";
   selectedCuisineFilter = "all";
   sortSelect.value = "name";
-  renderFeaturedDishes(allFeaturedDishes);
+  renderFeaturedDishes(getVisibleFeaturedDishes());
   renderRestaurants();
   searchInput.focus();
 });
