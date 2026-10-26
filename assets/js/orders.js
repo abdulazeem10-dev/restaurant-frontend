@@ -2,7 +2,7 @@ async function loadOrders() {
   const root = document.querySelector("#orders"); const error = document.querySelector("#error");
   if (!getToken()) { error.innerHTML = `Please <a href="login.html?next=orders.html">sign in</a> to view your orders.`; return; }
   try {
-    const response = await fetch(`${API_BASE}/orders/mine`, { headers: authHeaders() });
+    const response = await apiFetch("/orders/mine");
     const data = await response.json(); if (!response.ok) throw new Error(data.error || "Could not load orders");
     if (!data.orders.length) { root.textContent = "You haven’t placed any orders yet."; return; }
     for (const order of data.orders) {

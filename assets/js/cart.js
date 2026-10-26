@@ -20,7 +20,7 @@ document.querySelector("#checkout-form").addEventListener("submit", async event 
   const cart = readCart(); if (!cart?.items?.length) return;
   const button = event.currentTarget.querySelector("button[type=submit]"); button.disabled = true;
   try {
-    const response = await fetch(`${API_BASE}/orders`, { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ restaurantId: cart.restaurantId, deliveryAddress: new FormData(event.currentTarget).get("deliveryAddress"), items: cart.items.map(({ menuItemId, quantity }) => ({ menuItemId, quantity })) }) });
+    const response = await apiFetch("/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ restaurantId: cart.restaurantId, deliveryAddress: new FormData(event.currentTarget).get("deliveryAddress"), items: cart.items.map(({ menuItemId, quantity }) => ({ menuItemId, quantity })) }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Could not place order");
     localStorage.removeItem("food-platform-cart"); location.href = "orders.html?placed=1";

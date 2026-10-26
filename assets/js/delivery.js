@@ -3,7 +3,7 @@ if (!getToken()) location.href = "../customer/login.html";
 document.querySelector("#logout").addEventListener("click", () => { sessionStorage.removeItem(TOKEN_KEY); location.href = "../customer/login.html"; });
 
 async function deliveryApi(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers: authHeaders(options.headers || {}) });
+  const response = await apiFetch(path, options);
   const data = response.status === 204 ? {} : await response.json();
   if (!response.ok) throw new Error(data.error || "Request failed");
   return data;

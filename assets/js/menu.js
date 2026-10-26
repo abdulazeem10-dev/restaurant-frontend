@@ -88,8 +88,8 @@ async function loadStorefront() {
   if (!restaurantId) { error.textContent = "Choose a restaurant from the restaurant list."; return; }
   try {
     const [restaurantResponse, menuResponse] = await Promise.all([
-      fetch(`${API_BASE}/restaurants/${encodeURIComponent(restaurantId)}`),
-      fetch(`${API_BASE}/restaurants/${encodeURIComponent(restaurantId)}/menu`)
+      apiFetch(`/restaurants/${encodeURIComponent(restaurantId)}`),
+      apiFetch(`/restaurants/${encodeURIComponent(restaurantId)}/menu`)
     ]);
     if (!restaurantResponse.ok || !menuResponse.ok) throw new Error("This restaurant is not available right now.");
     const { restaurant } = await restaurantResponse.json();

@@ -1,18 +1,17 @@
 const restaurantGrid = document.querySelector("#restaurants");
 const searchInput = document.querySelector("#search-input");
-const sortSelect = document.querySelector("#sort-select");
 const resultCount = document.querySelector("#results-count");
 let allRestaurants = [];
 
 function renderRestaurants() {
   const term = searchInput.value.trim().toLocaleLowerCase();
-  const matches = allRestaurants.filter(restaurant =>
+  const matches = allRestaurants.filter(restaurant => /sunrise\s+tiffin/i.test(restaurant.name) &&
     `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term)
   );
-  matches.sort((a, b) => sortSelect.value === "name-desc" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
+  matches.sort((a, b) => a.name.localeCompare(b.name));
 
   restaurantGrid.replaceChildren();
-  resultCount.textContent = `${matches.length} ${matches.length === 1 ? "restaurant" : "restaurants"} open now`;
+  resultCount.textContent = matches.length ? "Sunrise Tiffin House · Fresh breakfast and tiffin" : "";
   for (const [index, restaurant] of matches.entries()) {
     const card = document.createElement("article");
     card.className = "restaurant-card";
@@ -29,7 +28,7 @@ function renderRestaurants() {
     meta.className = "restaurant-meta";
     const open = document.createElement("span");
     open.className = "open-badge";
-    open.textContent = "Open now";
+    open.textContent = restaurant.isOpen ? "Open now" : "Currently closed";
     const delivery = document.createElement("span");
     delivery.className = "muted";
     delivery.textContent = "Order from restaurant";
@@ -57,8 +56,8 @@ function renderRestaurants() {
     const icon = document.createElement("span"); icon.className = "empty-icon"; icon.setAttribute("aria-hidden", "true"); icon.textContent = "⌕";
     const title = document.createElement("h3");
     const message = document.createElement("p");
-    if (!allRestaurants.length) { title.textContent = "Mumbai menus are on the way"; message.textContent = "Restaurants will appear here once they’re approved and open for orders."; }
-    else { title.textContent = "No restaurants found"; message.textContent = "Try another restaurant name or area."; }
+    if (!allRestaurants.length) { title.textContent = "Sunrise Tiffin House is getting ready"; message.textContent = "Restaurants will appear here once they’re approved and open for orders."; }
+    else { title.textContent = "Sunrise Tiffin House is not listed yet"; message.textContent = "Please check back soon for our fresh breakfast menu."; }
     empty.append(icon, title, message);
     restaurantGrid.append(empty);
   }
@@ -67,7 +66,7 @@ function renderRestaurants() {
 async function loadRestaurants() {
   const error = document.querySelector("#error");
   try {
-    const response = await fetch(`${API_BASE}/restaurants`);
+    const response = await apiFetch("/restaurants");
     if (!response.ok) throw new Error("Unable to load restaurants");
     const data = await response.json();
     allRestaurants = data.restaurants || [];
@@ -80,5 +79,4 @@ async function loadRestaurants() {
 
 document.querySelector("#restaurant-search").addEventListener("submit", event => { event.preventDefault(); renderRestaurants(); });
 searchInput.addEventListener("input", renderRestaurants);
-sortSelect.addEventListener("change", renderRestaurants);
 loadRestaurants();
