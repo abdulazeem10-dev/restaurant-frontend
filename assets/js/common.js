@@ -1,5 +1,5 @@
 // const API_BASE = "http://localhost:5000/api";
-const API_BASE = "https://restaurant-backend-git-main-abdulazeem31975-2509.vercel.app/api";
+const API_BASE = "https://restaurant-backend-gray.vercel.app/api";
 const RAW_FETCH = window.fetch.bind(window);
 window.fetch = async function(input, init = {}) {
   const requestUrl = input instanceof Request ? input.url : String(input);
