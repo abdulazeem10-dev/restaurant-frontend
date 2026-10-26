@@ -10,6 +10,7 @@ const restaurantViewInfo = {
   menu: ["Menu", "Manage dishes, prices, food types, and availability."],
   hours: ["Hours & cuisine", "Set your service hours and the cuisine customers use to find you."],
   "delivery-areas": ["Delivery areas", "Name the neighbourhoods you serve and assign their PIN codes."],
+  "delivery-team": ["Delivery team", "Create and manage this restaurant’s delivery logins."],
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
   subscription: ["Subscription", "View the current access term and request an extension."],
   reviews: ["Customer reviews", "Read feedback from your customers."],
@@ -117,6 +118,60 @@ const restaurantStaffRoles = [
   ["biller_modifier", "Biller / modifier"],
   ["viewer", "Viewer"]
 ];
+async function loadDeliveryPartners() {
+ const root = document.querySelector("#delivery-partners");
+ if (!root) return;
+ const { deliveryPartners } = await api("/restaurants/owner/delivery-partners");
+ root.replaceChildren();
+ if (!deliveryPartners.length) {
+  const empty = document.createElement("p"); empty.className = "muted";
+  empty.textContent = "No delivery accounts yet. Add your first delivery person above."; root.append(empty); return;
+ }
+ for (const partner of deliveryPartners) {
+  const card = document.createElement("section"); card.className = "panel";
+  const form = document.createElement("form"); form.className = "form-grid";
+  const fields = [["name","Name",partner.name],["email","Email / login",partner.email],["phone","Phone",partner.phone || ""]];
+  for (const [name,label,value] of fields) {
+   const wrapper = document.createElement("label"); wrapper.append(document.createTextNode(label));
+   wrapper.append(document.createElement("br"));
+   const input = document.createElement("input"); input.name = name; input.value = value; input.required = name !== "phone"; input.maxLength = name === "phone" ? 32 : name === "email" ? 254 : 100;
+   if (name === "email") input.type = "email"; if (name === "phone") input.type = "tel";
+   wrapper.append(input); form.append(wrapper);
+  }
+  const save = document.createElement("button"); save.type = "submit"; save.textContent = "Save details"; form.append(save);
+  form.addEventListener("submit", async event => {
+   event.preventDefault(); save.disabled = true;
+   try {
+    const values = new FormData(form);
+    await api("/restaurants/owner/delivery-partners/" + encodeURIComponent(partner._id) + "/profile", { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(Object.fromEntries(["name","email","phone"].map(key=>[key,values.get(key)]))) });
+    msg.textContent = "Delivery profile updated."; await loadDeliveryPartners();
+   } catch (error) { msg.textContent = error.message; save.disabled = false; }
+  });
+  const state = document.createElement("p"); state.className = "muted";
+  state.textContent = partner.profileDeactivatedAt ? "Deactivated" : partner.status === "active" ? "Active" : partner.status;
+  const toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "secondary";
+  toggle.textContent = partner.profileDeactivatedAt ? "Reactivate account" : "Deactivate account";
+  toggle.addEventListener("click", async () => {
+   toggle.disabled = true;
+   try {
+    await api("/restaurants/owner/delivery-partners/" + encodeURIComponent(partner._id) + "/profile-status", { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({active:Boolean(partner.profileDeactivatedAt)}) });
+    msg.textContent = partner.profileDeactivatedAt ? "Delivery account reactivated." : "Delivery account deactivated. Its history is retained.";
+    await loadDeliveryPartners();
+   } catch (error) { msg.textContent = error.message; toggle.disabled = false; }
+  });
+  card.append(form,state,toggle); root.append(card);
+ }
+}
+document.querySelector("#delivery-partner-form")?.addEventListener("submit", async event => {
+ event.preventDefault(); msg.textContent = ""; const form = event.currentTarget; const button = form.querySelector('button[type="submit"]'); button.disabled = true;
+ try {
+  const values = new FormData(form);
+  const result = await api("/restaurants/owner/delivery-partners", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(["name","email","phone","password"].map(key=>[key,values.get(key)])))});
+  console.log("[restaurant delivery team] account created", result.deliveryPartner.id);
+  form.reset(); msg.textContent = "Delivery login created for " + result.deliveryPartner.name + ". Share the temporary password securely."; await loadDeliveryPartners();
+ } catch (error) { msg.textContent = error.message; } finally { button.disabled = false; }
+});
+
 async function loadStaffAccounts() {
   const { accounts } = await api("/restaurants/owner/staff");
   const list = document.querySelector("#owner-staff-list");
@@ -816,7 +871,7 @@ async function initializeRestaurantDashboard() {
   if (restaurantStaffRole) {
     document.querySelector("#subscription-nav").hidden = true;
     const allowedViews = restaurantStaffRole === "secondary_admin"
-      ? ["overview", "menu", "hours", "delivery-areas", "reviews", "orders", "reports", "notifications"]
+      ? ["overview", "menu", "hours", "delivery-areas", "delivery-team", "reviews", "orders", "reports", "notifications"]
       : ["overview", "menu", "reviews", "orders", "notifications"];
     document.querySelectorAll("[data-restaurant-view]").forEach(button => {
       button.hidden = !allowedViews.includes(button.dataset.restaurantView);
@@ -836,6 +891,7 @@ async function initializeRestaurantDashboard() {
   }
   showRestaurantView("overview");
   const dashboardLoads = [loadMenu(), loadOrders(), loadReviews(), loadNotifications()];
+  if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(loadDeliveryPartners());
   if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(loadReports());
   await Promise.all(dashboardLoads);
 }
