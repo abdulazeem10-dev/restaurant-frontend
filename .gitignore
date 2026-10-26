@@ -11,8 +11,3 @@ node_modules/
 credentials*.json
 coverage/
 .DS_Store
-android/.gradle/
-android/.idea/
-android/local.properties
-android/**/build/
-android/app/src/main/assets/

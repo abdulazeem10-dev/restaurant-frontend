@@ -95,7 +95,7 @@ async function loadStorefront() {
     const { restaurant } = await restaurantResponse.json();
     const { items } = await menuResponse.json();
     currentRestaurant = restaurant;
-    document.title = `${restaurant.name} menu | Food Platform`;
+    document.title = `${restaurant.name} menu | Sunrise Tiffin House`;
     document.querySelector("#restaurant-name").textContent = restaurant.name;
     document.querySelector("#crumb-name").textContent = restaurant.name;
     document.querySelector("#restaurant-description").textContent = restaurant.description || "Good food, made fresh by your local kitchen.";
