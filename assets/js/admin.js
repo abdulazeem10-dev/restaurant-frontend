@@ -1,9 +1,9 @@
 const message = document.querySelector("#message");
 const adminPageTitles = {
-  overview: ["Admin overview", "Manage restaurants, accounts, and approvals from one place."],
-  "add-restaurant": ["Add restaurant", "Create a restaurant and its owner account."],
+  overview: ["Admin overview", "Manage restaurant-owner accounts, subscriptions, and approvals from one place."],
+  "add-restaurant": ["Create restaurant account", "Set up the owner login and subscription for the restaurant."],
   "create-account": ["Create account", "Set up delivery logins and update delivery-person contact details."],
-  restaurants: ["Restaurants", "Review restaurant details and manage approvals."]
+  restaurants: ["Restaurant accounts", "Review owner details, subscription periods, and restaurant approvals."]
 };
 
 function showAdminView(view) {
@@ -37,10 +37,17 @@ document.querySelector("#logout").addEventListener("click", () => {
 });
 
 async function adminRequest(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: authHeaders(options.headers || {})
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: authHeaders(options.headers || {})
+    });
+    console.log("[admin API]", options.method || "GET", path, response.status);
+  } catch (error) {
+    console.error("[admin API] network error", options.method || "GET", path, error);
+    throw error;
+  }
 
   const data = response.status === 204 ? {} : await response.json();
 
@@ -119,6 +126,33 @@ async function loadRestaurants() {
       }
     });
     card.append(profileForm);
+
+    const subscription = restaurant.subscription;
+    const subscriptionInfo = document.createElement("p");
+    subscriptionInfo.className = "muted";
+    const expires = subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString("en-IN") : "";
+    const expired = subscription && (subscription.status !== "active" || !expires || new Date(subscription.currentPeriodEnd) <= new Date());
+    subscriptionInfo.textContent = subscription ? `Subscription: ${expired ? "Expired" : "Active"} · ${subscription.termYears || 1} year(s) · Expires ${expires || "not set"}${subscription.renewalRequest?.status === "pending" ? ` · Owner requests ${subscription.renewalRequest.years} year(s)` : ""}` : "Subscription: not set (legacy account)";
+    card.append(subscriptionInfo);
+    const renewal = document.createElement("div");
+    renewal.className = "admin-subscription-renewal";
+    const term = document.createElement("select");
+    term.setAttribute("aria-label", "Renewal term");
+    term.innerHTML = `<option value="1">Renew 1 year</option><option value="2">Renew 2 years</option><option value="3">Renew 3 years</option>`;
+    if (subscription?.renewalRequest?.status === "pending") term.value = String(subscription.renewalRequest.years || 1);
+    const renewButton = document.createElement("button");
+    renewButton.type = "button";
+    renewButton.textContent = subscription ? "Renew subscription" : "Set subscription";
+    renewButton.addEventListener("click", async () => {
+      renewButton.disabled = true;
+      try {
+        await adminRequest(`/admin/restaurants/${encodeURIComponent(restaurant._id)}/subscription/renew`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ years: Number(term.value) }) });
+        message.textContent = `Restaurant access renewed for ${term.value} year(s).`;
+        await loadRestaurants();
+      } catch (error) { message.textContent = error.message; renewButton.disabled = false; }
+    });
+    renewal.append(term, renewButton);
+    card.append(renewal);
 
     const deactivateProfile = document.createElement("button");
     deactivateProfile.type = "button";
@@ -383,6 +417,8 @@ document
       "cuisine",
       "ownerName",
       "email",
+      "phone",
+      "subscriptionYears",
       "password"
     ];
 
@@ -399,7 +435,7 @@ document
 
       restaurantForm.reset();
       message.textContent =
-        "Restaurant and owner account created. The restaurant is pending approval.";
+        "Restaurant owner account created with its subscription. The restaurant is pending approval.";
 
       await loadRestaurants();
       showAdminView("restaurants");

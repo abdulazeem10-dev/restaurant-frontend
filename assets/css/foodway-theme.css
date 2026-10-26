@@ -137,3 +137,10 @@ body { color: var(--foodway-ink); }
   .customer-page .checkout-progress li { align-items: flex-start; flex-direction: column; gap: .3rem; font-size: .72rem; line-height: 1.25; }
   .customer-page .payment-option-status { max-width: 80px; white-space: normal; text-align: center; }
 }
+
+.dine-in-panel { margin-block: 1.25rem; }
+.dine-in-menu-options { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-block: .75rem; }
+.dine-in-menu-choice { display: grid; grid-template-columns: auto minmax(0, 1fr) 5rem; align-items: center; gap: .5rem; padding: .55rem; border: 1px solid var(--line, #dce2d9); border-radius: .65rem; }
+.dine-in-menu-choice input[type="number"] { min-width: 0; }
+.dine-in-add-items, .dine-in-payment-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line, #dce2d9); }
+.dine-in-payment-form { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; }

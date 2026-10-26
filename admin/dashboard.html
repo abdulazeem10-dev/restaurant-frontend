@@ -18,7 +18,7 @@
     <aside class="admin-sidebar" aria-label="Admin navigation">
       <p class="admin-sidebar-label">WORKSPACE</p>
       <button type="button" data-admin-view="overview" aria-current="page"><span aria-hidden="true">▦</span> Overview</button>
-      <button type="button" data-admin-view="add-restaurant"><span aria-hidden="true">＋</span> Add restaurant</button>
+      <button type="button" data-admin-view="add-restaurant"><span aria-hidden="true">＋</span> Create restaurant account</button>
       <button type="button" data-admin-view="create-account"><span aria-hidden="true">♙</span> Create account</button>
       <button type="button" data-admin-view="restaurants"><span aria-hidden="true">▤</span> Restaurants</button>
       <div class="admin-sidebar-help"><strong>Need the customer view?</strong><a href="../customer/index.html?view=customer">Open customer site →</a></div>
@@ -34,11 +34,11 @@
           <article class="admin-stat"><span>Approved</span><strong id="stat-approved">—</strong><small>Approved to serve customers</small></article>
           <article class="admin-stat"><span>Pending review</span><strong id="stat-pending">—</strong><small>Waiting for an admin decision</small></article>
         </div>
-        <section class="panel admin-shortcuts"><div><p class="eyebrow">QUICK ACTIONS</p><h2>What would you like to do?</h2><p class="muted">Add a restaurant and create its owner login, set up a delivery login, or review existing restaurants.</p></div><div class="admin-shortcut-actions"><button type="button" data-open-admin-view="add-restaurant">Add restaurant</button><button type="button" class="secondary" data-open-admin-view="create-account">Create account</button><button type="button" class="secondary" data-open-admin-view="restaurants">Manage restaurants</button></div></section>
+        <section class="panel admin-shortcuts"><div><p class="eyebrow">QUICK ACTIONS</p><h2>What would you like to do?</h2><p class="muted">Provision restaurant-owner access, set up delivery logins, or manage existing restaurant accounts.</p></div><div class="admin-shortcut-actions"><button type="button" data-open-admin-view="add-restaurant">Create restaurant account</button><button type="button" class="secondary" data-open-admin-view="create-account">Create account</button><button type="button" class="secondary" data-open-admin-view="restaurants">Manage restaurants</button></div></section>
       </section>
 
       <section class="admin-view" data-admin-section="add-restaurant" hidden>
-        <section class="panel admin-form-panel"><p class="eyebrow">RESTAURANT ONBOARDING</p><h2>Add a restaurant</h2><p>Create the restaurant and its owner account together. Give the owner their login credentials securely.</p><form id="restaurant-form" class="form-grid">
+        <section class="panel admin-form-panel"><p class="eyebrow">RESTAURANT ONBOARDING</p><h2>Create a restaurant account</h2><p>Set up the restaurant owner login, contact number, and subscription term. Share the credentials securely.</p><form id="restaurant-form" class="form-grid">
           <label>Restaurant name<br><input name="restaurantName" required maxlength="150"></label>
           <label>Restaurant address<br><textarea name="address" required minlength="5" maxlength="500" rows="3" placeholder="Full street address, area, city, PIN"></textarea></label>
           <label>Description<br><input name="description" maxlength="2000"></label>
@@ -47,9 +47,11 @@
           <label>Restaurant image URL (HTTPS)<br><input name="imageUrl" type="url" maxlength="2048" placeholder="https://…"></label>
           <label>Owner name<br><input name="ownerName" required maxlength="100"></label>
           <label>Owner email / username<br><input name="email" type="email" required maxlength="254"></label>
+          <label>Owner phone<br><input name="phone" type="tel" required minlength="8" maxlength="20" autocomplete="tel" placeholder="+91 9876543210"></label>
+          <label>Subscription term<br><select name="subscriptionYears" required><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years</option></select></label>
           <label>Initial password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
-          <button type="submit">Create pending restaurant</button>
-        </form><p class="muted admin-form-note">Paste a publicly accessible image link. The image must already be hosted online. The restaurant will need approval before it appears to customers.</p></section>
+          <button type="submit">Create owner account</button>
+        </form><p class="muted admin-form-note">Paste a publicly accessible image link. The image must already be hosted online. The subscription starts when the owner account is created. The restaurant still needs approval before accepting customer orders.</p></section>
       </section>
 
       <section class="admin-view" data-admin-section="create-account" hidden>
@@ -59,12 +61,12 @@
           <label>Mobile number<br><input name="phone" type="tel" required minlength="8" maxlength="20" autocomplete="tel" placeholder="+91 9876543210"></label>
           <label>Initial password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
           <button type="submit">Create delivery login</button>
-        </form><div class="admin-inline-note"><strong>Restaurant owner accounts</strong><span>Owner login details are created with each restaurant. Use <button type="button" class="admin-text-button" data-open-admin-view="add-restaurant">Add restaurant</button> to set one up.</span></div></section>
+        </form><div class="admin-inline-note"><strong>Restaurant owner accounts</strong><span>Owner login details are created with each restaurant. Use <button type="button" class="admin-text-button" data-open-admin-view="add-restaurant">Create restaurant account</button> to set one up.</span></div></section>
         <section class="panel admin-form-panel"><p class="eyebrow">DELIVERY TEAM</p><h2>Delivery accounts</h2><p class="muted">Update a delivery person’s name, phone number, or email login. You can also deactivate or reactivate an account. Deactivation keeps its order history.</p><div id="delivery-partners" class="grid admin-restaurant-grid"></div></section>
       </section>
 
       <section class="admin-view" data-admin-section="restaurants" hidden>
-        <div class="admin-list-heading"><div><p class="eyebrow">PLATFORM DIRECTORY</p><h2>Restaurants</h2><p class="muted">Edit restaurant and owner contact details, food type and images, and review approvals.</p></div><button type="button" data-open-admin-view="add-restaurant">+ Add restaurant</button></div>
+        <div class="admin-list-heading"><div><p class="eyebrow">PLATFORM DIRECTORY</p><h2>Restaurant accounts</h2><p class="muted">Manage owner contact details, subscription periods, restaurant profiles, and operational approval.</p></div><button type="button" data-open-admin-view="add-restaurant">+ Create restaurant account</button></div>
         <div id="restaurants" class="grid admin-restaurant-grid"></div>
       </section>
     </div>

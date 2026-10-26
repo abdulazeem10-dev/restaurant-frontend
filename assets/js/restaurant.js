@@ -2,6 +2,7 @@ const msg = document.querySelector("#message");
 const openingDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 let restaurantStaffRole = null;
 let restaurantOrdersCache = [];
+let restaurantMenuItems = [];
 let restaurantCurrentUser = null;
 let restaurantCurrentRestaurant = null;
 const restaurantViewInfo = {
@@ -10,8 +11,9 @@ const restaurantViewInfo = {
   hours: ["Hours & cuisine", "Set your service hours and the cuisine customers use to find you."],
   "delivery-areas": ["Delivery areas", "Name the neighbourhoods you serve and assign their PIN codes."],
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
+  subscription: ["Subscription", "View the current access term and request an extension."],
   reviews: ["Customer reviews", "Read feedback from your customers."],
-  orders: ["Incoming orders", "Review customer and delivery details and update order progress."],
+  orders: ["Incoming orders", "Manage dine-in table bills and customer delivery orders."],
   reports: ["Sales reports", "Track paid sales, completed orders, and best-selling dishes."],
   notifications: ["Notifications", "Order completion updates for your restaurant."]
 };
@@ -34,10 +36,36 @@ document.querySelectorAll("[data-open-restaurant-view]").forEach(button => butto
 if (!getToken()) location.href = "../customer/login.html";
 document.querySelector("#logout").addEventListener("click", () => { sessionStorage.removeItem(TOKEN_KEY); location.href = "../customer/login.html"; });
 async function api(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers: authHeaders(options.headers || {}) });
+  let response;
+  try { response = await fetch(`${API_BASE}${path}`, { ...options, headers: authHeaders(options.headers || {}) }); console.log("[restaurant API]", options.method || "GET", path, response.status); }
+  catch (error) { console.error("[restaurant API] network error", options.method || "GET", path, error); throw error; }
   const data = response.status === 204 ? {} : await response.json();
   if (!response.ok) throw new Error(data.error || "Request failed"); return data;
 }
+async function loadOwnSubscription() {
+  const { subscription } = await api("/restaurants/owner/subscription");
+  const summary = document.querySelector("#subscription-summary");
+  const requestStatus = document.querySelector("#subscription-request-status");
+  if (!subscription) { summary.textContent = "No subscription record is on file. Contact the platform administrator."; return false; }
+  const end = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
+  const expired = subscription.status !== "active" || !end || end <= new Date();
+  summary.textContent = `Status: ${expired ? "Expired" : "Active"} · ${subscription.termYears || "—"} year(s) · Expires ${end ? end.toLocaleDateString("en-IN") : "date not set"}`;
+  const pending = subscription.renewalRequest?.status === "pending";
+  requestStatus.textContent = pending ? `Renewal request for ${subscription.renewalRequest.years} year(s) sent ${subscription.renewalRequest.requestedAt ? new Date(subscription.renewalRequest.requestedAt).toLocaleDateString("en-IN") : ""}. Waiting for the platform administrator.` : "";
+  document.querySelector("#subscription-renewal-form button").disabled = pending;
+  return expired;
+}
+document.querySelector("#subscription-renewal-form")?.addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget, button = form.querySelector("button"); button.disabled = true;
+  try {
+    const years = Number(new FormData(form).get("years"));
+    const result = await api("/restaurants/owner/subscription/renewal-request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ years }) });
+    console.log("[restaurant subscription] renewal request", result.subscription?.renewalRequest?.status);
+    msg.textContent = "Renewal request sent to the platform administrator.";
+    await loadOwnSubscription();
+  } catch (error) { msg.textContent = error.message; button.disabled = false; }
+});
 async function loadNotifications() {
   const { notifications, unreadCount } = await api("/notifications/mine");
   const list = document.querySelector("#restaurant-notifications");
@@ -259,7 +287,7 @@ function addDeliveryAreaRow() {
   renderDeliveryAreas([...areas, { name: "", pincodes: [] }]);
 }
 async function loadMenu() {
-  const { restaurant, items } = await api("/restaurants/owner/menu"); const root = document.querySelector("#menu-items"); root.replaceChildren();
+  const { restaurant, items } = await api("/restaurants/owner/menu"); restaurantMenuItems = items || []; renderDineInMenuPicker(document.querySelector("#dine-in-menu-options")); const root = document.querySelector("#menu-items"); root.replaceChildren();
   document.querySelector("#restaurant-title").textContent = restaurant.name;
   if (restaurantProfileForm) {
     restaurantProfileForm.elements.restaurantName.value = restaurant.name || "";
@@ -533,12 +561,43 @@ function printRestaurantOrderBill(order) {
   const restaurantName = restaurantCurrentRestaurant?.name || document.querySelector("#restaurant-title")?.textContent || "Restaurant";
   const items = (order.items || []).map(item => "<tr><td>" + escapeHtml(item.name) + "</td><td>" + item.quantity + "</td><td>" + formatRupees(item.unitPricePaise) + "</td><td>" + formatRupees(item.unitPricePaise * item.quantity) + "</td></tr>").join("");
   const recipient = order.deliveryDetails;
-  const address = [recipient?.flatBuilding, recipient?.lane, recipient?.landmark, recipient?.pincode].filter(Boolean).join(", ") || order.deliveryAddress || "—";
-  const payment = order.paymentMethod === "cash_on_delivery" ? "Cash on delivery" : order.paymentMethod === "upi_qr" ? "UPI QR" : "Online payment";
-  const html = "<!doctype html><html><head><meta charset='utf-8'><title>Bill " + escapeHtml(order._id.slice(-6)) + "</title><style>body{font:14px Arial,sans-serif;color:#202521;max-width:720px;margin:32px auto;padding:0 24px}h1{margin:0 0 4px;font-size:26px}h2{margin:26px 0 8px;font-size:16px}p{margin:5px 0;color:#59635c;line-height:1.45}.bill-head{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #174b3d;padding-bottom:18px}.bill-meta{text-align:right}.bill-meta strong{display:block;color:#174b3d}.bill-box{margin-top:22px;padding:14px;border:1px solid #dfe2d9;border-radius:10px}.bill-box h2{margin-top:0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid #e9ece6}th:nth-child(n+2),td:nth-child(n+2){text-align:right}.total{margin-top:14px;text-align:right;font-size:18px;font-weight:700}.footer{margin-top:34px;text-align:center;font-size:12px;color:#7a847c}@media print{body{margin:0;max-width:none}.no-print{display:none}}</style></head><body><div class='bill-head'><div><h1>" + escapeHtml(restaurantName) + "</h1><p>Order bill</p></div><div class='bill-meta'><strong>Order #" + escapeHtml(order._id.slice(-6)) + "</strong><span>" + escapeHtml(new Date(order.createdAt).toLocaleString("en-IN")) + "</span></div></div><div class='bill-box'><h2>Customer</h2><p><strong>" + escapeHtml(recipient?.name || order.customerId?.name || "Customer") + "</strong>" + (recipient?.phone ? " · " + escapeHtml(recipient.phone) : "") + "</p><p>" + escapeHtml(address) + "</p></div><h2>Items</h2><table><thead><tr><th>Dish</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>" + items + "</tbody></table><p class='total'>Total: " + formatRupees(order.totalPaise) + "</p><div class='bill-box'><p><strong>Payment:</strong> " + escapeHtml(payment) + " · " + escapeHtml(order.paymentStatus || "pending") + "</p><p><strong>Delivery:</strong> " + escapeHtml(order.deliveryPartnerId?.name || "Assigned delivery person") + "</p></div><p class='footer'>Thank you for ordering from " + escapeHtml(restaurantName) + ".</p><button class='no-print' onclick='window.print()'>Print bill</button></body></html>";
+  const address = order.orderType === "dine_in" ? "Dine-in · Table " + order.tableNumber : [recipient?.flatBuilding, recipient?.lane, recipient?.landmark, recipient?.pincode].filter(Boolean).join(", ") || order.deliveryAddress || "—";
+  const payment = order.paymentMethod === "cash_on_delivery" ? (order.orderType === "dine_in" ? "Cash" : "Cash on delivery") : order.paymentMethod === "upi_qr" ? "UPI QR" : "Online payment";
+  const html = "<!doctype html><html><head><meta charset='utf-8'><title>Bill " + escapeHtml(order._id.slice(-6)) + "</title><style>body{font:14px Arial,sans-serif;color:#202521;max-width:720px;margin:32px auto;padding:0 24px}h1{margin:0 0 4px;font-size:26px}h2{margin:26px 0 8px;font-size:16px}p{margin:5px 0;color:#59635c;line-height:1.45}.bill-head{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #174b3d;padding-bottom:18px}.bill-meta{text-align:right}.bill-meta strong{display:block;color:#174b3d}.bill-box{margin-top:22px;padding:14px;border:1px solid #dfe2d9;border-radius:10px}.bill-box h2{margin-top:0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid #e9ece6}th:nth-child(n+2),td:nth-child(n+2){text-align:right}.total{margin-top:14px;text-align:right;font-size:18px;font-weight:700}.footer{margin-top:34px;text-align:center;font-size:12px;color:#7a847c}@media print{body{margin:0;max-width:none}.no-print{display:none}}</style></head><body><div class='bill-head'><div><h1>" + escapeHtml(restaurantName) + "</h1><p>Order bill</p></div><div class='bill-meta'><strong>Order #" + escapeHtml(order._id.slice(-6)) + "</strong><span>" + escapeHtml(new Date(order.createdAt).toLocaleString("en-IN")) + "</span></div></div><div class='bill-box'><h2>Customer</h2><p><strong>" + escapeHtml(recipient?.name || order.customerName || order.customerId?.name || "Customer") + "</strong>" + ((recipient?.phone || order.customerPhone) ? " · " + escapeHtml(recipient?.phone || order.customerPhone) : "") + "</p><p>" + escapeHtml(address) + "</p></div><h2>Items</h2><table><thead><tr><th>Dish</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>" + items + "</tbody></table><p class='total'>Total: " + formatRupees(order.totalPaise) + "</p><div class='bill-box'><p><strong>Payment:</strong> " + escapeHtml(payment) + " · " + escapeHtml(order.paymentStatus || "pending") + "</p><p><strong>Service:</strong> " + escapeHtml(order.orderType === "dine_in" ? "Dine-in · Table " + order.tableNumber : "Delivery · " + (order.deliveryPartnerId?.name || "Assigned delivery person")) + "</p></div><p class='footer'>Thank you for ordering from " + escapeHtml(restaurantName) + ".</p><button class='no-print' onclick='window.print()'>Print bill</button></body></html>";
   printWindow.document.write(html); printWindow.document.close(); printWindow.focus();
 }
 
+function renderDineInMenuPicker(root) {
+  if (!root) return;
+  root.replaceChildren();
+  const heading = document.createElement("strong"); heading.textContent = "Dishes and quantities"; root.append(heading);
+  const available = restaurantMenuItems.filter(item => item.available !== false);
+  if (!available.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "Add an available menu item before creating a dine-in order."; root.append(empty); return; }
+  for (const item of available) {
+    const row = document.createElement("label"); row.className = "dine-in-menu-choice";
+    const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.dataset.menuItemId = item._id;
+    const title = document.createElement("span"); title.textContent = `${item.name} · ${formatRupees(item.pricePaise)}`;
+    const quantity = document.createElement("input"); quantity.type = "number"; quantity.min = "1"; quantity.max = "20"; quantity.step = "1"; quantity.value = "1"; quantity.setAttribute("aria-label", `Quantity for ${item.name}`); quantity.dataset.quantityFor = item._id;
+    row.append(checkbox, title, quantity); root.append(row);
+  }
+}
+function selectedDineInItems(form) {
+  return [...form.querySelectorAll("[data-menu-item-id]:checked")].map(checkbox => ({ menuItemId: checkbox.dataset.menuItemId, quantity: Number(form.querySelector(`[data-quantity-for="${checkbox.dataset.menuItemId}"]`)?.value || 1) }));
+}
+document.querySelector("#dine-in-order-form")?.addEventListener("submit", async event => {
+  event.preventDefault(); const form = event.currentTarget, button = form.querySelector('button[type="submit"]');
+  const values = new FormData(form); const items = selectedDineInItems(form);
+  if (!items.length) { msg.textContent = "Select at least one dish for this table."; return; }
+  button.disabled = true;
+  try {
+    const payload = { tableNumber: Number(values.get("tableNumber")), customerName: values.get("customerName"), customerPhone: values.get("customerPhone"), paymentMethod: values.get("paymentMethod"), items };
+    const { order } = await api("/orders/restaurant/dine-in", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    console.log("[dine-in] created", order._id, "table", order.tableNumber);
+    msg.textContent = `Dine-in order created for table ${order.tableNumber} · ${formatRupees(order.totalPaise)}.`;
+    form.reset(); renderDineInMenuPicker(document.querySelector("#dine-in-menu-options")); await loadOrders();
+  } catch (error) { msg.textContent = error.message; }
+  finally { button.disabled = false; }
+});
 function filterRestaurantOrders(orders) {
   const query = document.querySelector("#order-search")?.value.trim().toLocaleLowerCase() || "";
   const status = document.querySelector("#order-status-filter")?.value || "all";
@@ -546,7 +605,7 @@ function filterRestaurantOrders(orders) {
     const normalizedStatus = order.status === "confirmed" ? "placed" : order.status === "picked_up" ? "out_for_delivery" : order.status;
     if (status !== "all" && status !== normalizedStatus) return false;
     if (!query) return true;
-    const searchable = [order._id.slice(-6), order.customerId?.name, order.customerId?.email, order.deliveryDetails?.name, order.deliveryDetails?.phone, order.items.map(item => item.name).join(" ")].filter(Boolean).join(" ").toLocaleLowerCase();
+    const searchable = [order._id.slice(-6), order.tableNumber, order.customerName, order.customerPhone, order.customerId?.name, order.customerId?.email, order.deliveryDetails?.name, order.deliveryDetails?.phone, order.items.map(item => item.name).join(" ")].filter(Boolean).join(" ").toLocaleLowerCase();
     return searchable.includes(query);
   });
 }
@@ -569,19 +628,34 @@ async function loadOrders(fetchLatest = true) {
     const deliveryPartnerText = order.deliveryPartnerId
       ? `Delivery person: ${order.deliveryPartnerId.name} · ${order.deliveryPartnerId.phone || "No phone on account"} · ${order.deliveryAssignmentStatus === "accepted" ? "Accepted" : order.deliveryAssignmentStatus === "offered" ? "Waiting for acceptance" : "Assigned"}`
       : order.deliveryAssignmentStatus === "unassigned" ? "No delivery person has accepted yet" : "Delivery person not assigned yet";
+    const dineIn = order.orderType === "dine_in";
     const paymentLabel = order.paymentMethod === "cash_on_delivery"
-      ? "Cash on delivery"
+      ? (dineIn ? "Cash" : "Cash on delivery")
       : order.paymentMethod === "upi_qr"
-        ? "UPI QR selected (not collected)"
-        : "Online payment selected (not collected)";
-    const paymentStatus = order.paymentStatus === "paid" ? "Paid" : order.paymentStatus === "failed" ? "Failed" : order.paymentStatus === "refunded" ? "Refunded" : order.paymentMethod === "cash_on_delivery" ? "Unpaid · due on delivery" : "Not paid · preference only";
+        ? (dineIn ? "UPI" : "UPI QR selected (not collected)")
+        : (dineIn ? "Card / online" : "Online payment selected (not collected)");
+    const paymentStatus = order.paymentStatus === "paid" ? "Paid" : order.paymentStatus === "failed" ? "Failed" : order.paymentStatus === "refunded" ? "Refunded" : dineIn ? "Unpaid" : order.paymentMethod === "cash_on_delivery" ? "Unpaid · due on delivery" : "Not paid · preference only";
     const receivedLabel = order.customerReceivedAt ? `Customer confirmed receipt ${new Date(order.customerReceivedAt).toLocaleString("en-IN")}` : "Awaiting customer receipt confirmation";
     const statusLabels = { placed: "Order placed", confirmed: "Order placed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Out for delivery", delivered: "Delivery done", cancelled: "Cancelled" };
-    card.innerHTML = `<h3>Order ${escapeHtml(order._id.slice(-6))}</h3><p>${escapeHtml(order.customerId?.name || "Customer")} · ${escapeHtml(order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<p>${escapeHtml(itemText)}</p><p>Address: ${escapeHtml(order.deliveryAddress)}</p>${order.deliveryDetails?.deliveryAreaName ? `<p>Delivery area: ${escapeHtml(order.deliveryDetails.deliveryAreaName)}</p>` : ""}<p>${escapeHtml(deliveryPartnerText)}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replace("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
-    if (order.deliveryAssignmentStatus === "accepted") {
+    const orderLabel = dineIn ? `Table ${order.tableNumber} · Order ${order._id.slice(-6)}` : `Order ${order._id.slice(-6)}`;
+    const customerLabel = order.customerName || order.customerId?.name || "Customer";
+    const addressLabel = dineIn ? "" : `<p>Address: ${escapeHtml(order.deliveryAddress || "—")}</p>`;
+    const deliveryLabel = dineIn ? "" : `<p>${escapeHtml(deliveryPartnerText)}</p>`;
+    const dineInStatus = dineIn && order.paymentStatus === "paid" ? "Paid · table closed" : statusLabels[order.status] || order.status.replace("_", " ");
+    card.innerHTML = `<h3>${escapeHtml(orderLabel)}</h3><p>${escapeHtml(customerLabel)} · ${escapeHtml(order.customerPhone || recipient?.phone || order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<p>${escapeHtml(itemText)}</p>${addressLabel}${order.deliveryDetails?.deliveryAreaName ? `<p>Delivery area: ${escapeHtml(order.deliveryDetails.deliveryAreaName)}</p>` : ""}${deliveryLabel}<p><strong>${escapeHtml(dineInStatus)}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${!dineIn && ["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
+    if (order.deliveryAssignmentStatus === "accepted" || (order.orderType === "dine_in" && restaurantStaffRole !== "viewer")) {
       const printButton = document.createElement("button"); printButton.type = "button";
       printButton.className = "secondary order-print-bill"; printButton.textContent = "Print bill";
       printButton.addEventListener("click", () => printRestaurantOrderBill(order)); card.append(printButton);
+    }
+    if (order.orderType === "dine_in" && restaurantStaffRole !== "viewer" && order.paymentStatus !== "paid" && order.status !== "cancelled") {
+      const addForm = document.createElement("form"); addForm.className = "dine-in-add-items";
+      const picker = document.createElement("div"); picker.className = "dine-in-menu-options"; renderDineInMenuPicker(picker);
+      const addButton = document.createElement("button"); addButton.type = "submit"; addButton.textContent = "Add selected dishes"; addForm.append(picker, addButton);
+      addForm.addEventListener("submit", async event => { event.preventDefault(); const items = selectedDineInItems(addForm); if (!items.length) { msg.textContent = "Select at least one dish to add."; return; } addButton.disabled = true; try { await api(`/orders/restaurant/${encodeURIComponent(order._id)}/items`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items }) }); console.log("[dine-in] items added", order._id); await loadOrders(); } catch (error) { msg.textContent = error.message; addButton.disabled = false; } }); card.append(addForm);
+      const paymentForm = document.createElement("form"); paymentForm.className = "dine-in-payment-form";
+      paymentForm.innerHTML = `<label>Payment method <select name="paymentMethod"><option value="cash_on_delivery">Cash</option><option value="upi_qr">UPI</option><option value="online">Card / online</option></select></label><button type="submit">Mark bill paid</button>`;
+      paymentForm.addEventListener("submit", async event => { event.preventDefault(); const button = paymentForm.querySelector("button"); button.disabled = true; try { await api(`/orders/restaurant/${encodeURIComponent(order._id)}/payment`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentMethod: new FormData(paymentForm).get("paymentMethod") }) }); console.log("[dine-in] payment recorded", order._id); await loadOrders(); } catch (error) { msg.textContent = error.message; button.disabled = false; } }); card.append(paymentForm);
     }
     if (order.deliveryAssignmentStatus === "offered") {
       const note = document.createElement("p");
@@ -636,6 +710,7 @@ async function loadOrders(fetchLatest = true) {
       card.append(section);
     }
     const next = { placed: ["preparing", "cancelled"], confirmed: ["preparing", "cancelled"], preparing: ["ready", "cancelled"], ready: ["out_for_delivery"] }[order.status] || [];
+    if (dineIn) { const deliveryAction = next.indexOf("out_for_delivery"); if (deliveryAction >= 0) next.splice(deliveryAction, 1); }
     if (order.deliveryAssignmentStatus && order.deliveryAssignmentStatus !== "accepted") {
       const deliveryIndex = next.indexOf("out_for_delivery");
       if (deliveryIndex >= 0) next.splice(deliveryIndex, 1);
@@ -739,6 +814,7 @@ async function initializeRestaurantDashboard() {
     document.querySelector(".restaurant-page-heading .eyebrow").textContent = "RESTAURANT STAFF WORKSPACE";
   }
   if (restaurantStaffRole) {
+    document.querySelector("#subscription-nav").hidden = true;
     const allowedViews = restaurantStaffRole === "secondary_admin"
       ? ["overview", "menu", "hours", "delivery-areas", "reviews", "orders", "reports", "notifications"]
       : ["overview", "menu", "reviews", "orders", "notifications"];
@@ -748,11 +824,15 @@ async function initializeRestaurantDashboard() {
     document.querySelectorAll("[data-restaurant-section]").forEach(section => {
       if (!allowedViews.includes(section.dataset.restaurantSection)) section.hidden = true;
     });
-    if (restaurantStaffRole === "viewer") document.querySelector("#menu-form").hidden = true;
+    if (restaurantStaffRole === "viewer") { document.querySelector("#menu-form").hidden = true; document.querySelector("#dine-in-order-form").hidden = true; }
   } else if (user.role === "restaurant") {
     document.querySelector("#staff-management-panel").hidden = false;
     document.querySelector("#staff-management-panel-list").hidden = false;
     await loadStaffAccounts();
+  }
+  if (!restaurantStaffRole) {
+    const expired = await loadOwnSubscription();
+    if (expired) { showRestaurantView("subscription"); msg.textContent = "This subscription has expired. Request renewal to restore restaurant access."; return; }
   }
   showRestaurantView("overview");
   const dashboardLoads = [loadMenu(), loadOrders(), loadReviews(), loadNotifications()];
