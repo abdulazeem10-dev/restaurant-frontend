@@ -407,7 +407,7 @@ async function loadMenu() {
   else { toggle.hidden = true; }
   const foodFilter = document.querySelector("#owner-food-filter").value;
   const visibleItems = foodFilter === "all" ? items : items.filter(item => item.foodType === foodFilter);
-  const menuCategories = ["Indian", "North Indian", "South Indian", "Chinese", "Italian", "Pizza", "Fast Food", "Burger", "Biryani", "Noodles", "Rolls", "Shawarma", "Vada", "Dosa", "Momo", "Desserts", "Salads", "Other"];
+  const menuCategories = ["Indian", "North Indian", "South Indian", "Maharashtrian", "Chinese", "Italian", "Pizza", "Fast Food", "Burger", "Biryani", "Noodles", "Rolls", "Shawarma", "Vada", "Dosa", "Momo", "Desserts", "Salads", "Other"];
   for (const item of visibleItems) {
     const card = document.createElement("article");
     const currentCategory = item.category || "Other";
@@ -669,19 +669,125 @@ function printRestaurantOrderBill(order) {
 
 function renderDineInMenuPicker(root) {
   if (!root) return;
+  const previouslySelected = new Map(selectedDineInItems(root).map(item => [item.menuItemId, item.quantity]));
+  root.dineInSelectedQuantities = previouslySelected;
   root.replaceChildren();
-  const heading = document.createElement("strong"); heading.textContent = "Dishes and quantities"; root.append(heading);
+  const heading = document.createElement("strong");
+  heading.textContent = "Dishes and quantities";
+  root.append(heading);
+
   const available = restaurantMenuItems.filter(item => item.available !== false);
-  if (!available.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "Add an available menu item before creating a dine-in order."; root.append(empty); return; }
-  for (const item of available) {
-    const row = document.createElement("label"); row.className = "dine-in-menu-choice";
-    const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.dataset.menuItemId = item._id;
-    const title = document.createElement("span"); title.textContent = `${item.name} · ${formatRupees(item.pricePaise)}`;
-    const quantity = document.createElement("input"); quantity.type = "number"; quantity.min = "1"; quantity.max = "20"; quantity.step = "1"; quantity.value = "1"; quantity.setAttribute("aria-label", `Quantity for ${item.name}`); quantity.dataset.quantityFor = item._id;
-    row.append(checkbox, title, quantity); root.append(row);
+  const filters = document.createElement("div");
+  filters.className = "dine-in-menu-filters";
+  const search = document.createElement("input");
+  search.type = "search";
+  search.className = "dine-in-dish-search";
+  search.placeholder = "Search all dishes…";
+  search.setAttribute("aria-label", "Search dine-in dishes");
+  search.autocomplete = "off";
+  const categoryLabel = document.createElement("label");
+  categoryLabel.textContent = "Cuisine / category";
+  const category = document.createElement("select");
+  category.setAttribute("aria-label", "Filter dishes by cuisine or category");
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = "All categories";
+  category.append(allOption);
+  const standardCategories = ["South Indian", "North Indian", "Maharashtrian", "Vada Pav & Snacks", "Breakfast Specials", "Beverages", "Other"];
+  const actualCategories = restaurantMenuItems.map(item => item.category).filter(Boolean);
+  const categoryMap = new Map();
+  for (const value of [...standardCategories, ...actualCategories]) {
+    const normalized = value.trim().toLocaleLowerCase();
+    if (normalized && !categoryMap.has(normalized)) categoryMap.set(normalized, value.trim());
   }
+  for (const value of [...categoryMap.values()].sort((a, b) => a.localeCompare(b, "en"))) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    category.append(option);
+  }
+  categoryLabel.append(category);
+  filters.append(search, categoryLabel);
+  root.append(filters);
+
+  const list = document.createElement("div");
+  list.className = "dine-in-menu-list";
+  root.append(list);
+  const summary = document.createElement("p");
+  summary.className = "muted dine-in-selection-summary";
+  summary.setAttribute("aria-live", "polite");
+  root.append(summary);
+  const updateSummary = () => {
+    const selected = [...previouslySelected.entries()];
+    const quantityTotal = selected.reduce((sum, [, quantity]) => sum + quantity, 0);
+    const amountPaise = selected.reduce((sum, [id, quantity]) => sum + (restaurantMenuItems.find(item => String(item._id) === id)?.pricePaise || 0) * quantity, 0);
+    summary.textContent = quantityTotal ? `${quantityTotal} dish(es) selected · Estimated total ${formatRupees(amountPaise)}` : "Select dishes to see the running total.";
+  };
+  const renderItems = () => {
+    const query = search.value.trim().toLocaleLowerCase();
+    const selectedCategory = category.value;
+    const items = available.filter(item => {
+      const matchesSearch = !query || [item.name, item.category, item.description].filter(Boolean).join(" ").toLocaleLowerCase().includes(query);
+      const matchesCategory = selectedCategory === "all" || item.category?.toLocaleLowerCase() === selectedCategory.toLocaleLowerCase();
+      return matchesSearch && matchesCategory;
+    });
+    list.replaceChildren();
+    if (!restaurantMenuItems.length) {
+      const empty = document.createElement("p");
+      empty.className = "muted";
+      empty.textContent = "There are no dishes in the restaurant menu yet. Add the dishes and prices in Menu first.";
+      const goToMenu = document.createElement("button");
+      goToMenu.type = "button";
+      goToMenu.className = "secondary";
+      goToMenu.textContent = "Open Menu";
+      goToMenu.addEventListener("click", () => showRestaurantView("menu"));
+      list.append(empty, goToMenu);
+      return;
+    }
+    if (!items.length) {
+      const empty = document.createElement("p");
+      empty.className = "muted";
+      empty.textContent = available.length ? "No available dishes match this search and category. Try All categories or update availability in Menu." : "All menu dishes are currently unavailable. Mark dishes available in Menu before ordering.";
+      list.append(empty);
+      return;
+    }
+    for (const item of items) {
+      const row = document.createElement("label");
+      row.className = "dine-in-menu-choice";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.dataset.menuItemId = item._id;
+      checkbox.checked = previouslySelected.has(String(item._id));
+      const details = document.createElement("span");
+      details.className = "dine-in-menu-item-details";
+      const title = document.createElement("strong");
+      title.textContent = item.name;
+      const meta = document.createElement("small");
+      meta.textContent = `${item.category || "Uncategorized"} · ${formatRupees(item.pricePaise)}`;
+      details.append(title, meta);
+      const quantity = document.createElement("input");
+      quantity.type = "number";
+      quantity.min = "1";
+      quantity.max = "20";
+      quantity.step = "1";
+      quantity.value = String(previouslySelected.get(String(item._id)) || 1);
+      quantity.setAttribute("aria-label", `Quantity for ${item.name}`);
+      quantity.dataset.quantityFor = item._id;
+      const updateSelectedQuantity = () => { if (checkbox.checked) previouslySelected.set(String(item._id), Number(quantity.value) || 1); };
+      checkbox.addEventListener("change", () => { if (checkbox.checked) updateSelectedQuantity(); else previouslySelected.delete(String(item._id)); updateSummary(); });
+      quantity.addEventListener("input", () => { updateSelectedQuantity(); updateSummary(); });
+      row.append(checkbox, details, quantity);
+      list.append(row);
+    }
+  };
+  search.addEventListener("input", renderItems);
+  category.addEventListener("change", renderItems);
+  renderItems();
+  updateSummary();
 }
 function selectedDineInItems(form) {
+  const picker = form.matches?.(".dine-in-menu-options") ? form : form.querySelector(".dine-in-menu-options");
+  if (picker?.dineInSelectedQuantities instanceof Map) return [...picker.dineInSelectedQuantities].map(([menuItemId, quantity]) => ({ menuItemId, quantity }));
   return [...form.querySelectorAll("[data-menu-item-id]:checked")].map(checkbox => ({ menuItemId: checkbox.dataset.menuItemId, quantity: Number(form.querySelector(`[data-quantity-for="${checkbox.dataset.menuItemId}"]`)?.value || 1) }));
 }
 document.querySelector("#dine-in-order-form")?.addEventListener("submit", async event => {
@@ -694,7 +800,8 @@ document.querySelector("#dine-in-order-form")?.addEventListener("submit", async 
     const { order } = await api("/orders/restaurant/dine-in", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     console.log("[dine-in] created", order._id, "table", order.tableNumber);
     msg.textContent = `Dine-in order created for table ${order.tableNumber} · ${formatRupees(order.totalPaise)}.`;
-    form.reset(); renderDineInMenuPicker(document.querySelector("#dine-in-menu-options")); await loadOrders();
+    const picker = document.querySelector("#dine-in-menu-options"); if (picker) picker.dineInSelectedQuantities = new Map();
+    form.reset(); renderDineInMenuPicker(picker); await loadOrders();
   } catch (error) { msg.textContent = error.message; }
   finally { button.disabled = false; }
 });
