@@ -336,8 +336,11 @@ document
   .addEventListener("submit", async event => {
     event.preventDefault();
     message.textContent = "";
-
     const restaurantForm = event.currentTarget;
+    const submitButton = restaurantForm.querySelector('button[type="submit"]');
+    const originalLabel = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = "Creating account…";
     const form = new FormData(restaurantForm);
     const fields = [
       "restaurantName", "address", "description", "imageUrl", "foodType",
@@ -354,7 +357,13 @@ document
       await loadRestaurants();
       showAdminView("restaurants");
     } catch (error) {
-      message.textContent = error.message;
+      console.error("[admin] restaurant account creation failed", error);
+      message.textContent = error.message === "Failed to fetch"
+        ? "The website cannot reach the backend. Check the backend deployment and frontend CORS setting, then try again."
+        : error.message;
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = originalLabel;
     }
   });
 
