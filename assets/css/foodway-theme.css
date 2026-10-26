@@ -144,3 +144,16 @@ body { color: var(--foodway-ink); }
 .dine-in-menu-choice input[type="number"] { min-width: 0; }
 .dine-in-add-items, .dine-in-payment-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line, #dce2d9); }
 .dine-in-payment-form { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; }
+
+.table-board-panel { margin-block: 1.25rem; }
+.table-board-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; }
+.table-board-heading h3 { margin-top:0; }
+.active-table-board { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:.8rem; }
+.active-table-card { display:grid; gap:.55rem; padding:1rem; border:1px solid var(--line,#dce2d9); border-radius:.8rem; background:#fbfcf8; }
+.active-table-card h4,.active-table-card p { margin:0; }
+.active-table-items { color:var(--muted,#68736b); line-height:1.5; }
+.active-table-total { color:var(--green,#174b3d); }
+.table-board-empty { margin:.25rem 0; }
+.table-order-highlight { outline:3px solid #d9e8a5; outline-offset:3px; }
+@media(max-width:600px) { .table-board-heading { display:block; } }
+.dine-in-payment-note { grid-column:1 / -1; margin:0; }

@@ -690,7 +690,7 @@ document.querySelector("#dine-in-order-form")?.addEventListener("submit", async 
   if (!items.length) { msg.textContent = "Select at least one dish for this table."; return; }
   button.disabled = true;
   try {
-    const payload = { tableNumber: Number(values.get("tableNumber")), customerName: values.get("customerName"), customerPhone: values.get("customerPhone"), paymentMethod: values.get("paymentMethod"), items };
+    const payload = { tableNumber: Number(values.get("tableNumber")), customerName: values.get("customerName"), customerPhone: values.get("customerPhone"), items };
     const { order } = await api("/orders/restaurant/dine-in", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     console.log("[dine-in] created", order._id, "table", order.tableNumber);
     msg.textContent = `Dine-in order created for table ${order.tableNumber} · ${formatRupees(order.totalPaise)}.`;
@@ -698,6 +698,54 @@ document.querySelector("#dine-in-order-form")?.addEventListener("submit", async 
   } catch (error) { msg.textContent = error.message; }
   finally { button.disabled = false; }
 });
+function renderActiveTableBoard(orders) {
+  const board = document.querySelector("#active-table-board");
+  if (!board) return;
+  board.replaceChildren();
+  const openOrders = orders.filter(order => order.orderType === "dine_in" && order.paymentStatus !== "paid" && !["cancelled", "delivered"].includes(order.status));
+  const byTable = new Map();
+  for (const order of openOrders) {
+    const tableNumber = Number(order.tableNumber);
+    if (!byTable.has(tableNumber)) byTable.set(tableNumber, []);
+    byTable.get(tableNumber).push(order);
+  }
+  if (!byTable.size) {
+    const empty = document.createElement("p");
+    empty.className = "muted table-board-empty";
+    empty.textContent = "No open tables. Start a dine-in order below when a customer is seated.";
+    board.append(empty);
+    return;
+  }
+  for (const [tableNumber, tableOrders] of [...byTable.entries()].sort((a, b) => a[0] - b[0])) {
+    const table = document.createElement("article");
+    table.className = "active-table-card";
+    const heading = document.createElement("h4");
+    heading.textContent = `Table ${tableNumber}`;
+    const dishes = document.createElement("p");
+    dishes.className = "active-table-items";
+    dishes.textContent = tableOrders.flatMap(order => order.items.map(item => `${item.quantity} × ${item.name}`)).join(", ");
+    const total = document.createElement("strong");
+    total.className = "active-table-total";
+    total.textContent = `Running total: ${formatRupees(tableOrders.reduce((sum, order) => sum + order.totalPaise, 0))}`;
+    const manage = document.createElement("button");
+    manage.type = "button";
+    manage.textContent = tableOrders.length > 1 ? `Manage ${tableOrders.length} orders` : "Manage table";
+    manage.addEventListener("click", () => {
+      const search = document.querySelector("#order-search");
+      const statusFilter = document.querySelector("#order-status-filter");
+      if (search) search.value = "";
+      if (statusFilter) statusFilter.value = "all";
+      loadOrders(false);
+      const target = document.querySelector(`[data-order-id="${CSS.escape(String(tableOrders[0]._id))}"]`);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      target?.classList.add("table-order-highlight");
+      window.setTimeout(() => target?.classList.remove("table-order-highlight"), 1600);
+    });
+    table.append(heading, dishes, total);
+    if (restaurantStaffRole !== "viewer") table.append(manage);
+    board.append(table);
+  }
+}
 function filterRestaurantOrders(orders) {
   const query = document.querySelector("#order-search")?.value.trim().toLocaleLowerCase() || "";
   const status = document.querySelector("#order-status-filter")?.value || "all";
@@ -716,11 +764,12 @@ async function loadOrders(fetchLatest = true) {
     restaurantOrdersCache = data.orders || [];
   }
   const orders = restaurantOrdersCache; const root = document.querySelector("#orders"); root.replaceChildren();
+  renderActiveTableBoard(orders);
   const visibleOrders = filterRestaurantOrders(orders);
   const count = document.querySelector("#order-filter-count");
   if (count) count.textContent = `${visibleOrders.length} of ${orders.length} orders`;
   for (const order of visibleOrders) {
-    const card = document.createElement("article"); const itemText = order.items.map(item => `${item.quantity} × ${item.name}`).join(", ");
+    const card = document.createElement("article"); card.dataset.orderId = String(order._id); const itemText = order.items.map(item => `${item.quantity} × ${item.name}`).join(", ");
     const recipient = order.deliveryDetails;
     const recipientText = recipient
       ? `${recipient.recipientType === "other" ? "Deliver to" : "Recipient"}: ${recipient.name} · ${recipient.phone}`
@@ -755,7 +804,7 @@ async function loadOrders(fetchLatest = true) {
       addForm.addEventListener("submit", async event => { event.preventDefault(); const items = selectedDineInItems(addForm); if (!items.length) { msg.textContent = "Select at least one dish to add."; return; } addButton.disabled = true; try { await api(`/orders/restaurant/${encodeURIComponent(order._id)}/items`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items }) }); console.log("[dine-in] items added", order._id); await loadOrders(); } catch (error) { msg.textContent = error.message; addButton.disabled = false; } }); card.append(addForm);
       const paymentForm = document.createElement("form"); paymentForm.className = "dine-in-payment-form";
       paymentForm.innerHTML = `<label>Payment method <select name="paymentMethod"><option value="cash_on_delivery">Cash</option><option value="upi_qr">UPI</option><option value="online">Card / online</option></select></label><button type="submit">Mark bill paid</button>`;
-      paymentForm.addEventListener("submit", async event => { event.preventDefault(); const button = paymentForm.querySelector("button"); button.disabled = true; try { await api(`/orders/restaurant/${encodeURIComponent(order._id)}/payment`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentMethod: new FormData(paymentForm).get("paymentMethod") }) }); console.log("[dine-in] payment recorded", order._id); await loadOrders(); } catch (error) { msg.textContent = error.message; button.disabled = false; } }); card.append(paymentForm);
+      paymentForm.addEventListener("submit", async event => { event.preventDefault(); const button = paymentForm.querySelector("button"); const paymentMethod = new FormData(paymentForm).get("paymentMethod"); const methodLabel = paymentMethod === "cash_on_delivery" ? "cash" : paymentMethod === "upi_qr" ? "UPI" : "card / online"; if (!window.confirm(`Confirm you received ${formatRupees(order.totalPaise)} from Table ${order.tableNumber} via ${methodLabel}?`)) return; button.disabled = true; try { const result = await api(`/orders/restaurant/${encodeURIComponent(order._id)}/payment`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paymentMethod }) }); console.log("[dine-in] payment recorded", { orderId: order._id, totalPaise: result.order?.totalPaise, method: paymentMethod, status: 200 }); msg.textContent = `Table ${order.tableNumber} bill paid · ${formatRupees(result.order.totalPaise)}.`; await loadOrders(); } catch (error) { msg.textContent = error.message; button.disabled = false; } }); card.append(paymentForm);
     }
     if (order.deliveryAssignmentStatus === "offered") {
       const note = document.createElement("p");
