@@ -20,10 +20,21 @@ function showAdminView(view) {
 }
 
 document.querySelectorAll("[data-admin-view]").forEach(button => {
-  button.addEventListener("click", () => showAdminView(button.dataset.adminView));
+  button.addEventListener("click", async () => {
+    const view = button.dataset.adminView;
+    showAdminView(view);
+    if (view === "restaurants") {
+      try { await loadRestaurants(); }
+      catch (error) { console.error("[admin] restaurant list refresh failed", error); document.querySelector("#restaurants").textContent = "Could not load restaurant accounts: " + error.message; const status = document.querySelector("#restaurants-status"); if (status) status.textContent = error.message; message.textContent = error.message; }
+    }
+  });
 });
 document.querySelectorAll("[data-open-admin-view]").forEach(button => {
-  button.addEventListener("click", () => showAdminView(button.dataset.openAdminView));
+  button.addEventListener("click", async () => {
+    const view = button.dataset.openAdminView;
+    showAdminView(view);
+    if (view === "restaurants") { try { await loadRestaurants(); } catch (error) { document.querySelector("#restaurants").textContent = "Could not load restaurant accounts: " + error.message; const status = document.querySelector("#restaurants-status"); if (status) status.textContent = error.message; message.textContent = error.message; } }
+  });
 });
 
 if (!getToken()) {
@@ -68,8 +79,12 @@ async function updateRestaurantStatus(restaurantId, status) {
 }
 
 async function loadRestaurants() {
-  const { restaurants } = await adminRequest("/admin/restaurants");
   const root = document.querySelector("#restaurants");
+  const status = document.querySelector("#restaurants-status");
+  if (status) status.textContent = "Loading restaurant accounts…";
+  root.replaceChildren();
+  const { restaurants } = await adminRequest("/admin/restaurants");
+  console.log("[admin] restaurant list loaded", restaurants.length);
 
   document.querySelector("#stat-total").textContent = restaurants.length;
   document.querySelector("#stat-approved").textContent = restaurants.filter(item => item.status === "approved").length;
@@ -327,8 +342,9 @@ async function loadRestaurants() {
   }
 
   if (!restaurants.length) {
-    root.textContent = "No restaurants onboarded yet.";
+    root.textContent = "No restaurants found. Create a restaurant account, then refresh this list.";
   }
+  if (status) status.textContent = restaurants.length ? restaurants.length + " restaurant account(s)." : "No restaurant accounts yet.";
 }
 
 document
@@ -347,17 +363,25 @@ document
       "cuisine", "ownerName", "email", "phone", "subscriptionYears", "password"
     ];
     const body = Object.fromEntries(fields.map(key => [key, form.get(key)]));
+    let accountCreated = false;
     try {
       await adminRequest("/admin/restaurants", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       });
+      accountCreated = true;
       restaurantForm.reset();
       message.textContent = "Restaurant owner account created with its subscription. The restaurant is pending approval.";
       await loadRestaurants();
       showAdminView("restaurants");
     } catch (error) {
       console.error("[admin] restaurant account creation failed", error);
+      if (accountCreated) {
+        showAdminView("restaurants");
+        document.querySelector("#restaurants").textContent = "The account was created, but the list did not refresh. Use Refresh restaurant list.";
+        message.textContent = "Account created; list refresh failed: " + error.message;
+        return;
+      }
       message.textContent = error.message === "Failed to fetch"
         ? "The website cannot reach the backend. Check the backend deployment and frontend CORS setting, then try again."
         : error.message;
@@ -368,8 +392,15 @@ document
   });
 
 loadRestaurants().catch(error => {
-  message.textContent =
-    `${error.message}. Sign in with an admin account.`;
+  message.textContent = `${error.message}. Sign in with an admin account.`;
+  const status = document.querySelector("#restaurants-status"); if (status) status.textContent = error.message;
+  const root = document.querySelector("#restaurants"); if (root) root.textContent = "Could not load restaurant accounts: " + error.message;
+});
+document.querySelector("#refresh-restaurants")?.addEventListener("click", async event => {
+  const button = event.currentTarget; button.disabled = true;
+  try { await loadRestaurants(); message.textContent = "Restaurant list refreshed."; }
+  catch (error) { console.error("[admin] restaurant list refresh failed", error); document.querySelector("#restaurants").textContent = "Could not load restaurant accounts: " + error.message; const status = document.querySelector("#restaurants-status"); if (status) status.textContent = error.message; message.textContent = error.message; }
+  finally { button.disabled = false; }
 });
 
 showAdminView("overview");
