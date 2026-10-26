@@ -12,7 +12,7 @@ const restaurantViewInfo = {
   "delivery-areas": ["Delivery areas", "Name the neighbourhoods you serve and assign their PIN codes."],
   "delivery-team": ["Delivery team", "Create and manage this restaurant’s delivery logins."],
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
-  subscription: ["Subscription", "View the current access term and request an extension."],
+  subscription: ["Subscription", "View your access term and renew securely online."],
   reviews: ["Customer reviews", "Read feedback from your customers."],
   orders: ["Incoming orders", "Manage dine-in table bills and customer delivery orders."],
   reports: ["Sales reports", "Track paid sales, completed orders, and best-selling dishes."],
@@ -46,26 +46,71 @@ async function api(path, options = {}) {
 async function loadOwnSubscription() {
   const { subscription } = await api("/restaurants/owner/subscription");
   const summary = document.querySelector("#subscription-summary");
-  const requestStatus = document.querySelector("#subscription-request-status");
-  if (!subscription) { summary.textContent = "No subscription record is on file. Contact the platform administrator."; return false; }
+  const status = document.querySelector("#subscription-payment-status");
+  const form = document.querySelector("#subscription-payment-form");
+  if (!subscription) { summary.textContent = "No subscription record is on file. Contact the platform administrator."; form.hidden = true; return false; }
   const end = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
   const expired = subscription.status !== "active" || !end || end <= new Date();
   summary.textContent = `Status: ${expired ? "Expired" : "Active"} · ${subscription.termYears || "—"} year(s) · Expires ${end ? end.toLocaleDateString("en-IN") : "date not set"}`;
-  const pending = subscription.renewalRequest?.status === "pending";
-  requestStatus.textContent = pending ? `Renewal request for ${subscription.renewalRequest.years} year(s) sent ${subscription.renewalRequest.requestedAt ? new Date(subscription.renewalRequest.requestedAt).toLocaleDateString("en-IN") : ""}. Waiting for the platform administrator.` : "";
-  document.querySelector("#subscription-renewal-form button").disabled = pending;
+  if (status) status.textContent = "";
   return expired;
 }
-document.querySelector("#subscription-renewal-form")?.addEventListener("submit", async event => {
+
+function loadRazorpayCheckout() {
+  if (window.Razorpay) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("Razorpay checkout could not load. Check your internet connection."));
+    document.head.append(script);
+  });
+}
+
+document.querySelector("#subscription-payment-form")?.addEventListener("change", event => {
+  if (event.target.name !== "years") return;
+  const price = { 1: 5000, 2: 9000, 3: 12000 }[Number(event.target.value)];
+  event.currentTarget.querySelector("button[type=submit]").textContent = `Continue to payment · ₹${price.toLocaleString("en-IN")}`;
+});
+
+document.querySelector("#subscription-payment-form")?.addEventListener("submit", async event => {
   event.preventDefault();
-  const form = event.currentTarget, button = form.querySelector("button"); button.disabled = true;
+  const form = event.currentTarget;
+  const button = form.querySelector("button[type=submit]");
+  const status = document.querySelector("#subscription-payment-status");
+  button.disabled = true;
+  status.textContent = "Preparing secure payment…";
   try {
+    await loadRazorpayCheckout();
     const years = Number(new FormData(form).get("years"));
-    const result = await api("/restaurants/owner/subscription/renewal-request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ years }) });
-    console.log("[restaurant subscription] renewal request", result.subscription?.renewalRequest?.status);
-    msg.textContent = "Renewal request sent to the platform administrator.";
-    await loadOwnSubscription();
-  } catch (error) { msg.textContent = error.message; button.disabled = false; }
+    const order = await api("/restaurants/owner/subscription/payment/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ years }) });
+    console.log("[restaurant subscription] checkout order created", { status: 200, years, amount: order.amount });
+    const checkout = new window.Razorpay({
+      key: order.keyId, amount: order.amount, currency: order.currency, name: "Sunrise Tiffin House",
+      description: `${years}-year restaurant subscription · ₹${(order.amount / 100).toLocaleString("en-IN")}`,
+      order_id: order.razorpayOrderId,
+      handler: async response => {
+        status.textContent = "Payment received. Verifying it securely…";
+        try {
+          const result = await api("/restaurants/owner/subscription/payment/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(response) });
+          console.log("[restaurant subscription] payment verification", { status: 200, paid: result.paid });
+          if (!result.paid) throw new Error(result.error || "Payment is still being confirmed. Refresh the subscription page shortly.");
+          status.textContent = `Payment successful. Subscription active until ${new Date(result.expiresAt).toLocaleDateString("en-IN")}.`;
+          msg.textContent = status.textContent;
+          await loadOwnSubscription();
+        } catch (error) { console.error("[restaurant subscription] verification failed", error); status.textContent = error.message; }
+        finally { button.disabled = false; }
+      },
+      modal: { ondismiss: () => { status.textContent = "Payment was not completed. You can try again when ready."; button.disabled = false; } },
+      theme: { color: "#174638" }
+    });
+    checkout.on("payment.failed", response => { console.error("[restaurant subscription] payment failed", response.error?.code); status.textContent = response.error?.description || "Payment failed. Please try again."; button.disabled = false; });
+    checkout.open();
+  } catch (error) {
+    console.error("[restaurant subscription] checkout error", error);
+    status.textContent = error.message;
+    button.disabled = false;
+  }
 });
 async function loadNotifications() {
   const { notifications, unreadCount } = await api("/notifications/mine");
@@ -887,7 +932,7 @@ async function initializeRestaurantDashboard() {
   }
   if (!restaurantStaffRole) {
     const expired = await loadOwnSubscription();
-    if (expired) { showRestaurantView("subscription"); msg.textContent = "This subscription has expired. Request renewal to restore restaurant access."; return; }
+    if (expired) { showRestaurantView("subscription"); msg.textContent = "This subscription has expired. Choose a term and complete payment to restore restaurant access."; return; }
   }
   showRestaurantView("overview");
   const dashboardLoads = [loadMenu(), loadOrders(), loadReviews(), loadNotifications()];
