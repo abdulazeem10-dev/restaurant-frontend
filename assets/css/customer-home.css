@@ -359,8 +359,9 @@
 .customer-page .recent-orders-heading p.muted { margin: .3rem 0 0; }
 .customer-page .text-link { color: var(--foodway-green); font-weight: 750; text-decoration: none; white-space: nowrap; }
 .customer-page .recent-orders-track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
-.customer-page .recent-order-card { display: grid; min-height: 125px; gap: .45rem; padding: 1rem; border: 1px solid #dfe6dc; border-radius: 16px; background: linear-gradient(145deg, #fff, #f5f8f1); color: var(--foodway-ink); text-decoration: none; box-shadow: 0 5px 18px #20252108; transition: transform .2s ease, border-color .2s ease; }
+.customer-page .recent-order-card { display: grid; min-width: 0; min-height: 112px; grid-template-columns: 76px minmax(0, 1fr); grid-template-rows: auto auto 1fr; align-items: center; column-gap: .85rem; row-gap: .35rem; padding: .85rem; border: 1px solid #dfe6dc; border-radius: 16px; background: linear-gradient(145deg, #fff, #f5f8f1); color: var(--foodway-ink); text-decoration: none; box-shadow: 0 5px 18px #20252108; transition: transform .2s ease, border-color .2s ease; }
 .customer-page .recent-order-card:hover { transform: translateY(-2px); border-color: #98b897; }
+.customer-page .recent-order-image { width: 76px; height: 76px; grid-column: 1; grid-row: 1 / 4; border-radius: 12px; background: #edf3e8; object-fit: cover; }
 .customer-page .recent-order-card strong { overflow: hidden; font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
 .customer-page .recent-order-card > span:not(.recent-order-action) { display: -webkit-box; overflow: hidden; color: var(--foodway-muted); font-size: .8rem; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .customer-page .recent-order-action { align-self: end; color: var(--foodway-green); font-size: .82rem; font-weight: 750; }

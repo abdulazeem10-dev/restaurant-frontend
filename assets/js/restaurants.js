@@ -95,10 +95,18 @@ function renderRecentOrders(orders = []) {
   section.hidden = false;
   track.replaceChildren(...recent.map(order => {
     const card = document.createElement("a"); card.className = "recent-order-card"; card.href = `menu.html?id=${encodeURIComponent(currentRestaurant._id)}`;
+    const firstDish = (order.items || [])[0];
+    const firstDishId = firstDish?.menuItemId?._id || firstDish?.menuItemId;
+    const menuDish = allMenuItems.find(item => String(item._id) === String(firstDishId))
+      || allMenuItems.find(item => item.name?.trim().toLocaleLowerCase() === firstDish?.name?.trim().toLocaleLowerCase());
+    const fallbackImage = cuisineImageFor(menuDish || { category: firstDish?.category || firstDish?.name });
+    const image = document.createElement("img"); image.className = "recent-order-image"; image.src = menuDish?.imageUrl || firstDish?.imageUrl || fallbackImage;
+    image.alt = firstDish?.name ? `${firstDish.name} dish` : "Sunrise Tiffin House dish"; image.loading = "lazy"; image.decoding = "async";
+    image.addEventListener("error", () => { if (image.dataset.fallbackApplied) image.remove(); else { image.dataset.fallbackApplied = "true"; image.src = fallbackImage; } });
     const name = document.createElement("strong"); name.textContent = brandName;
     const items = document.createElement("span"); items.textContent = (order.items || []).slice(0, 2).map(item => `${item.quantity} × ${item.name}`).join(" · ") || "View the current menu";
     const action = document.createElement("span"); action.className = "recent-order-action"; action.textContent = "View menu →";
-    card.append(name, items, action); return card;
+    card.append(image, name, items, action); return card;
   }));
 }
 async function loadRecentOrders() {
