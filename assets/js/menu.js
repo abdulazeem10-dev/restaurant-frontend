@@ -1,4 +1,5 @@
 const restaurantId = new URLSearchParams(location.search).get("id");
+const RESTAURANT_BRAND = "Sunrise Tiffin House";
 const menuRoot = document.querySelector("#menu-items");
 const categoryRoot = document.querySelector("#category-nav");
 const menuFoodButtons = [...document.querySelectorAll("[data-menu-food]")];
@@ -92,7 +93,7 @@ async function loadReviews() {
 function addMenuItem(item, button) {
   let cart = readCart();
   if (cart && cart.restaurantId !== restaurantId) {
-    if (!confirm("Your cart has items from another restaurant. Clear it and start this order?")) return;
+    if (!confirm("Your cart has dishes from a different menu. Clear it and start this order?")) return;
     cart = null;
   }
   cart ||= { restaurantId, restaurantName: currentRestaurant.name, items: [] };
@@ -171,7 +172,7 @@ function renderMenu(items, restaurant, filter = "all") {
       price.textContent = formatRupees(item.pricePaise);
       const description = document.createElement("p");
       description.className = "muted";
-      description.textContent = item.description || "Prepared fresh by the restaurant.";
+      description.textContent = item.description || "Prepared fresh at Sunrise Tiffin House.";
       info.append(title);
       if (item.foodType === "veg" || item.foodType === "nonVeg") info.append(typeBadge);
       info.append(price, description);
@@ -190,7 +191,7 @@ function renderMenu(items, restaurant, filter = "all") {
   if (!items.length) {
     const emptyTitle = filter === "all" ? "Menu coming soon" : `No ${filter === "veg" ? "Veg" : "Non-Veg"} dishes listed`;
     const emptyMessage = filter === "all"
-      ? "This restaurant hasn’t added available dishes yet."
+      ? "Sunrise Tiffin House has no available dishes listed yet."
       : "Try another food filter or check back later.";
     menuRoot.innerHTML = `<div class="empty-state"><h3>${emptyTitle}</h3><p>${emptyMessage}</p></div>`;
   }
@@ -200,8 +201,8 @@ async function loadStorefront() {
   const error = document.querySelector("#error");
   const storefrontHero = document.querySelector(".storefront-hero");
   if (!restaurantId) {
-    error.textContent = "Choose a restaurant from the restaurant list.";
-    document.querySelector("#restaurant-name").textContent = "Choose a restaurant";
+    error.textContent = "Open the Sunrise Tiffin House menu from the home page.";
+    document.querySelector("#restaurant-name").textContent = "Sunrise Tiffin House";
     storefrontHero.setAttribute("aria-busy", "false");
     return;
   }
@@ -210,35 +211,21 @@ async function loadStorefront() {
       fetch(`${API_BASE}/restaurants/${encodeURIComponent(restaurantId)}`),
       fetch(`${API_BASE}/restaurants/${encodeURIComponent(restaurantId)}/menu`)
     ]);
-    if (!restaurantResponse.ok || !menuResponse.ok) throw new Error("This restaurant is not available right now.");
-    const { restaurant } = await restaurantResponse.json();
+    if (!restaurantResponse.ok || !menuResponse.ok) throw new Error("Sunrise Tiffin House is not available right now.");
+    const { restaurant: restaurantData } = await restaurantResponse.json();
+    const restaurant = { ...restaurantData, name: RESTAURANT_BRAND };
     const { items } = await menuResponse.json();
     currentRestaurant = restaurant;
-    if (restaurant.imageUrl) {
-      const restaurantArt = document.querySelector(".storefront-art");
-      restaurantArt.classList.add("has-image");
-      restaurantArt.replaceChildren();
-      const restaurantImage = document.createElement("img");
-      restaurantImage.src = restaurant.imageUrl;
-      restaurantImage.alt = "";
-      restaurantImage.loading = "lazy";
-      restaurantImage.addEventListener("error", () => restaurantImage.remove(), { once: true });
-      restaurantArt.append(restaurantImage);
-    }
-    document.title = `${restaurant.name} menu | Foodway`;
+    document.title = `${restaurant.name} menu | Sunrise Tiffin House`;
     document.querySelector("#restaurant-name").textContent = restaurant.name;
     document.querySelector("#crumb-name").textContent = restaurant.name;
-    document.querySelector("#restaurant-description").textContent = restaurant.description || "Good food, made fresh by your local kitchen.";
-    document.querySelector("#restaurant-address").textContent = restaurant.address;
+    document.querySelector("#restaurant-description").textContent = "Freshly prepared breakfast, dosa, idli and comforting tiffin favourites.";
+    document.querySelector("#restaurant-address").textContent = "Ulwe, Navi Mumbai";
     const status = document.querySelector("#restaurant-status");
     status.textContent = restaurant.isOpen ? "Open for orders" : "Currently closed";
     status.classList.toggle("closed-badge", !restaurant.isOpen);
     document.querySelector("#restaurant-hours").textContent = formatTodayHours(restaurant.openingHours);
-    const areas = restaurant.deliveryAreas || [];
-    const pincodes = restaurant.deliveryPincodes || [];
-    document.querySelector("#restaurant-delivery-area").textContent = areas.length
-      ? `Delivery areas: ${areas.slice(0, 4).map(area => `${area.name} (${area.pincodes.join(", ")})`).join(" · ")}${areas.length > 4 ? ` · +${areas.length - 4} more` : ""}`
-      : pincodes.length ? `Delivery PINs: ${pincodes.join(", ")}` : "Delivery areas aren't listed.";
+    document.querySelector("#restaurant-delivery-area").hidden = true;
     storefrontHero.setAttribute("aria-busy", "false");
     allMenuItems = items;
     renderFilteredMenu();

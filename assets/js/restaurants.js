@@ -1,593 +1,157 @@
-const restaurantGrid = document.querySelector("#restaurants");
+const brandName = "Sunrise Tiffin House";
+const searchForm = document.querySelector("#restaurant-search");
 const searchInput = document.querySelector("#search-input");
-const sortSelect = document.querySelector("#sort-select");
-const deliveryPincodeFilter = document.querySelector("#delivery-pincode-filter");
-const resultCount = document.querySelector("#results-count");
-const clearFiltersButton = document.querySelector("#clear-filters");
 const quickFoodFilters = [...document.querySelectorAll("[data-quick-food]")];
 const budgetFilters = [...document.querySelectorAll("[data-budget-filter]")];
 const cuisineFilters = [...document.querySelectorAll("[data-cuisine-filter]")];
 const cuisineTrack = document.querySelector("#cuisine-track");
+const featuredSection = document.querySelector("#restaurant-listing");
 const featuredDishesTrack = document.querySelector("#featured-dishes-track");
-const cuisineImageFiles = Object.freeze({
-  "north-indian": "north-indian.webp",
-  pizza: "pizza.webp",
-  chinese: "chinese.webp",
-  desserts: "desserts.webp",
-  burger: "burger.webp",
-  biryani: "biryani.webp",
-  "south-indian": "south-indian.webp",
-  maharashtrian: "other.webp",
-  "vada-pav": "vada.jpg",
-  idli: "south-indian.webp",
-  momos: "momo.webp",
-  kachori: "north-indian.webp",
-  noodles: "noodles.webp",
-  rolls: "rolls.webp",
-  shawarma: "shawarma.webp",
-  vada: "vada.jpg",
-  dosa: "dosa.webp",
-  momo: "momo.webp",
-  salads: "salads.webp",
-  other: "other.webp"
-});
-const cuisineLabels = Object.freeze({
-  "north-indian": "North Indian", "south-indian": "South Indian", maharashtrian: "Maharashtrian",
-  "vada-pav": "Vada Pav", dosa: "Dosa", idli: "Idli", momos: "Momos", kachori: "Kachori",
-  vada: "Vada", momo: "Momos", other: "Breakfast favourites"
-});
-let selectedFoodFilter = "all";
-let selectedBudgetFilter = "all";
-let selectedCuisineFilter = "all";
-let allRestaurants = [];
-let allFeaturedDishes = [];
-const breakfastStylePatterns = Object.freeze({
+const viewFullMenu = document.querySelector("#view-full-menu");
+const errorMessage = document.querySelector("#error");
+const cuisineLabels = Object.freeze({ "south-indian": "South Indian", "north-indian": "North Indian", maharashtrian: "Maharashtrian", "vada-pav": "Vada Pav", dosa: "Dosa", idli: "Idli", momos: "Momos", kachori: "Kachori" });
+const breakfastPatterns = Object.freeze({
   "south-indian": /\b(south.?indian|dosa|idli|sambar|sambhar|uttapam|upma|medu.?vada)\b/i,
   "north-indian": /\b(north.?indian|paratha|puri|chole|aloo.?paratha)\b/i,
   maharashtrian: /\b(maharashtrian|vada.?pav|puran.?poli|misal|poha|sabudana|thalipeeth)\b/i,
-  "vada-pav": /\b(vada.?pav|batata.?vada)\b/i,
-  dosa: /\b(dosa|uttapam)\b/i,
-  idli: /\b(idli|sambar|sambhar)\b/i,
-  momos: /\bmomos?\b/i,
-  kachori: /\bkachori\b/i
+  "vada-pav": /\b(vada.?pav|batata.?vada)\b/i, dosa: /\b(dosa|uttapam)\b/i, idli: /\b(idli|sambar|sambhar)\b/i,
+  momos: /\bmomos?\b/i, kachori: /\bkachori\b/i
 });
-function matchesBreakfastStyle(item, filter = selectedCuisineFilter) {
-  if (filter === "all") return true;
-  const pattern = breakfastStylePatterns[filter];
-  if (!pattern) return false;
-  const searchable = [item.name, item.category, item.cuisine, ...(item.cuisines || [])].filter(Boolean).join(" ");
-  return pattern.test(searchable);
-}
-function getVisibleFeaturedDishes() {
-  return allFeaturedDishes.filter(dish =>
-    (selectedFoodFilter === "all" || dish.foodType === selectedFoodFilter) && matchesBreakfastStyle(dish)
-  );
-}
-const favouriteRestaurantIds = new Set(JSON.parse(localStorage.getItem("foodway-favourite-restaurants") || "[]"));
+let currentRestaurant = null;
+let allMenuItems = [];
+let selectedFoodFilter = "all";
+let selectedBudgetFilter = "all";
+let selectedCuisineFilter = "all";
 
-function saveFavouriteRestaurants() {
-  localStorage.setItem("foodway-favourite-restaurants", JSON.stringify([...favouriteRestaurantIds]));
+function getVisibleDishes() {
+  const term = searchInput.value.trim().toLocaleLowerCase();
+  const maxPricePaise = selectedBudgetFilter === "all" ? Infinity : Number(selectedBudgetFilter) * 100;
+  return allMenuItems.filter(item => {
+    const text = [item.name, item.category, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
+    const pattern = breakfastPatterns[selectedCuisineFilter];
+    return (!term || text.includes(term))
+      && (selectedFoodFilter === "all" || item.foodType === selectedFoodFilter)
+      && Number(item.pricePaise) <= maxPricePaise
+      && (!pattern || pattern.test(text));
+  });
 }
-
-async function syncFavouriteRestaurants() {
-  if (!getToken()) return;
-  try {
-    const response = await fetch(API_BASE + "/customer/favorites", { headers: authHeaders() });
-    if (!response.ok) return;
-    const data = await response.json();
-    favouriteRestaurantIds.clear();
-    (data.restaurantIds || []).forEach(id => favouriteRestaurantIds.add(String(id)));
-    saveFavouriteRestaurants();
-    renderRestaurants();
-  } catch { /* Keep local favourites if the account service is unavailable. */ }
+function cuisineImageFor(item) {
+  const category = String(item.category || "").toLocaleLowerCase();
+  if (/south|idli|dosa|vada/.test(category)) return "../assets/images/cuisines/south-indian.webp";
+  if (/north|kachori|paratha|puri/.test(category)) return "../assets/images/cuisines/north-indian.webp";
+  if (/maharashtrian|poha/.test(category)) return "../assets/images/cuisines/other.webp";
+  if (/momo/.test(category)) return "../assets/images/cuisines/momo.webp";
+  return "../assets/images/cuisines/all.webp";
 }
-
-function renderSearchSuggestions() {
-  const list = document.querySelector("#restaurant-search-suggestions");
-  if (!list) return;
-  const values = allRestaurants.flatMap(restaurant => [restaurant.name, ...(restaurant.deliveryAreas || []).map(area => area.name)]).filter(Boolean).filter((value, index, values) => values.indexOf(value) === index).slice(0, 80);
-  list.replaceChildren(...values.map(value => {
-    const option = document.createElement("option");
-    option.value = value;
-    return option;
-  }));
+function renderMenuPreview() {
+  if (!featuredSection || !featuredDishesTrack) return;
+  const dishes = getVisibleDishes();
+  quickFoodFilters.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.quickFood === selectedFoodFilter)));
+  budgetFilters.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.budgetFilter === selectedBudgetFilter)));
+  cuisineFilters.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.cuisineFilter === selectedCuisineFilter)));
+  featuredSection.hidden = !currentRestaurant;
+  if (viewFullMenu) { viewFullMenu.hidden = !currentRestaurant; if (currentRestaurant) viewFullMenu.href = `menu.html?id=${encodeURIComponent(currentRestaurant._id)}`; }
+  featuredDishesTrack.replaceChildren();
+  if (!currentRestaurant) return;
+  if (!dishes.length) {
+    const empty = document.createElement("p"); empty.className = "featured-dishes-empty";
+    empty.textContent = allMenuItems.length ? "No dishes match these filters. Try another category or clear your search." : "The Sunrise Tiffin House menu is being updated. Please check back soon.";
+    featuredDishesTrack.append(empty); return;
+  }
+  for (const item of dishes) {
+    const card = document.createElement("a"); card.className = "featured-dish-card";
+    card.href = `menu.html?id=${encodeURIComponent(currentRestaurant._id)}`;
+    card.setAttribute("aria-label", `View ${item.name} from ${brandName}, ${formatRupees(item.pricePaise)}`);
+    const imageWrap = document.createElement("div"); imageWrap.className = "featured-dish-image-wrap";
+    const image = document.createElement("img"); image.src = item.imageUrl || cuisineImageFor(item); image.alt = item.imageUrl ? item.name : "";
+    image.loading = "lazy"; image.decoding = "async"; image.addEventListener("error", () => image.remove(), { once: true }); imageWrap.append(image);
+    const details = document.createElement("div"); details.className = "featured-dish-details";
+    const name = document.createElement("h3"); name.textContent = item.name;
+    const price = document.createElement("strong"); price.textContent = formatRupees(item.pricePaise);
+    const restaurant = document.createElement("span"); restaurant.textContent = brandName;
+    const type = document.createElement("small"); type.className = item.foodType === "veg" ? "dish-food-type dish-food-type-veg" : "dish-food-type dish-food-type-nonveg";
+    type.textContent = item.foodType === "veg" ? "Veg" : item.foodType === "nonVeg" ? "Non-Veg" : item.category || "Breakfast";
+    details.append(name, price, restaurant, type); card.append(imageWrap, details); featuredDishesTrack.append(card);
+  }
 }
-
-const passportTrail = Object.freeze([{ key: "sunrise-tiffin", label: "Sunrise Tiffin House", detail: "Breakfast and tiffin favourites" }]);
-
-function renderFoodPassport(visitedKeys = new Set()) {
-  const stamps = document.querySelector("#passport-stamps");
-  const label = document.querySelector("#passport-progress-label");
-  const bar = document.querySelector("#passport-progress-bar");
-  const hint = document.querySelector("#passport-progress-hint");
+function renderFoodPassport(orders = []) {
+  const stamps = document.querySelector("#passport-stamps"), label = document.querySelector("#passport-progress-label");
+  const bar = document.querySelector("#passport-progress-bar"), hint = document.querySelector("#passport-progress-hint");
   if (!stamps || !label || !bar || !hint) return;
-  const visited = passportTrail.filter(stop => visitedKeys.has(stop.key)).length;
-  label.textContent = `${visited} of ${passportTrail.length} Sunrise Tiffin orders`;
-  bar.style.width = `${Math.round((visited / passportTrail.length) * 100)}%`;
-  hint.textContent = visited === passportTrail.length
-    ? "You have earned your Sunrise breakfast stamp."
-    : getToken()
-      ? "Place and receive an order from Sunrise Tiffin House to collect your stamp."
-      : "Sign in and complete a Sunrise Tiffin House order to collect your first stamp.";
-  stamps.replaceChildren(...passportTrail.map(stop => {
-    const item = document.createElement("div");
-    item.className = `food-passport-stamp-card${visitedKeys.has(stop.key) ? " is-visited" : ""}`;
-    item.innerHTML = `<span class="food-passport-stamp-icon" aria-hidden="true">${visitedKeys.has(stop.key) ? "✓" : "○"}</span><span><strong>${stop.label}</strong><small>${stop.detail}</small></span>`;
-    return item;
-  }));
+  const earned = Boolean(currentRestaurant && orders.some(order => order.status === "delivered" && String(order.restaurantId?._id || order.restaurantId) === String(currentRestaurant._id)));
+  label.textContent = `${earned ? 1 : 0} of 1 Sunrise Tiffin orders`;
+  bar.style.width = earned ? "100%" : "0%";
+  hint.textContent = earned ? "You earned your Sunrise breakfast stamp." : getToken() ? "Complete a Sunrise Tiffin House order to collect your stamp." : "Sign in and complete an order to collect your first stamp.";
+  const card = document.createElement("div"); card.className = `food-passport-stamp-card${earned ? " is-visited" : ""}`;
+  const icon = document.createElement("span"); icon.className = "food-passport-stamp-icon"; icon.textContent = earned ? "✓" : "○";
+  const copy = document.createElement("span"), name = document.createElement("strong"), detail = document.createElement("small");
+  name.textContent = brandName; detail.textContent = "Breakfast and tiffin favourites"; copy.append(name, detail); card.append(icon, copy); stamps.replaceChildren(card);
 }
-
 function renderRecentOrders(orders = []) {
-  const section = document.querySelector("#recent-orders-section");
-  const track = document.querySelector("#recent-orders-track");
-  if (!section || !track) return;
-  const recent = orders.filter(order => order.status === "delivered" && order.restaurantId?._id && /sunrise\s+tiffin/i.test(order.restaurantId.name || order.restaurantName || "")).slice(0, 3);
+  const section = document.querySelector("#recent-orders-section"), track = document.querySelector("#recent-orders-track");
+  if (!section || !track || !currentRestaurant) return;
+  const recent = orders.filter(order => order.status === "delivered" && String(order.restaurantId?._id || order.restaurantId) === String(currentRestaurant._id)).slice(0, 3);
   if (!recent.length) { section.hidden = true; return; }
   section.hidden = false;
   track.replaceChildren(...recent.map(order => {
-    const card = document.createElement("a");
-    card.className = "recent-order-card";
-    card.href = `menu.html?id=${encodeURIComponent(order.restaurantId._id)}`;
-    const name = document.createElement("strong");
-    name.textContent = order.restaurantId.name || "Local restaurant";
-    const items = document.createElement("span");
-    items.textContent = (order.items || []).slice(0, 2).map(item => `${item.quantity} × ${item.name}`).join(" · ") || "View the current menu";
-    const action = document.createElement("span");
-    action.className = "recent-order-action";
-    action.textContent = "View menu →";
-    card.append(name, items, action);
-    return card;
+    const card = document.createElement("a"); card.className = "recent-order-card"; card.href = `menu.html?id=${encodeURIComponent(currentRestaurant._id)}`;
+    const name = document.createElement("strong"); name.textContent = brandName;
+    const items = document.createElement("span"); items.textContent = (order.items || []).slice(0, 2).map(item => `${item.quantity} × ${item.name}`).join(" · ") || "View the current menu";
+    const action = document.createElement("span"); action.className = "recent-order-action"; action.textContent = "View menu →";
+    card.append(name, items, action); return card;
   }));
 }
-
-async function loadFoodPassport() {
-  renderFoodPassport();
+async function loadRecentOrders() {
   if (!getToken()) return;
-  try {
-    const response = await fetch(`${API_BASE}/orders/mine`, { headers: authHeaders() });
-    if (!response.ok) return;
-    const data = await response.json();
-    const visited = new Set();
-    (data.orders || []).filter(order => order.status === "delivered").forEach(order => {
-      const name = String(order.restaurantId?.name || order.restaurantName || "").toLocaleLowerCase();
-      const match = passportTrail.find(stop => name.includes(stop.label.toLocaleLowerCase().split(" ")[0]));
-      if (match) visited.add(match.key);
-    });
-    renderFoodPassport(visited);
-    renderRecentOrders(data.orders || []);
-  } catch { /* Keep the default passport visible if order history is unavailable. */ }
+  try { const response = await fetch(`${API_BASE}/orders/mine`, { headers: authHeaders() }); console.info(`[customer orders] GET /orders/mine → ${response.status}`); if (response.ok) { const orders = (await response.json()).orders || []; renderRecentOrders(orders); renderFoodPassport(orders); } }
+  catch (error) { console.error("[customer orders] could not load recent orders", error); }
 }
-
 async function setupHomeAccountNav() {
   if (!getToken()) return;
   try {
-    const response = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() });
-    if (response.status === 401) {
-      sessionStorage.removeItem(TOKEN_KEY);
-      return;
-    }
+    const response = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() }); console.info(`[customer account] GET /auth/me → ${response.status}`);
+    if (response.status === 401) { sessionStorage.removeItem(TOKEN_KEY); return; }
     if (!response.ok) return;
     const { user } = await response.json();
-    const destinations = {
-      admin: ["../admin/dashboard.html", "Admin dashboard"],
-      restaurant: ["../restaurant/dashboard.html", "Restaurant dashboard"],
-      restaurant_staff: ["../restaurant/staff-dashboard.html", "Restaurant staff dashboard"],
-      delivery: ["../delivery/dashboard.html", "Delivery dashboard"]
-    };
-    const destination = destinations[user?.role];
-    const dashboardLink = document.querySelector("#dashboard-link");
-    if (destination && dashboardLink) {
-      dashboardLink.href = destination[0];
-      dashboardLink.textContent = destination[1];
-      dashboardLink.hidden = false;
-    }
-    const loginLink = document.querySelector(".login-link");
-    if (loginLink) loginLink.hidden = true;
-    const mobileAccountLink = document.querySelector("#mobile-account-link");
-    if (mobileAccountLink) mobileAccountLink.href = destination?.[0] || "orders.html";
+    const destinations = { admin: ["../admin/dashboard.html", "Admin dashboard"], restaurant: ["../restaurant/dashboard.html", "Restaurant dashboard"], restaurant_staff: ["../restaurant/staff-dashboard.html", "Restaurant staff dashboard"], delivery: ["../delivery/dashboard.html", "Delivery dashboard"] };
+    const destination = destinations[user?.role], dashboardLink = document.querySelector("#dashboard-link");
+    if (destination && dashboardLink) { dashboardLink.href = destination[0]; dashboardLink.textContent = destination[1]; dashboardLink.hidden = false; }
+    const loginLink = document.querySelector(".login-link"); if (loginLink) loginLink.hidden = true;
+    const mobileAccountLink = document.querySelector("#mobile-account-link"); if (mobileAccountLink) mobileAccountLink.href = destination?.[0] || "orders.html";
     const logout = document.querySelector("#home-logout");
-    if (logout) {
-      logout.hidden = false;
-      logout.addEventListener("click", () => {
-        sessionStorage.removeItem(TOKEN_KEY);
-        location.href = "index.html";
-      }, { once: true });
-    }
-  } catch {
-    // Keep the public home page usable if the API cannot be reached.
-  }
+    if (logout) { logout.hidden = false; logout.addEventListener("click", () => { sessionStorage.removeItem(TOKEN_KEY); location.href = "index.html"; }, { once: true }); }
+  } catch (error) { console.error("[customer account] could not load account", error); }
 }
-
-function formatTodayHours(openingHours) {
-  if (!openingHours) return "Hours not listed";
-  const day = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).format(new Date()).toLowerCase();
-  const hours = openingHours[day];
-  if (!hours || hours.closed) return "Closed today";
-  const formatTime = value => {
-    const [hour, minute] = value.split(":").map(Number);
-    return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${hour < 12 ? "AM" : "PM"}`;
-  };
-  return `Today: ${formatTime(hours.opensAt)}–${formatTime(hours.closesAt)}`;
-}
-
-function formatDeliveryCoverage(areas = [], pincodes = []) {
-  if (areas.length) {
-    const visible = areas.slice(0, 3).map(area => `${area.name} (${area.pincodes.join(", ")})`).join(" · ");
-    return `Delivers to ${visible}${areas.length > 3 ? ` · +${areas.length - 3} more areas` : ""}`;
-  }
-  if (!pincodes.length) return "Delivery areas not listed";
-  const visible = pincodes.slice(0, 3).join(", ");
-  return `Delivers to PIN ${visible}${pincodes.length > 3 ? ` +${pincodes.length - 3} more` : ""}`;
-}
-
-function getCuisineImage(restaurant) {
-  const cuisines = Array.isArray(restaurant.cuisines) ? restaurant.cuisines : [];
-  const cuisine = [...cuisines, restaurant.cuisine].find(value =>
-    typeof value === "string" && Object.prototype.hasOwnProperty.call(cuisineImageFiles, value)
-  ) || "other";
-  return `../assets/images/cuisines/${cuisineImageFiles[cuisine]}`;
-}
-
-function renderFeaturedDishes(dishes = []) {
-  const section = document.querySelector(".featured-dishes-section");
-  const heading = document.querySelector("#featured-dishes-title");
-  featuredDishesTrack.replaceChildren();
-  const selectedLabel = cuisineLabels[selectedCuisineFilter] || "Breakfast";
-  heading.textContent = selectedCuisineFilter !== "all"
-    ? `${selectedLabel} breakfast favourites`
-    : selectedFoodFilter === "veg" ? "Veg breakfast dishes"
-      : selectedFoodFilter === "nonVeg" ? "Non‑Veg breakfast dishes" : "Sunrise breakfast favourites";
-  if (!dishes.length) {
-    section.hidden = !allFeaturedDishes.length;
-    if (!section.hidden) {
-      const empty = document.createElement("p");
-      empty.className = "featured-dishes-empty";
-      empty.textContent = selectedCuisineFilter !== "all"
-        ? `No ${selectedLabel} breakfast items are available right now.`
-        : `No ${selectedFoodFilter === "veg" ? "Veg" : "Non‑Veg"} breakfast dishes are available right now.`;
-      featuredDishesTrack.append(empty);
-    }
-    return;
-  }
-  section.hidden = false;
-  for (const dish of dishes) {
-    const card = document.createElement("a");
-    card.className = "featured-dish-card";
-    card.href = `menu.html?id=${encodeURIComponent(dish.restaurantId)}`;
-    card.setAttribute("aria-label", `View ${dish.name} from ${dish.restaurantName}, ${formatRupees(dish.pricePaise)}`);
-    const imageWrap = document.createElement("div");
-    imageWrap.className = "featured-dish-image-wrap";
-    const image = document.createElement("img");
-    const fallbackImage = getCuisineImage({ cuisine: dish.cuisine });
-    let showingFallback = !dish.imageUrl;
-    image.src = dish.imageUrl || fallbackImage;
-    image.alt = "";
-    image.loading = "lazy";
-    image.decoding = "async";
-    image.addEventListener("error", () => {
-      if (!showingFallback) {
-        showingFallback = true;
-        image.src = fallbackImage;
-      } else {
-        imageWrap.classList.add("featured-dish-image-missing");
-        image.remove();
-      }
-    });
-    imageWrap.append(image);
-    const details = document.createElement("div");
-    details.className = "featured-dish-details";
-    const name = document.createElement("h3");
-    name.textContent = dish.name;
-    const price = document.createElement("strong");
-    price.textContent = formatRupees(dish.pricePaise);
-    const restaurant = document.createElement("span");
-    restaurant.textContent = dish.restaurantName;
-    const type = document.createElement("small");
-    type.className = dish.foodType === "veg" ? "dish-food-type dish-food-type-veg" : "dish-food-type dish-food-type-nonveg";
-    type.textContent = dish.foodType === "veg" ? "Veg" : "Non‑Veg";
-    details.append(name, price, restaurant, type);
-    card.append(imageWrap, details);
-    featuredDishesTrack.append(card);
-  }
-}
-
-function renderRestaurants() {
-  const term = searchInput.value.trim().toLocaleLowerCase();
-  const pin = deliveryPincodeFilter.value.trim();
-  const hasCompletePin = /^\d{6}$/.test(pin);
-  const hasActiveFilters = Boolean(term || pin || selectedFoodFilter !== "all" || selectedBudgetFilter !== "all" || selectedCuisineFilter !== "all" || sortSelect.value !== "name");
-  clearFiltersButton.hidden = !hasActiveFilters;
-  quickFoodFilters.forEach(button => {
-    button.setAttribute("aria-pressed", String(button.dataset.quickFood === selectedFoodFilter));
-  });
-  budgetFilters.forEach(button => {
-    button.setAttribute("aria-pressed", String(button.dataset.budgetFilter === selectedBudgetFilter));
-  });
-  cuisineFilters.forEach(button => {
-    button.setAttribute("aria-pressed", String(button.dataset.cuisineFilter === selectedCuisineFilter));
-  });
-  const matches = allRestaurants.filter(restaurant => {
-    const areaNames = (restaurant.deliveryAreas || []).map(area => area.name).join(" ");
-    const searchMatches = `${restaurant.name} ${restaurant.address} ${restaurant.description || ""} ${areaNames}`.toLocaleLowerCase().includes(term);
-    // Treat missing foodType values from older records as mixed restaurants.
-    const foodType = ["veg", "nonVeg", "both"].includes(restaurant.foodType)
-      ? restaurant.foodType
-      : "both";
-    // Vegetarian diners need a dedicated veg-only kitchen. Non-veg diners can
-    // also order from mixed kitchens, where vegetarian dishes are available.
-    const foodTypeMatches = selectedFoodFilter === "all"
-      || foodType === selectedFoodFilter
-      || (selectedFoodFilter === "nonVeg" && foodType === "both");
-    const maxPricePaise = selectedBudgetFilter === "all" ? null : Number(selectedBudgetFilter) * 100;
-    const budgetMatches = maxPricePaise === null
-      || (Number.isFinite(restaurant.lowestPricePaise) && restaurant.lowestPricePaise <= maxPricePaise);
-    const restaurantCuisines = Array.isArray(restaurant.cuisines) && restaurant.cuisines.length
-      ? restaurant.cuisines
-      : [restaurant.cuisine || "other"];
-    const restaurantDishes = allFeaturedDishes.filter(dish => String(dish.restaurantId) === String(restaurant._id));
-    const cuisineMatches = selectedCuisineFilter === "all"
-      || restaurantCuisines.includes(selectedCuisineFilter)
-      || restaurantDishes.some(dish => matchesBreakfastStyle(dish));
-    const pinMatches = !hasCompletePin || (restaurant.deliveryPincodes || []).includes(pin);
-    return searchMatches && foodTypeMatches && budgetMatches && cuisineMatches && pinMatches;
-  });
-  matches.sort((a, b) => sortSelect.value === "name-desc" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
-
-  restaurantGrid.replaceChildren();
-  const openCount = matches.filter(restaurant => restaurant.isOpen).length;
-  const activeBudgetLabel = selectedBudgetFilter === "all" ? "" : ` · Dishes under ₹${selectedBudgetFilter}`;
-  resultCount.textContent = `${openCount} open now · ${matches.length} ${matches.length === 1 ? "restaurant" : "restaurants"}${activeBudgetLabel}${pin && !hasCompletePin ? " · Enter a complete 6-digit PIN to filter delivery areas" : ""}`;
-  for (const [index, restaurant] of matches.entries()) {
-    const card = document.createElement("article");
-    card.className = "restaurant-card";
-    const cover = document.createElement("div");
-    cover.className = `restaurant-cover cover-${index % 4} has-image`;
-    const coverImage = document.createElement("img");
-    const cuisineImage = getCuisineImage(restaurant);
-    let showingCuisineImage = !restaurant.imageUrl;
-    coverImage.src = restaurant.imageUrl || cuisineImage;
-    coverImage.alt = "";
-    coverImage.loading = "lazy";
-    coverImage.decoding = "async";
-    coverImage.addEventListener("error", () => {
-      if (!showingCuisineImage) {
-        showingCuisineImage = true;
-        coverImage.src = cuisineImage;
-        return;
-      }
-      cover.classList.remove("has-image");
-      coverImage.remove();
-    });
-    cover.append(coverImage);
-
-    const details = document.createElement("div");
-    details.className = "restaurant-card-content";
-    const meta = document.createElement("div");
-    meta.className = "restaurant-meta";
-    const open = document.createElement("span");
-    open.className = "open-badge";
-    open.textContent = restaurant.isOpen ? "Open now" : restaurant.openingHours ? "Closed · check hours" : "Closed";
-    open.classList.toggle("closed-badge", !restaurant.isOpen);
-    const delivery = document.createElement("span");
-    delivery.className = "restaurant-food-tag";
-    const labels = { veg: "Pure Veg", nonVeg: "Non‑Veg / Mixed Menu", both: "Veg & Non‑Veg" };
-    delivery.textContent = labels[restaurant.foodType] || labels.both;
-    const cuisineTag = document.createElement("span");
-    cuisineTag.className = "restaurant-cuisine-tag";
-    const restaurantCuisine = restaurant.cuisine || restaurant.cuisines?.[0] || "other";
-    cuisineTag.textContent = cuisineLabels[restaurantCuisine] || "Local favourites";
-    meta.append(open, delivery, cuisineTag);
-    if (restaurant.ratingCount || restaurant.deliveryAreas?.length || restaurant.deliveryPincodes?.length) {
-      const trust = document.createElement("span");
-      trust.className = "restaurant-trust-tag";
-      trust.textContent = restaurant.ratingCount >= 10 ? "Popular with locals" : restaurant.ratingCount ? "Rated by customers" : "Area coverage listed";
-      meta.append(trust);
-    }
-    const favourite = document.createElement("button");
-    favourite.type = "button";
-    favourite.className = "restaurant-favourite";
-    const restaurantId = String(restaurant._id);
-    const updateFavouriteLabel = () => {
-      const saved = favouriteRestaurantIds.has(restaurantId);
-      favourite.textContent = saved ? "♥" : "♡";
-      favourite.setAttribute("aria-pressed", String(saved));
-      favourite.setAttribute("aria-label", `${saved ? "Remove" : "Save"} ${restaurant.name} ${saved ? "from" : "to"} favourites`);
-    };
-    updateFavouriteLabel();
-    favourite.addEventListener("click", event => {
-      event.preventDefault();
-      event.stopPropagation();
-      const wasSaved = favouriteRestaurantIds.has(restaurantId);
-      if (wasSaved) favouriteRestaurantIds.delete(restaurantId); else favouriteRestaurantIds.add(restaurantId);
-      saveFavouriteRestaurants();
-      updateFavouriteLabel();
-      if (getToken()) {
-        fetch(API_BASE + "/customer/favorites/" + encodeURIComponent(restaurantId), { method: wasSaved ? "DELETE" : "POST", headers: authHeaders() }).catch(() => {});
-      }
-    });
-
-    const identity = document.createElement("div");
-    identity.className = "restaurant-cover-info";
-    const title = document.createElement("h3");
-    title.textContent = restaurant.name;
-    identity.append(title);
-    const address = document.createElement("p");
-    address.className = "restaurant-address";
-    address.textContent = restaurant.address;
-    const description = document.createElement("p");
-    description.className = "restaurant-description";
-    description.textContent = restaurant.description || "Freshly prepared favourites from your local kitchen.";
-    const rating = document.createElement("span");
-    rating.className = "restaurant-rating";
-    rating.textContent = restaurant.ratingCount
-      ? `★ ${Number(restaurant.ratingAverage).toFixed(1)}`
-      : "New";
-    rating.setAttribute("aria-label", restaurant.ratingCount
-      ? `Rated ${Number(restaurant.ratingAverage).toFixed(1)} out of 5 from ${restaurant.ratingCount} ${restaurant.ratingCount === 1 ? "review" : "reviews"}`
-      : "New restaurant, no reviews yet");
-    identity.append(rating);
-    cover.append(identity);
-    cover.append(favourite);
-    const link = document.createElement("a");
-    link.className = "card-action";
-    link.href = `menu.html?id=${encodeURIComponent(restaurant._id)}`;
-    link.textContent = "Explore menu";
-    link.setAttribute("aria-label", `Explore ${restaurant.name} menu`);
-    const service = document.createElement("div");
-    service.className = "restaurant-service-list";
-    if (Number.isSafeInteger(restaurant.lowestPricePaise) && restaurant.lowestPricePaise > 0) {
-      const priceLine = document.createElement("span");
-      priceLine.textContent = `From ${formatRupees(restaurant.lowestPricePaise)} per dish`;
-      service.append(priceLine);
-    }
-    const deliveryMinutes = Number(restaurant.prepTimeMinutes) + Number(restaurant.deliveryTimeMinutes);
-    if (Number.isFinite(deliveryMinutes) && deliveryMinutes > 0) {
-      const etaLine = document.createElement("span");
-      etaLine.textContent = `Estimated delivery · ${deliveryMinutes} min`;
-      service.append(etaLine);
-    }
-    if (restaurant.openingHours) {
-      const hoursLine = document.createElement("span");
-      hoursLine.textContent = `Today · ${formatTodayHours(restaurant.openingHours).replace(/^Today:\s*/, "")}`;
-      service.append(hoursLine);
-    }
-    if ((restaurant.deliveryAreas || []).length || (restaurant.deliveryPincodes || []).length) {
-      const coverageLine = document.createElement("span");
-      coverageLine.textContent = formatDeliveryCoverage(restaurant.deliveryAreas || [], restaurant.deliveryPincodes || []);
-      service.append(coverageLine);
-    }
-    details.append(meta, address, description);
-    if (service.childElementCount) details.append(service);
-    details.append(link);
-    card.append(cover, details);
-    restaurantGrid.append(card);
-  }
-  if (!matches.length) {
-    const empty = document.createElement("div");
-    empty.className = "empty-state";
-    const icon = document.createElement("span"); icon.className = "empty-icon"; icon.setAttribute("aria-hidden", "true"); icon.textContent = "⌕";
-    const title = document.createElement("h3");
-    const message = document.createElement("p");
-    if (!allRestaurants.length) { title.textContent = "Sunrise Tiffin House is getting ready"; message.textContent = "The Sunrise Tiffin House menu will appear here once it is available."; }
-    else {
-      title.textContent = "No Sunrise Tiffin items match these filters";
-      message.textContent = hasCompletePin
-        ? `Sunrise Tiffin House does not currently deliver to PIN ${pin}. Try another PIN code.`
-        : selectedBudgetFilter !== "all"
-          ? `Sunrise Tiffin House has no available dishes under ₹${selectedBudgetFilter} with these filters. Try another budget or clear filters.`
-        : selectedCuisineFilter !== "all"
-          ? `No ${selectedCuisineFilter.replaceAll("-", " ")} dishes match the Sunrise menu. Try another cuisine or clear filters.`
-        : selectedFoodFilter === "all"
-          ? "Try another dish name or area, or choose a different cuisine."
-        : `No ${selectedFoodFilter === "veg" ? "Veg" : "Non-Veg"} Sunrise menu items match. Try another food type or search.`;
-    }
-    empty.append(icon, title, message);
-    restaurantGrid.append(empty);
-  }
-  restaurantGrid.scrollTo({ left: 0, top: 0, behavior: "instant" });
-}
-
 async function loadRestaurants() {
-  const error = document.querySelector("#error");
-  restaurantGrid.setAttribute("aria-busy", "true");
-  resultCount.textContent = "Loading the Sunrise Tiffin House menu…";
-  restaurantGrid.replaceChildren(...Array.from({ length: 3 }, () => {
-    const card = document.createElement("article");
-    card.className = "restaurant-card restaurant-card-skeleton";
-    card.setAttribute("aria-hidden", "true");
-    const cover = document.createElement("div");
-    cover.className = "skeleton-cover";
-    const details = document.createElement("div");
-    details.className = "skeleton-details";
-    for (let index = 0; index < 7; index += 1) details.append(document.createElement("span"));
-    card.append(cover, details);
-    return card;
-  }));
+  if (featuredSection) featuredSection.hidden = false;
+  if (errorMessage) errorMessage.textContent = "";
+  featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "muted", textContent: "Loading the Sunrise Tiffin House menu…" }));
   try {
-    const response = await fetch(`${API_BASE}/restaurants`);
-    if (!response.ok) throw new Error("Unable to load restaurants");
-    const data = await response.json();
-    const publishedRestaurants = data.restaurants || [];
-    const sunriseRestaurants = publishedRestaurants.filter(restaurant => /sunrise\s+tiffin/i.test(restaurant.name || ""));
-    // This deployment is for one restaurant. If its account has a different name, use the sole approved listing instead of hiding its menu.
-    allRestaurants = sunriseRestaurants.length ? sunriseRestaurants : publishedRestaurants.length === 1 ? publishedRestaurants : [];
-    const sunriseRestaurantIds = new Set(allRestaurants.map(restaurant => String(restaurant._id)));
-    allFeaturedDishes = (data.featuredDishes || []).filter(dish => sunriseRestaurantIds.has(String(dish.restaurantId)));
-    renderSearchSuggestions();
-    renderFeaturedDishes(getVisibleFeaturedDishes());
-    restaurantGrid.setAttribute("aria-busy", "false");
-    renderRestaurants();
-    error.textContent = "";
-  } catch {
-    restaurantGrid.setAttribute("aria-busy", "false");
-    resultCount.textContent = "";
-    const state = document.createElement("div");
-    state.className = "empty-state restaurant-load-error";
-    const title = document.createElement("h3");
-    title.textContent = "Sunrise Tiffin House menu isn’t available right now";
-    const message = document.createElement("p");
-    message.textContent = "Check your connection and try loading the Sunrise menu again.";
-    const retry = document.createElement("button");
-    retry.className = "hero-cta";
-    retry.type = "button";
-    retry.textContent = "Try again";
-    retry.addEventListener("click", loadRestaurants, { once: true });
-    state.append(title, message, retry);
-    restaurantGrid.replaceChildren(state);
-    error.textContent = "";
+    const response = await fetch(`${API_BASE}/restaurants`); console.info(`[Sunrise menu] GET /restaurants → ${response.status}`);
+    if (!response.ok) throw new Error("Unable to load Sunrise Tiffin House");
+    const data = await response.json(), approved = data.restaurants || [];
+    currentRestaurant = approved.find(restaurant => /sunrise\s+tiffin/i.test(restaurant.name || "")) || (approved.length === 1 ? approved[0] : null);
+    if (!currentRestaurant) throw new Error("Choose the Sunrise Tiffin House restaurant account in Platform Admin so this website can load its menu.");
+    const menuResponse = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`);
+    console.info(`[Sunrise menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
+    if (!menuResponse.ok) throw new Error("Could not load the Sunrise Tiffin House dishes");
+    allMenuItems = (await menuResponse.json()).items || [];
+    renderMenuPreview(); await loadRecentOrders();
+  } catch (error) {
+    console.error("[Sunrise menu] load failed", error);
+    if (errorMessage) errorMessage.textContent = error.message || "The Sunrise Tiffin House menu could not be loaded.";
+    featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: "The Sunrise Tiffin House menu is temporarily unavailable. Please try again." }));
   }
 }
-
-document.querySelector("#restaurant-search").addEventListener("submit", event => { event.preventDefault(); renderRestaurants(); });
-searchInput.addEventListener("input", renderRestaurants);
-sortSelect.addEventListener("change", renderRestaurants);
-deliveryPincodeFilter.addEventListener("input", renderRestaurants);
-quickFoodFilters.forEach(button => button.addEventListener("click", () => {
-  selectedFoodFilter = button.dataset.quickFood;
-  renderFeaturedDishes(getVisibleFeaturedDishes());
-  renderRestaurants();
-}));
-budgetFilters.forEach(button => button.addEventListener("click", () => {
-  selectedBudgetFilter = button.dataset.budgetFilter;
-  renderRestaurants();
-  document.querySelector("#restaurant-listing").scrollIntoView({ behavior: "smooth", block: "start" });
-}));
-cuisineFilters.forEach(button => button.addEventListener("click", () => {
-  selectedCuisineFilter = button.dataset.cuisineFilter;
-  renderFeaturedDishes(getVisibleFeaturedDishes());
-  renderRestaurants();
-  document.querySelector("#restaurant-listing").scrollIntoView({ behavior: "smooth", block: "start" });
-}));
-document.querySelector("#restaurant-scroll-left").addEventListener("click", () => {
-  restaurantGrid.scrollBy({ left: -Math.max(300, restaurantGrid.clientWidth * .8), behavior: "smooth" });
-});
-document.querySelector("#restaurant-scroll-right").addEventListener("click", () => {
-  restaurantGrid.scrollBy({ left: Math.max(300, restaurantGrid.clientWidth * .8), behavior: "smooth" });
-});
-document.querySelector("#cuisine-scroll-left").addEventListener("click", () => {
-  cuisineTrack.scrollBy({ left: -Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" });
-});
-document.querySelector("#cuisine-scroll-right").addEventListener("click", () => {
-  cuisineTrack.scrollBy({ left: Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" });
-});
-document.querySelector("#food-scroll-left").addEventListener("click", () => {
-  featuredDishesTrack.scrollBy({ left: -Math.max(260, featuredDishesTrack.clientWidth * .75), behavior: "smooth" });
-});
-document.querySelector("#food-scroll-right").addEventListener("click", () => {
-  featuredDishesTrack.scrollBy({ left: Math.max(260, featuredDishesTrack.clientWidth * .75), behavior: "smooth" });
-});
-clearFiltersButton.addEventListener("click", () => {
-  searchInput.value = "";
-  deliveryPincodeFilter.value = "";
-  selectedFoodFilter = "all";
-  selectedBudgetFilter = "all";
-  selectedCuisineFilter = "all";
-  sortSelect.value = "name";
-  renderFeaturedDishes(getVisibleFeaturedDishes());
-  renderRestaurants();
-  searchInput.focus();
-});
+searchForm?.addEventListener("submit", event => { event.preventDefault(); renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
+searchInput?.addEventListener("input", renderMenuPreview);
+quickFoodFilters.forEach(button => button.addEventListener("click", () => { selectedFoodFilter = button.dataset.quickFood; renderMenuPreview(); }));
+budgetFilters.forEach(button => button.addEventListener("click", () => { selectedBudgetFilter = button.dataset.budgetFilter; renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
+cuisineFilters.forEach(button => button.addEventListener("click", () => { selectedCuisineFilter = button.dataset.cuisineFilter; renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
+document.querySelector("#cuisine-scroll-left")?.addEventListener("click", () => cuisineTrack.scrollBy({ left: -Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" }));
+document.querySelector("#cuisine-scroll-right")?.addEventListener("click", () => cuisineTrack.scrollBy({ left: Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" }));
+document.querySelector("#food-scroll-left")?.addEventListener("click", () => featuredDishesTrack.scrollBy({ left: -Math.max(260, featuredDishesTrack.clientWidth * .75), behavior: "smooth" }));
+document.querySelector("#food-scroll-right")?.addEventListener("click", () => featuredDishesTrack.scrollBy({ left: Math.max(260, featuredDishesTrack.clientWidth * .75), behavior: "smooth" }));
+renderFoodPassport();
 loadRestaurants();
 setupHomeAccountNav();
-syncFavouriteRestaurants();
-loadFoodPassport();

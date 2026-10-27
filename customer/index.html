@@ -17,8 +17,7 @@
     <a class="wordmark" href="index.html"><span class="wordmark-icon">S</span><span>Sunrise Tiffin House</span></a>
     <form class="top-search" id="restaurant-search" role="search">
       <span aria-hidden="true">⌕</span>
-      <input id="search-input" list="restaurant-search-suggestions" type="search" placeholder="Search Sunrise Tiffin House or Ulwe" aria-label="Search Sunrise Tiffin House or Ulwe">
-      <datalist id="restaurant-search-suggestions"></datalist>
+      <input id="search-input" type="search" placeholder="Search Sunrise Tiffin dishes" aria-label="Search Sunrise Tiffin dishes">
       <button type="submit">Search</button>
     </form>
     <nav class="site-nav" aria-label="Main navigation">
@@ -46,15 +45,15 @@
       <div class="hero-art" aria-hidden="true"><img class="hero-food-image" src="../assets/images/foodway-thali-hero.jpg" alt="" fetchpriority="high"></div>
     </section>
 
-    <section class="home-food-filters" aria-label="Restaurant filters">
-      <div class="home-filter-group"><span>Food preference</span><div class="quick-food-filters" role="group" aria-label="Filter restaurants and dishes by food type"><button type="button" data-quick-food="all" aria-pressed="true">All food</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Pure Veg kitchens</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg friendly</button></div></div>
+    <section class="home-food-filters" aria-label="Menu filters">
+      <div class="home-filter-group"><span>Food preference</span><div class="quick-food-filters" role="group" aria-label="Filter Sunrise dishes by food type"><button type="button" data-quick-food="all" aria-pressed="true">All dishes</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Veg dishes</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg dishes</button></div></div>
     </section>
 
     <section class="budget-discovery" aria-labelledby="budget-discovery-title">
-      <div class="budget-discovery-copy"><p class="eyebrow">GOOD FOOD, GOOD VALUE</p><h2 id="budget-discovery-title">Find a bite for your budget</h2><p>Explore real menu prices from nearby kitchens.</p></div>
+      <div class="budget-discovery-copy"><p class="eyebrow">GOOD FOOD, GOOD VALUE</p><h2 id="budget-discovery-title">Find a bite for your budget</h2><p>Find a Sunrise favourite at a price that suits you.</p></div>
       <div class="budget-discovery-options" role="group" aria-label="Set a maximum dish price">
         <button class="budget-tile" type="button" data-budget-filter="99" aria-pressed="false"><span class="budget-tile-price">₹99</span><span class="budget-tile-copy"><strong>Meals under ₹99</strong><small>View budget-friendly dishes</small></span><span class="budget-tile-arrow" aria-hidden="true">→</span></button>
-        <button class="budget-tile budget-tile-featured" type="button" data-budget-filter="299" aria-pressed="false"><span class="budget-tile-price">₹299</span><span class="budget-tile-copy"><strong>Meals under ₹299</strong><small>Explore more local favourites</small></span><span class="budget-tile-arrow" aria-hidden="true">→</span></button>
+        <button class="budget-tile budget-tile-featured" type="button" data-budget-filter="299" aria-pressed="false"><span class="budget-tile-price">₹299</span><span class="budget-tile-copy"><strong>Meals under ₹299</strong><small>See more Sunrise favourites</small></span><span class="budget-tile-arrow" aria-hidden="true">→</span></button>
         <button class="budget-reset" type="button" data-budget-filter="all" aria-pressed="true">All budgets</button>
       </div>
     </section>
@@ -80,42 +79,26 @@
       </div>
     </section>
 
-    <section class="featured-dishes-section" aria-labelledby="featured-dishes-title" hidden>
+    <section class="featured-dishes-section" id="restaurant-listing" aria-labelledby="featured-dishes-title" hidden>
       <div class="featured-dishes-heading">
-        <div><p class="eyebrow">FRESH FROM THE SUNRISE KITCHEN</p><h2 id="featured-dishes-title">Dishes to explore</h2></div>
+        <div><p class="eyebrow">FRESH FROM THE SUNRISE KITCHEN</p><h2 id="featured-dishes-title">Sunrise Tiffin House menu</h2></div>
         <div class="featured-dishes-controls" aria-label="Food carousel controls"><button id="food-scroll-left" type="button" aria-label="Scroll dishes left">←</button><button id="food-scroll-right" type="button" aria-label="Scroll dishes right">→</button></div>
       </div>
-      <div id="featured-dishes-track" class="featured-dishes-track" role="region" aria-roledescription="carousel" aria-live="polite" aria-label="Featured Sunrise Tiffin House dishes"></div>
+      <div id="featured-dishes-track" class="featured-dishes-track" role="region" aria-roledescription="carousel" aria-live="polite" aria-label="Sunrise Tiffin House dishes"></div><p id="error" class="error-message" role="alert"></p><a id="view-full-menu" class="hero-cta sunrise-full-menu-link" href="#" hidden>Browse the full Sunrise menu <span aria-hidden="true">→</span></a>
     </section>
 
     <section class="food-passport" aria-labelledby="food-passport-title">
-      <div class="food-passport-heading">
-        <div><p class="eyebrow">EXPLORE YOUR NEIGHBOURHOOD</p><h2 id="food-passport-title">Sunrise breakfast passport</h2><p class="muted">Order from Sunrise Tiffin House and collect your breakfast stamp.</p></div>
-        <span class="food-passport-stamp" aria-hidden="true">✦</span>
-      </div>
-      <div class="food-passport-progress" aria-live="polite"><strong id="passport-progress-label">0 of 1 Sunrise Tiffin orders</strong><span class="food-passport-track"><span id="passport-progress-bar"></span></span><small id="passport-progress-hint">Sign in and complete a Sunrise Tiffin House order to collect your first stamp.</small></div>
-      <div id="passport-stamps" class="food-passport-stamps" aria-label="Food passport stamps"></div>
+      <div class="food-passport-heading"><div><p class="eyebrow">YOUR SUNRISE VISITS</p><h2 id="food-passport-title">Sunrise breakfast rewards</h2><p class="muted">Order breakfast favourites and collect your first Sunrise stamp.</p></div><span class="food-passport-stamp" aria-hidden="true">✦</span></div>
+      <div class="food-passport-progress" aria-live="polite"><strong id="passport-progress-label">0 of 1 Sunrise Tiffin orders</strong><span class="food-passport-track"><span id="passport-progress-bar"></span></span><small id="passport-progress-hint">Sign in and complete an order to collect your first stamp.</small></div>
+      <div id="passport-stamps" class="food-passport-stamps" aria-label="Sunrise breakfast rewards"></div>
     </section>
-
     <section id="recent-orders-section" class="recent-orders-section" aria-labelledby="recent-orders-title" hidden>
       <div class="recent-orders-heading"><div><p class="eyebrow">WELCOME BACK</p><h2 id="recent-orders-title">Order your favourites again</h2><p class="muted">Your recent Sunrise orders are one tap away.</p></div><a class="text-link" href="orders.html">View all orders <span aria-hidden="true">→</span></a></div>
       <div id="recent-orders-track" class="recent-orders-track" aria-live="polite"></div>
     </section>
-
-    <section class="discovery-heading" id="restaurant-listing">
-      <div class="discovery-intro"><p class="eyebrow">YOUR NEIGHBOURHOOD, ON A PLATE</p><div class="restaurant-results-title"><h2>Sunrise Tiffin House menu</h2><div class="restaurant-carousel-controls" aria-label="Menu carousel controls"><button id="restaurant-scroll-left" type="button" aria-label="Scroll menu left">←</button><button id="restaurant-scroll-right" type="button" aria-label="Scroll menu right">→</button></div></div><p class="muted">Browse Sunrise Tiffin House favourites, find what you’re craving, and order your way.</p></div>
-      <div class="discovery-controls">
-        <label class="sort-control">Sort by <select id="sort-select"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
-        <label class="food-filter delivery-pin-filter">Delivery PIN <input id="delivery-pincode-filter" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="6" placeholder="6-digit PIN"></label>
-        <button id="clear-filters" class="filter-reset" type="button" hidden>Clear filters</button>
-      </div>
-    </section>
-    <p id="results-count" class="results-count" aria-live="polite"></p>
-    <section id="restaurants" class="restaurant-grid" role="region" aria-roledescription="carousel" aria-label="Sunrise Tiffin House menu results" aria-live="polite" aria-busy="true"></section>
-    <p id="error" class="error-message" role="alert"></p>
     <section class="value-strip" aria-label="Why order from Sunrise Tiffin House">
-      <div><span aria-hidden="true">⌖</span><p><strong>Made for your area</strong><small>Explore the Sunrise menu serving nearby neighbourhoods.</small></p></div>
-      <div><span aria-hidden="true">↗</span><p><strong>Know what’s happening</strong><small>Follow your order from the kitchen to your door.</small></p></div>
+      <div><span aria-hidden="true">✦</span><p><strong>Fresh every morning</strong><small>Breakfast and tiffin favourites prepared fresh.</small></p></div>
+      <div><span aria-hidden="true">↗</span><p><strong>Know what’s happening</strong><small>Follow your Sunrise order from the kitchen to your door.</small></p></div>
       <div><span aria-hidden="true">♡</span><p><strong>Easy to order again</strong><small>Save delivery details and reorder favourites.</small></p></div>
     </section>
   </main>
