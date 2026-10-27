@@ -165,3 +165,8 @@ body { color: var(--foodway-ink); }
 .dine-in-menu-item-details small { color:var(--muted,#68736b); }
 .dine-in-menu-choice { min-height:3.5rem; }
 @media(max-width:600px) { .dine-in-menu-filters { grid-template-columns:1fr; } }
+.dine-in-table-settings { display:grid; gap:.35rem; margin-block:1rem; padding:1rem; border:1px solid var(--line,#dce2d9); border-radius:.8rem; background:#fbfcf8; }
+.dine-in-table-settings > p { margin:0; }
+.dine-in-table-count-form { display:flex; flex-wrap:wrap; align-items:end; gap:.75rem; }
+.dine-in-table-count-form label { display:grid; gap:.35rem; font-weight:650; }
+.dine-in-table-count-form input { width:min(100%,12rem); min-height:44px; padding:.6rem .75rem; border:1px solid #dfd4cb; border-radius:9px; font:inherit; }

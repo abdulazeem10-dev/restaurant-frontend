@@ -405,8 +405,39 @@ function addDeliveryAreaRow() {
   }));
   renderDeliveryAreas([...areas, { name: "", pincodes: [] }]);
 }
+function populateDineInTableOptions(tableCount) {
+  const select = document.querySelector('#dine-in-order-form select[name="tableNumber"]');
+  if (!select) return;
+  const previous = select.value;
+  const count = Math.max(1, Math.min(500, Number(tableCount) || 10));
+  const occupied = new Set(restaurantOrdersCache
+    .filter(order => order.orderType === "dine_in" && order.paymentStatus !== "paid" && !["cancelled", "delivered"].includes(order.status))
+    .map(order => Number(order.tableNumber)));
+  select.replaceChildren();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.disabled = true;
+  placeholder.textContent = "Choose a table";
+  select.append(placeholder);
+  for (let number = 1; number <= count; number += 1) {
+    const option = document.createElement("option");
+    option.value = String(number);
+    option.textContent = `Table ${number}${occupied.has(number) ? " · Occupied" : ""}`;
+    option.disabled = occupied.has(number);
+    select.append(option);
+  }
+  if (previous && Number(previous) <= count && !occupied.has(Number(previous))) select.value = previous;
+  else {
+    const firstAvailable = [...select.options].find(option => option.value && !option.disabled);
+    select.value = firstAvailable?.value || "";
+  }
+  console.log("[dine-in] table dropdown populated", { tableCount: count, occupied: occupied.size, status: 200 });
+}
+function normalizeDineInCategory(category) {
+  return String(category || "").trim().toLocaleLowerCase().replace(/[\s_-]+/g, " ");
+}
 async function loadMenu() {
-  const { restaurant, items } = await api("/restaurants/owner/menu"); restaurantMenuItems = items || []; renderDineInMenuPicker(document.querySelector("#dine-in-menu-options")); const root = document.querySelector("#menu-items"); root.replaceChildren();
+  const { restaurant, items } = await api("/restaurants/owner/menu"); restaurantMenuItems = items || []; const tableCount = restaurant.dineInTableCount || 10; const tableCountForm = document.querySelector("#dine-in-table-count-form"); if (tableCountForm) { tableCountForm.elements.dineInTableCount.value = tableCount; tableCountForm.hidden = Boolean(restaurantStaffRole && restaurantStaffRole !== "secondary_admin"); } populateDineInTableOptions(tableCount); renderDineInMenuPicker(document.querySelector("#dine-in-menu-options")); const root = document.querySelector("#menu-items"); root.replaceChildren();
   document.querySelector("#restaurant-title").textContent = restaurant.name;
   if (restaurantProfileForm) {
     restaurantProfileForm.elements.restaurantName.value = restaurant.name || "";
@@ -716,7 +747,7 @@ function renderDineInMenuPicker(root) {
   const actualCategories = restaurantMenuItems.map(item => item.category).filter(Boolean);
   const categoryMap = new Map();
   for (const value of [...standardCategories, ...actualCategories]) {
-    const normalized = value.trim().toLocaleLowerCase();
+    const normalized = normalizeDineInCategory(value);
     if (normalized && !categoryMap.has(normalized)) categoryMap.set(normalized, value.trim());
   }
   for (const value of [...categoryMap.values()].sort((a, b) => a.localeCompare(b, "en"))) {
@@ -747,7 +778,7 @@ function renderDineInMenuPicker(root) {
     const selectedCategory = category.value;
     const items = available.filter(item => {
       const matchesSearch = !query || [item.name, item.category, item.description].filter(Boolean).join(" ").toLocaleLowerCase().includes(query);
-      const matchesCategory = selectedCategory === "all" || item.category?.toLocaleLowerCase() === selectedCategory.toLocaleLowerCase();
+      const matchesCategory = selectedCategory === "all" || normalizeDineInCategory(item.category) === normalizeDineInCategory(selectedCategory);
       return matchesSearch && matchesCategory;
     });
     list.replaceChildren();
@@ -800,7 +831,7 @@ function renderDineInMenuPicker(root) {
     }
   };
   search.addEventListener("input", renderItems);
-  category.addEventListener("change", renderItems);
+  category.addEventListener("change", () => { renderItems(); console.log("[dine-in] category filter", category.value, list.querySelectorAll(".dine-in-menu-choice").length, "matching dishes"); });
   renderItems();
   updateSummary();
 }
@@ -809,6 +840,21 @@ function selectedDineInItems(form) {
   if (picker?.dineInSelectedQuantities instanceof Map) return [...picker.dineInSelectedQuantities].map(([menuItemId, quantity]) => ({ menuItemId, quantity }));
   return [...form.querySelectorAll("[data-menu-item-id]:checked")].map(checkbox => ({ menuItemId: checkbox.dataset.menuItemId, quantity: Number(form.querySelector(`[data-quantity-for="${checkbox.dataset.menuItemId}"]`)?.value || 1) }));
 }
+document.querySelector("#dine-in-table-count-form")?.addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const count = Number(new FormData(form).get("dineInTableCount"));
+  if (!Number.isInteger(count) || count < 1 || count > 500) { msg.textContent = "Enter a table count from 1 to 500."; return; }
+  button.disabled = true;
+  try {
+    const { restaurant } = await api("/restaurants/owner/service-settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dineInTableCount: count }) });
+    populateDineInTableOptions(restaurant.dineInTableCount || count);
+    msg.textContent = `Saved ${count} dining table${count === 1 ? "" : "s"}.`;
+    console.log("[dine-in] table count saved", { tableCount: count, status: 200 });
+  } catch (error) { msg.textContent = error.message; }
+  finally { button.disabled = false; }
+});
 document.querySelector("#dine-in-order-form")?.addEventListener("submit", async event => {
   event.preventDefault(); const form = event.currentTarget, button = form.querySelector('button[type="submit"]');
   const values = new FormData(form); const items = selectedDineInItems(form);
@@ -888,7 +934,7 @@ function filterRestaurantOrders(orders) {
 async function loadOrders(fetchLatest = true) {
   if (fetchLatest) {
     const data = await api("/orders/restaurant");
-    restaurantOrdersCache = data.orders || [];
+    restaurantOrdersCache = data.orders || []; populateDineInTableOptions(document.querySelector("#dine-in-table-count-form")?.elements.dineInTableCount.value || 10);
   }
   const orders = restaurantOrdersCache; const root = document.querySelector("#orders"); root.replaceChildren();
   renderActiveTableBoard(orders);
