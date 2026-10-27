@@ -139,7 +139,7 @@ body { color: var(--foodway-ink); }
 }
 
 .dine-in-panel { margin-block: 1.25rem; }
-.dine-in-menu-options { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-block: .75rem; }
+.dine-in-menu-options { display: grid; min-width: 0; gap: .75rem; grid-template-columns: minmax(0, 1fr); margin-block: .75rem; }
 .dine-in-menu-choice { display: grid; grid-template-columns: auto minmax(0, 1fr) 5rem; align-items: center; gap: .5rem; padding: .55rem; border: 1px solid var(--line, #dce2d9); border-radius: .65rem; }
 .dine-in-menu-choice input[type="number"] { min-width: 0; }
 .dine-in-add-items, .dine-in-payment-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line, #dce2d9); }
@@ -160,7 +160,7 @@ body { color: var(--foodway-ink); }
 
 .dine-in-menu-filters { display:grid; grid-template-columns:minmax(220px,1fr) minmax(190px,.55fr); gap:.75rem; margin-block:.8rem; }
 .dine-in-menu-filters label { display:grid; gap:.35rem; font-weight:600; }
-.dine-in-menu-list { display:grid; gap:.5rem; }
+.dine-in-menu-list { display:grid; min-width:0; gap:.5rem; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); }
 .dine-in-menu-item-details { display:grid; gap:.2rem; }
 .dine-in-menu-item-details small { color:var(--muted,#68736b); }
 .dine-in-menu-choice { min-height:3.5rem; }
