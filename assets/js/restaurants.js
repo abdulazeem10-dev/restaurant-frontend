@@ -507,7 +507,10 @@ async function loadRestaurants() {
     const response = await fetch(`${API_BASE}/restaurants`);
     if (!response.ok) throw new Error("Unable to load restaurants");
     const data = await response.json();
-    allRestaurants = (data.restaurants || []).filter(restaurant => /sunrise\s+tiffin/i.test(restaurant.name || ""));
+    const publishedRestaurants = data.restaurants || [];
+    const sunriseRestaurants = publishedRestaurants.filter(restaurant => /sunrise\s+tiffin/i.test(restaurant.name || ""));
+    // This deployment is for one restaurant. If its account has a different name, use the sole approved listing instead of hiding its menu.
+    allRestaurants = sunriseRestaurants.length ? sunriseRestaurants : publishedRestaurants.length === 1 ? publishedRestaurants : [];
     const sunriseRestaurantIds = new Set(allRestaurants.map(restaurant => String(restaurant._id)));
     allFeaturedDishes = (data.featuredDishes || []).filter(dish => sunriseRestaurantIds.has(String(dish.restaurantId)));
     renderSearchSuggestions();
