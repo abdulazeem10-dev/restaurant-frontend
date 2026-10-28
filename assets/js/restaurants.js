@@ -11,7 +11,8 @@ const viewFullMenu = document.querySelector("#view-full-menu");
 const errorMessage = document.querySelector("#error");
 const cuisineLabels = Object.freeze({
   "north-indian": "North Indian", "south-indian": "South Indian", maharashtrian: "Maharashtrian",
-  chinese: "Chinese", pizza: "Pizza", desserts: "Desserts", biryani: "Biryani", "fast-food": "Fast food"
+  chinese: "Chinese", pizza: "Pizza", desserts: "Desserts", burger: "Burger", biryani: "Biryani",
+  noodles: "Noodles", rolls: "Rolls", shawarma: "Shawarma", vada: "Vada", dosa: "Dosa", momo: "Momos", salads: "Salads"
 });
 const cuisinePatterns = Object.freeze({
   "north-indian": /\b(north.?indian|paratha|puri|chole|paneer|naan|kulcha|kebab|tikka|korma)\b/i,
@@ -20,8 +21,25 @@ const cuisinePatterns = Object.freeze({
   chinese: /\b(chinese|manchurian|schezwan|chow.?mein|fried.?rice|spring.?roll|hakka|chilli.?chicken)\b/i,
   pizza: /\b(pizza|calzone|garlic.?bread)\b/i,
   desserts: /\b(dessert|sweet|ice.?cream|gulab.?jamun|ras.?malai|cake|brownie|kulfi|halwa|kheer)\b/i,
+  burger: /\b(burger|fries|fast.?food)\b/i,
   biryani: /\bbiryani\b/i,
-  "fast-food": /\b(fast.?food|burger|fries|sandwich|roll|shawarma|momos?|noodles|wrap|frankie)\b/i
+  noodles: /\b(noodles?|chow.?mein|hakka|ramen)\b/i,
+  rolls: /\b(rolls?|wraps?|frankie|sandwich)\b/i,
+  shawarma: /\bshawarma\b/i,
+  vada: /\b(vada|pakora|bhaji)\b/i,
+  dosa: /\b(dosa|uttapam)\b/i,
+  momo: /\bmomos?\b/i,
+  salads: /\b(salad|raita)\b/i
+});
+const categoryCuisine = Object.freeze({
+  "north-indian": "north-indian", northindian: "north-indian",
+  "south-indian": "south-indian", southindian: "south-indian",
+  maharashtrian: "maharashtrian", chinese: "chinese", "indo-chinese": "chinese",
+  pizza: "pizza", pizzas: "pizza", dessert: "desserts", desserts: "desserts", sweets: "desserts",
+  burger: "burger", burgers: "burger", "fast-food": "burger",
+  biryani: "biryani", biriyani: "biryani", noodle: "noodles", noodles: "noodles",
+  roll: "rolls", rolls: "rolls", shawarma: "shawarma", vada: "vada", "vada-pav": "vada",
+  dosa: "dosa", dosas: "dosa", momo: "momo", momos: "momo", salad: "salads", salads: "salads"
 });
 let currentRestaurant = null;
 let allMenuItems = [];
@@ -33,12 +51,15 @@ function getVisibleDishes() {
   const term = searchInput.value.trim().toLocaleLowerCase();
   const maxPricePaise = selectedBudgetFilter === "all" ? Infinity : Number(selectedBudgetFilter) * 100;
   return allMenuItems.filter(item => {
-    const text = [item.name, item.category, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
+    const text = [item.name, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
     const pattern = cuisinePatterns[selectedCuisineFilter];
+    const category = String(item.category || "").trim().toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const categoryFilter = categoryCuisine[category];
+    const matchesCuisine = !pattern || (categoryFilter ? categoryFilter === selectedCuisineFilter : pattern.test(text));
     return (!term || text.includes(term))
       && (selectedFoodFilter === "all" || item.foodType === selectedFoodFilter)
       && Number(item.pricePaise) <= maxPricePaise
-      && (!pattern || pattern.test(text));
+      && matchesCuisine;
   });
 }
 function cuisineImageFor(item) {
