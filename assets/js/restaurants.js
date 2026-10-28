@@ -138,7 +138,7 @@ async function loadRestaurants() {
     const response = await fetch(`${API_BASE}/restaurants`); console.info(`[Sunrise menu] GET /restaurants → ${response.status}`);
     if (!response.ok) throw new Error("Unable to load Sunrise Tiffin House");
     const data = await response.json(), approved = data.restaurants || [];
-    currentRestaurant = approved.find(restaurant => /sunrise\s+tiffin/i.test(restaurant.name || "")) || (approved.length === 1 ? approved[0] : null);
+    currentRestaurant = approved.find(restaurant => /^sunrise\s+tiffin\s+house$/i.test(restaurant.name || "")) || null;
     if (!currentRestaurant) throw new Error("Choose the Sunrise Tiffin House restaurant account in Platform Admin so this website can load its menu.");
     const menuResponse = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`);
     console.info(`[Sunrise menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
