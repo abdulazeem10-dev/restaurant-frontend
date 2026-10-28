@@ -139,7 +139,9 @@ async function loadRestaurants() {
     if (!response.ok) throw new Error("Unable to load Sunrise Tiffin House");
     const data = await response.json(), approved = data.restaurants || [];
     currentRestaurant = approved.find(restaurant => /^sunrise\s+tiffin\s+house$/i.test(restaurant.name || "")) || null;
-    if (!currentRestaurant) throw new Error("Choose the Sunrise Tiffin House restaurant account in Platform Admin so this website can load its menu.");
+    if (!currentRestaurant) {
+      throw new Error("No approved Sunrise Tiffin House account was found. In Platform Admin → Restaurants, edit the existing restaurant name to “Sunrise Tiffin House” and make sure its status is Approved. The customer site will only show Sunrise.");
+    }
     const menuResponse = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`);
     console.info(`[Sunrise menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
     if (!menuResponse.ok) throw new Error("Could not load the Sunrise Tiffin House dishes");
@@ -148,7 +150,8 @@ async function loadRestaurants() {
   } catch (error) {
     console.error("[Sunrise menu] load failed", error);
     if (errorMessage) errorMessage.textContent = error.message || "The Sunrise Tiffin House menu could not be loaded.";
-    featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: "The Sunrise Tiffin House menu is temporarily unavailable. Please try again." }));
+    if (viewFullMenu) viewFullMenu.hidden = true;
+    featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: "The Sunrise Tiffin House menu is not available yet." }));
   }
 }
 searchForm?.addEventListener("submit", event => { event.preventDefault(); renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
