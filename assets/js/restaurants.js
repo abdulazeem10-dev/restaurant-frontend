@@ -12,7 +12,7 @@ const errorMessage = document.querySelector("#error");
 const cuisineLabels = Object.freeze({
   "north-indian": "North Indian", "south-indian": "South Indian", maharashtrian: "Maharashtrian",
   chinese: "Chinese", pizza: "Pizza", desserts: "Desserts", burger: "Burger", biryani: "Biryani",
-  noodles: "Noodles", rolls: "Rolls", shawarma: "Shawarma", vada: "Vada", dosa: "Dosa", momo: "Momos", salads: "Salads"
+  noodles: "Noodles", rolls: "Rolls", shawarma: "Shawarma", vada: "Vada", dosa: "Dosa", momo: "Momos", salads: "Salads", other: "Other"
 });
 const cuisinePatterns = Object.freeze({
   "north-indian": /\b(north.?indian|paratha|puri|chole|paneer|naan|kulcha|kebab|tikka|korma)\b/i,
@@ -39,7 +39,8 @@ const categoryCuisine = Object.freeze({
   burger: "burger", burgers: "burger", "fast-food": "burger",
   biryani: "biryani", biriyani: "biryani", noodle: "noodles", noodles: "noodles",
   roll: "rolls", rolls: "rolls", shawarma: "shawarma", vada: "vada", "vada-pav": "vada",
-  dosa: "dosa", dosas: "dosa", momo: "momo", momos: "momo", salad: "salads", salads: "salads"
+  dosa: "dosa", dosas: "dosa", momo: "momo", momos: "momo", salad: "salads", salads: "salads",
+  other: "other", miscellaneous: "other", misc: "other"
 });
 let currentRestaurant = null;
 let allMenuItems = [];
@@ -55,7 +56,9 @@ function getVisibleDishes() {
     const pattern = cuisinePatterns[selectedCuisineFilter];
     const category = String(item.category || "").trim().toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const categoryFilter = categoryCuisine[category];
-    const matchesCuisine = !pattern || (categoryFilter ? categoryFilter === selectedCuisineFilter : pattern.test(text));
+    const matchesCuisine = selectedCuisineFilter === "other"
+      ? categoryFilter === "other" || (!categoryFilter && !Object.values(cuisinePatterns).some(knownPattern => knownPattern.test(text)))
+      : !pattern || (categoryFilter ? categoryFilter === selectedCuisineFilter : pattern.test(text));
     return (!term || text.includes(term))
       && (selectedFoodFilter === "all" || item.foodType === selectedFoodFilter)
       && Number(item.pricePaise) <= maxPricePaise
