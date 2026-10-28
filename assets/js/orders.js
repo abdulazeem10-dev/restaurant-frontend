@@ -36,7 +36,7 @@ function showOrdersSignIn(message = "Sign in to see your orders, delivery update
   const browse = document.createElement("a");
   browse.className = "orders-browse-link";
   browse.href = "index.html#restaurant-listing";
-  browse.textContent = "Browse Sunrise Tiffin House menu";
+  browse.textContent = "Browse Al-Madina menu";
   actions.append(signIn, browse);
   state.append(icon, title, description, actions);
   orderRoot.append(state);
@@ -179,7 +179,7 @@ async function reorder(order, button) {
   errorRoot.textContent = "Checking the restaurant’s current menu…";
   try {
     const restaurantId = order.restaurantId?._id;
-    if (!restaurantId) throw new Error("Could not find Sunrise Tiffin House for this order.");
+    if (!restaurantId) throw new Error("Could not find Al-Madina for this order.");
     const response = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(restaurantId)}/menu`);
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Could not load the current menu.");
@@ -198,7 +198,7 @@ async function reorder(order, button) {
       button.disabled = false;
       return;
     }
-    writeCart({ restaurantId, restaurantName: "Sunrise Tiffin House", items });
+    writeCart({ restaurantId, restaurantName: "Al-Madina", items });
     if (unavailableCount) sessionStorage.setItem("food-platform-reorder-note", `${unavailableCount} unavailable ${unavailableCount === 1 ? "dish was" : "dishes were"} left out. Review your cart before ordering.`);
     sessionStorage.removeItem("food-platform-checkout");
     location.href = "cart.html";
@@ -328,14 +328,14 @@ function renderOrders(orders) {
     icon.setAttribute("aria-hidden", "true");
     icon.textContent = "✦";
     const title = document.createElement("h2");
-    title.textContent = "Your next Sunrise favourite is waiting";
+    title.textContent = "Your next Al-Madina favourite is waiting";
     const message = document.createElement("p");
     message.className = "muted";
     message.textContent = "Your orders and delivery updates will appear here once you place an order.";
     const browse = document.createElement("a");
     browse.className = "hero-cta";
     browse.href = "index.html#restaurant-listing";
-    browse.textContent = "Explore the Sunrise menu";
+    browse.textContent = "Explore the Al-Madina menu";
     empty.append(icon, title, message, browse);
     orderRoot.append(empty);
     return;
@@ -351,7 +351,7 @@ function renderOrders(orders) {
         : "Online payment selected (not collected)";
     const paymentStatusLabel = order.paymentStatus === "paid" ? "Paid" : order.paymentStatus === "failed" ? "Failed" : order.paymentStatus === "refunded" ? "Refunded" : order.paymentMethod === "cash_on_delivery" ? "Unpaid · due on delivery" : "Not paid · preference only";
     const statusLabels = { placed: "Order placed", confirmed: "Order placed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Out for delivery", delivered: "Delivery done", cancelled: "Cancelled", awaiting_payment: "Waiting for payment" };
-    card.innerHTML = `<h3>${escapeHtml("Sunrise Tiffin House")}</h3><p>${lines}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replaceAll("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel}</p><p>Payment status: ${paymentStatusLabel}</p><small>Order placed ${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
+    card.innerHTML = `<h3>${escapeHtml("Al-Madina")}</h3><p>${lines}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replaceAll("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel}</p><p>Payment status: ${paymentStatusLabel}</p><small>Order placed ${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
     if (order.deliveryDetails?.deliveryAreaName) {
       const area = document.createElement("p");
       area.textContent = `Delivery area: ${order.deliveryDetails.deliveryAreaName}`;

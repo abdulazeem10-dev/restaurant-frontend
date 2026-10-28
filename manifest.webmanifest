@@ -1,7 +1,7 @@
 {
   "id": "/customer/index.html",
-  "name": "Sunrise Tiffin House — Local Food",
-  "short_name": "Sunrise Tiffin House",
+  "name": "Al-Madina — Local Food",
+  "short_name": "Al-Madina",
   "description": "Discover restaurants, order food, and follow delivery progress.",
   "start_url": "/customer/index.html",
   "scope": "/",

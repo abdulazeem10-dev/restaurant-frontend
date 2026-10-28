@@ -1,5 +1,5 @@
 const restaurantId = new URLSearchParams(location.search).get("id");
-const RESTAURANT_BRAND = "Sunrise Tiffin House";
+const RESTAURANT_BRAND = "Al-Madina";
 const menuRoot = document.querySelector("#menu-items");
 const categoryRoot = document.querySelector("#category-nav");
 const menuFoodButtons = [...document.querySelectorAll("[data-menu-food]")];
@@ -172,7 +172,7 @@ function renderMenu(items, restaurant, filter = "all") {
       price.textContent = formatRupees(item.pricePaise);
       const description = document.createElement("p");
       description.className = "muted";
-      description.textContent = item.description || "Prepared fresh at Sunrise Tiffin House.";
+      description.textContent = item.description || "Prepared fresh at Al-Madina.";
       info.append(title);
       if (item.foodType === "veg" || item.foodType === "nonVeg") info.append(typeBadge);
       info.append(price, description);
@@ -191,7 +191,7 @@ function renderMenu(items, restaurant, filter = "all") {
   if (!items.length) {
     const emptyTitle = filter === "all" ? "Menu coming soon" : `No ${filter === "veg" ? "Veg" : "Non-Veg"} dishes listed`;
     const emptyMessage = filter === "all"
-      ? "Sunrise Tiffin House has no available dishes listed yet."
+      ? "Al-Madina has no available dishes listed yet."
       : "Try another food filter or check back later.";
     menuRoot.innerHTML = `<div class="empty-state"><h3>${emptyTitle}</h3><p>${emptyMessage}</p></div>`;
   }
@@ -201,8 +201,8 @@ async function loadStorefront() {
   const error = document.querySelector("#error");
   const storefrontHero = document.querySelector(".storefront-hero");
   if (!restaurantId) {
-    error.textContent = "Open the Sunrise Tiffin House menu from the home page.";
-    document.querySelector("#restaurant-name").textContent = "Sunrise Tiffin House";
+    error.textContent = "Open the Al-Madina menu from the home page.";
+    document.querySelector("#restaurant-name").textContent = "Al-Madina";
     storefrontHero.setAttribute("aria-busy", "false");
     return;
   }
@@ -211,15 +211,15 @@ async function loadStorefront() {
       fetch(`${API_BASE}/restaurants/${encodeURIComponent(restaurantId)}`),
       fetch(`${API_BASE}/restaurants/${encodeURIComponent(restaurantId)}/menu`)
     ]);
-    if (!restaurantResponse.ok || !menuResponse.ok) throw new Error("Sunrise Tiffin House is not available right now.");
+    if (!restaurantResponse.ok || !menuResponse.ok) throw new Error("Al-Madina is not available right now.");
     const { restaurant: restaurantData } = await restaurantResponse.json();
     const restaurant = { ...restaurantData, name: RESTAURANT_BRAND };
     const { items } = await menuResponse.json();
     currentRestaurant = restaurant;
-    document.title = `${restaurant.name} menu | Sunrise Tiffin House`;
+    document.title = `${restaurant.name} menu | Al-Madina`;
     document.querySelector("#restaurant-name").textContent = restaurant.name;
     document.querySelector("#crumb-name").textContent = restaurant.name;
-    document.querySelector("#restaurant-description").textContent = "Freshly prepared breakfast, dosa, idli and comforting tiffin favourites.";
+    document.querySelector("#restaurant-description").textContent = "Freshly prepared veg and non-veg favourites from Al-Madina.";
     document.querySelector("#restaurant-address").textContent = "Ulwe, Navi Mumbai";
     const status = document.querySelector("#restaurant-status");
     status.textContent = restaurant.isOpen ? "Open for orders" : "Currently closed";

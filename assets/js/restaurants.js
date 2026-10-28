@@ -1,4 +1,4 @@
-const brandName = "Sunrise Tiffin House";
+const brandName = "Al-Madina";
 const searchForm = document.querySelector("#restaurant-search");
 const searchInput = document.querySelector("#search-input");
 const quickFoodFilters = [...document.querySelectorAll("[data-quick-food]")];
@@ -9,13 +9,19 @@ const featuredSection = document.querySelector("#restaurant-listing");
 const featuredDishesTrack = document.querySelector("#featured-dishes-track");
 const viewFullMenu = document.querySelector("#view-full-menu");
 const errorMessage = document.querySelector("#error");
-const cuisineLabels = Object.freeze({ "south-indian": "South Indian", "north-indian": "North Indian", maharashtrian: "Maharashtrian", "vada-pav": "Vada Pav", dosa: "Dosa", idli: "Idli", momos: "Momos", kachori: "Kachori" });
-const breakfastPatterns = Object.freeze({
-  "south-indian": /\b(south.?indian|dosa|idli|sambar|sambhar|uttapam|upma|medu.?vada)\b/i,
-  "north-indian": /\b(north.?indian|paratha|puri|chole|aloo.?paratha)\b/i,
+const cuisineLabels = Object.freeze({
+  "north-indian": "North Indian", "south-indian": "South Indian", maharashtrian: "Maharashtrian",
+  chinese: "Chinese", pizza: "Pizza", desserts: "Desserts", biryani: "Biryani", "fast-food": "Fast food"
+});
+const cuisinePatterns = Object.freeze({
+  "north-indian": /\b(north.?indian|paratha|puri|chole|paneer|naan|kulcha|kebab|tikka|korma)\b/i,
+  "south-indian": /\b(south.?indian|dosa|idli|sambar|sambhar|uttapam|upma|medu.?vada|rasam)\b/i,
   maharashtrian: /\b(maharashtrian|vada.?pav|puran.?poli|misal|poha|sabudana|thalipeeth)\b/i,
-  "vada-pav": /\b(vada.?pav|batata.?vada)\b/i, dosa: /\b(dosa|uttapam)\b/i, idli: /\b(idli|sambar|sambhar)\b/i,
-  momos: /\bmomos?\b/i, kachori: /\bkachori\b/i
+  chinese: /\b(chinese|manchurian|schezwan|chow.?mein|fried.?rice|spring.?roll|hakka|chilli.?chicken)\b/i,
+  pizza: /\b(pizza|calzone|garlic.?bread)\b/i,
+  desserts: /\b(dessert|sweet|ice.?cream|gulab.?jamun|ras.?malai|cake|brownie|kulfi|halwa|kheer)\b/i,
+  biryani: /\bbiryani\b/i,
+  "fast-food": /\b(fast.?food|burger|fries|sandwich|roll|shawarma|momos?|noodles|wrap|frankie)\b/i
 });
 let currentRestaurant = null;
 let allMenuItems = [];
@@ -28,7 +34,7 @@ function getVisibleDishes() {
   const maxPricePaise = selectedBudgetFilter === "all" ? Infinity : Number(selectedBudgetFilter) * 100;
   return allMenuItems.filter(item => {
     const text = [item.name, item.category, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
-    const pattern = breakfastPatterns[selectedCuisineFilter];
+    const pattern = cuisinePatterns[selectedCuisineFilter];
     return (!term || text.includes(term))
       && (selectedFoodFilter === "all" || item.foodType === selectedFoodFilter)
       && Number(item.pricePaise) <= maxPricePaise
@@ -37,6 +43,12 @@ function getVisibleDishes() {
 }
 function cuisineImageFor(item) {
   const category = String(item.category || "").toLocaleLowerCase();
+  if (/chinese|noodle/.test(category)) return "../assets/images/cuisines/chinese.webp";
+  if (/pizza/.test(category)) return "../assets/images/cuisines/pizza.webp";
+  if (/dessert|sweet/.test(category)) return "../assets/images/cuisines/desserts.webp";
+  if (/biryani/.test(category)) return "../assets/images/cuisines/biryani.webp";
+  if (/burger|fast.?food/.test(category)) return "../assets/images/cuisines/burger.webp";
+  if (/maharashtrian/.test(category)) return "../assets/images/cuisines/other.webp";
   if (/south|idli|dosa|vada/.test(category)) return "../assets/images/cuisines/south-indian.webp";
   if (/north|kachori|paratha|puri/.test(category)) return "../assets/images/cuisines/north-indian.webp";
   if (/maharashtrian|poha/.test(category)) return "../assets/images/cuisines/other.webp";
@@ -55,7 +67,7 @@ function renderMenuPreview() {
   if (!currentRestaurant) return;
   if (!dishes.length) {
     const empty = document.createElement("p"); empty.className = "featured-dishes-empty";
-    empty.textContent = allMenuItems.length ? "No dishes match these filters. Try another category or clear your search." : "The Sunrise Tiffin House menu is being updated. Please check back soon.";
+    empty.textContent = allMenuItems.length ? "No dishes match these filters. Try another cuisine or clear your search." : "The Al-Madina menu is being updated. Please check back soon.";
     featuredDishesTrack.append(empty); return;
   }
   for (const item of dishes) {
@@ -70,7 +82,7 @@ function renderMenuPreview() {
     const price = document.createElement("strong"); price.textContent = formatRupees(item.pricePaise);
     const restaurant = document.createElement("span"); restaurant.textContent = brandName;
     const type = document.createElement("small"); type.className = item.foodType === "veg" ? "dish-food-type dish-food-type-veg" : "dish-food-type dish-food-type-nonveg";
-    type.textContent = item.foodType === "veg" ? "Veg" : item.foodType === "nonVeg" ? "Non-Veg" : item.category || "Breakfast";
+    type.textContent = item.foodType === "veg" ? "Veg" : item.foodType === "nonVeg" ? "Non-Veg" : item.category || "Food";
     details.append(name, price, restaurant, type); card.append(imageWrap, details); featuredDishesTrack.append(card);
   }
 }
@@ -79,13 +91,13 @@ function renderFoodPassport(orders = []) {
   const bar = document.querySelector("#passport-progress-bar"), hint = document.querySelector("#passport-progress-hint");
   if (!stamps || !label || !bar || !hint) return;
   const earned = Boolean(currentRestaurant && orders.some(order => order.status === "delivered" && String(order.restaurantId?._id || order.restaurantId) === String(currentRestaurant._id)));
-  label.textContent = `${earned ? 1 : 0} of 1 Sunrise Tiffin orders`;
+  label.textContent = `${earned ? 1 : 0} of 1 Al-Madina orders`;
   bar.style.width = earned ? "100%" : "0%";
-  hint.textContent = earned ? "You earned your Sunrise breakfast stamp." : getToken() ? "Complete a Sunrise Tiffin House order to collect your stamp." : "Sign in and complete an order to collect your first stamp.";
+  hint.textContent = earned ? "You earned your Al-Madina visit stamp." : getToken() ? "Complete an Al-Madina order to collect your stamp." : "Sign in and complete an order to collect your first stamp.";
   const card = document.createElement("div"); card.className = `food-passport-stamp-card${earned ? " is-visited" : ""}`;
   const icon = document.createElement("span"); icon.className = "food-passport-stamp-icon"; icon.textContent = earned ? "✓" : "○";
   const copy = document.createElement("span"), name = document.createElement("strong"), detail = document.createElement("small");
-  name.textContent = brandName; detail.textContent = "Breakfast and tiffin favourites"; copy.append(name, detail); card.append(icon, copy); stamps.replaceChildren(card);
+  name.textContent = brandName; detail.textContent = "Veg and non-veg favourites"; copy.append(name, detail); card.append(icon, copy); stamps.replaceChildren(card);
 }
 function renderRecentOrders(orders = []) {
   const section = document.querySelector("#recent-orders-section"), track = document.querySelector("#recent-orders-track");
@@ -101,7 +113,7 @@ function renderRecentOrders(orders = []) {
       || allMenuItems.find(item => item.name?.trim().toLocaleLowerCase() === firstDish?.name?.trim().toLocaleLowerCase());
     const fallbackImage = cuisineImageFor(menuDish || { category: firstDish?.category || firstDish?.name });
     const image = document.createElement("img"); image.className = "recent-order-image"; image.src = menuDish?.imageUrl || firstDish?.imageUrl || fallbackImage;
-    image.alt = firstDish?.name ? `${firstDish.name} dish` : "Sunrise Tiffin House dish"; image.loading = "lazy"; image.decoding = "async";
+    image.alt = firstDish?.name ? `${firstDish.name} dish` : "Al-Madina dish"; image.loading = "lazy"; image.decoding = "async";
     image.addEventListener("error", () => { if (image.dataset.fallbackApplied) image.remove(); else { image.dataset.fallbackApplied = "true"; image.src = fallbackImage; } });
     const name = document.createElement("strong"); name.textContent = brandName;
     const items = document.createElement("span"); items.textContent = (order.items || []).slice(0, 2).map(item => `${item.quantity} × ${item.name}`).join(" · ") || "View the current menu";
@@ -133,25 +145,25 @@ async function setupHomeAccountNav() {
 async function loadRestaurants() {
   if (featuredSection) featuredSection.hidden = false;
   if (errorMessage) errorMessage.textContent = "";
-  featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "muted", textContent: "Loading the Sunrise Tiffin House menu…" }));
+  featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "muted", textContent: "Loading the Al-Madina menu…" }));
   try {
-    const response = await fetch(`${API_BASE}/restaurants`); console.info(`[Sunrise menu] GET /restaurants → ${response.status}`);
-    if (!response.ok) throw new Error("Unable to load Sunrise Tiffin House");
+    const response = await fetch(`${API_BASE}/restaurants`); console.info(`[Al-Madina menu] GET /restaurants → ${response.status}`);
+    if (!response.ok) throw new Error("Unable to load Al-Madina");
     const data = await response.json(), approved = data.restaurants || [];
-    currentRestaurant = approved.find(restaurant => /^sunrise\s+tiffin\s+house$/i.test(restaurant.name || "")) || null;
+    currentRestaurant = approved.find(restaurant => /^al-madina$/i.test(String(restaurant.name || "").trim())) || null;
     if (!currentRestaurant) {
-      throw new Error("No approved Sunrise Tiffin House account was found. In Platform Admin → Restaurants, edit the existing restaurant name to “Sunrise Tiffin House” and make sure its status is Approved. The customer site will only show Sunrise.");
+      throw new Error("No approved Al-Madina account was found. In Platform Admin → Restaurants, set the existing restaurant name to “Al-Madina” and make sure its status is Approved. This customer site shows Al-Madina only.");
     }
     const menuResponse = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`);
-    console.info(`[Sunrise menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
-    if (!menuResponse.ok) throw new Error("Could not load the Sunrise Tiffin House dishes");
+    console.info(`[Al-Madina menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
+    if (!menuResponse.ok) throw new Error("Could not load Al-Madina dishes");
     allMenuItems = (await menuResponse.json()).items || [];
     renderMenuPreview(); await loadRecentOrders();
   } catch (error) {
-    console.error("[Sunrise menu] load failed", error);
-    if (errorMessage) errorMessage.textContent = error.message || "The Sunrise Tiffin House menu could not be loaded.";
+    console.error("[Al-Madina menu] load failed", error);
+    if (errorMessage) errorMessage.textContent = error.message || "The Al-Madina menu could not be loaded.";
     if (viewFullMenu) viewFullMenu.hidden = true;
-    featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: "The Sunrise Tiffin House menu is not available yet." }));
+    featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: "The Al-Madina menu is not available yet." }));
   }
 }
 searchForm?.addEventListener("submit", event => { event.preventDefault(); renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); });

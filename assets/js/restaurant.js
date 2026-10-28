@@ -52,7 +52,7 @@ function showRestaurantView(view) {
     document.querySelector("#orders-heading-description").textContent = dineInMode
       ? "Open table bills, add dishes, print bills, and record payment."
       : restaurantOrderMode === "delivery"
-        ? "Orders placed through the Sunrise Tiffin House website or app."
+        ? "Orders placed through the Al-Madina website or app."
         : "Review dine-in and home-delivery activity.";
     loadOrders(false).catch(error => { msg.textContent = error.message; });
   }
@@ -111,7 +111,7 @@ document.querySelector("#subscription-payment-form")?.addEventListener("submit",
     const order = await api("/restaurants/owner/subscription/payment/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ years }) });
     console.log("[restaurant subscription] checkout order created", { status: 200, years, amount: order.amount });
     const checkout = new window.Razorpay({
-      key: order.keyId, amount: order.amount, currency: order.currency, name: "Sunrise Tiffin House",
+      key: order.keyId, amount: order.amount, currency: order.currency, name: "Al-Madina",
       description: `${years}-year restaurant subscription · ₹${(order.amount / 100).toLocaleString("en-IN")}`,
       order_id: order.razorpayOrderId,
       handler: async response => {
@@ -756,7 +756,7 @@ function renderDineInMenuPicker(root) {
   allOption.value = "all";
   allOption.textContent = "All categories";
   category.append(allOption);
-  const standardCategories = ["South Indian", "North Indian", "Maharashtrian", "Vada Pav & Snacks", "Breakfast Specials", "Beverages", "Other"];
+  const standardCategories = ["North Indian", "South Indian", "Maharashtrian", "Chinese", "Pizza", "Desserts", "Biryani", "Fast Food", "Noodles", "Rolls", "Shawarma", "Vada & Snacks", "Beverages", "Salads", "Other"];
   const actualCategories = restaurantMenuItems.map(item => item.category).filter(Boolean);
   const categoryMap = new Map();
   for (const value of [...standardCategories, ...actualCategories]) {
