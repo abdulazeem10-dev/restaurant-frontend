@@ -1,6 +1,6 @@
-# Sunrise Tiffin House frontend
+# Al-Madina frontend
 
-Static customer and restaurant workspace pages for Sunrise Tiffin House.
+Static customer and restaurant workspace pages for Al-Madina.
 
 ## Deploy on Vercel
 
