@@ -3,9 +3,33 @@ const RESTAURANT_BRAND = "Al-Madina";
 const menuRoot = document.querySelector("#menu-items");
 const categoryRoot = document.querySelector("#category-nav");
 const menuFoodButtons = [...document.querySelectorAll("[data-menu-food]")];
+const menuCategorySelect = document.querySelector("#menu-category-filter");
 let currentRestaurant = null;
 let allMenuItems = [];
 let selectedMenuFood = "all";
+const menuCategoryPatterns = Object.freeze({
+  "north-indian": /\b(north.?indian|paratha|puri|chole|paneer|naan|kulcha|kebab|tikka|korma)\b/i,
+  "south-indian": /\b(south.?indian|dosa|idli|sambar|sambhar|uttapam|upma|medu.?vada|rasam)\b/i,
+  maharashtrian: /\b(maharashtrian|vada.?pav|puran.?poli|misal|poha|sabudana|thalipeeth)\b/i,
+  chinese: /\b(chinese|manchurian|schezwan|chow.?mein|fried.?rice|spring.?roll|hakka|chilli.?chicken)\b/i,
+  pizza: /\b(pizza|calzone|garlic.?bread)\b/i,
+  desserts: /\b(dessert|sweet|ice.?cream|gulab.?jamun|ras.?malai|cake|brownie|kulfi|halwa|kheer)\b/i,
+  burger: /\b(burger|fries|fast.?food)\b/i,
+  biryani: /\bbiryani\b/i,
+  noodles: /\b(noodles?|chow.?mein|hakka|ramen)\b/i,
+  rolls: /\b(rolls?|wraps?|frankie|sandwich)\b/i,
+  shawarma: /\bshawarma\b/i,
+  vada: /\b(vada|pakora|bhaji)\b/i,
+  dosa: /\b(dosa|uttapam)\b/i,
+  momo: /\bmomos?\b/i,
+  salads: /\b(salad|raita)\b/i
+});
+const menuCategoryAliases = Object.freeze({
+  northindian: "north-indian", southindian: "south-indian", "indo-chinese": "chinese",
+  pizzas: "pizza", dessert: "desserts", sweets: "desserts", burgers: "burger", "fast-food": "burger",
+  biriyani: "biryani", noodle: "noodles", roll: "rolls", "vada-pav": "vada", dosas: "dosa",
+  momos: "momo", salad: "salads", miscellaneous: "other", misc: "other"
+});
 
 function formatTodayHours(openingHours) {
   if (!openingHours) return "Today's hours aren't listed.";
@@ -21,12 +45,29 @@ function formatTodayHours(openingHours) {
 
 function renderFilteredMenu() {
   if (!currentRestaurant) return;
-  const filter = selectedMenuFood;
+  const categoryFilter = menuCategorySelect?.value || "all";
   menuFoodButtons.forEach(button => {
-    button.setAttribute("aria-pressed", String(button.dataset.menuFood === filter));
+    button.setAttribute("aria-pressed", String(button.dataset.menuFood === selectedMenuFood));
   });
-  const filtered = filter === "all" ? allMenuItems : allMenuItems.filter(item => item.foodType === filter);
-  renderMenu(filtered, currentRestaurant, filter);
+  const filtered = allMenuItems.filter(item => {
+    const foodMatches = selectedMenuFood === "all" || item.foodType === selectedMenuFood;
+    if (!foodMatches || categoryFilter === "all") return foodMatches;
+    const text = [item.name, item.category, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
+    const category = String(item.category || "").trim().toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const mappedCategory = menuCategoryAliases[category] || category;
+    const categoryKnown = Boolean(menuCategoryPatterns[mappedCategory]);
+    if (categoryFilter === "other") {
+      return mappedCategory === "other" || (!categoryKnown && !Object.values(menuCategoryPatterns).some(pattern => pattern.test(text)));
+    }
+    if (mappedCategory === categoryFilter) return true;
+    if (categoryKnown) {
+      if (categoryFilter === "dosa" && mappedCategory === "south-indian") return menuCategoryPatterns.dosa.test(text);
+      if (categoryFilter === "vada" && ["south-indian", "maharashtrian"].includes(mappedCategory)) return menuCategoryPatterns.vada.test(text);
+      return false;
+    }
+    return Boolean(menuCategoryPatterns[categoryFilter]?.test(text));
+  });
+  renderMenu(filtered, currentRestaurant, selectedMenuFood, categoryFilter);
 }
 
 function updateStoreCart() {
@@ -120,7 +161,7 @@ function addMenuItem(item, button) {
   }
 }
 
-function renderMenu(items, restaurant, filter = "all") {
+function renderMenu(items, restaurant, filter = "all", categoryFilter = "all") {
   const groups = new Map();
   for (const item of items) {
     const category = item.category || "Menu";
@@ -189,10 +230,9 @@ function renderMenu(items, restaurant, filter = "all") {
     menuRoot.append(section);
   }
   if (!items.length) {
-    const emptyTitle = filter === "all" ? "Menu coming soon" : `No ${filter === "veg" ? "Veg" : "Non-Veg"} dishes listed`;
-    const emptyMessage = filter === "all"
-      ? "Al-Madina has no available dishes listed yet."
-      : "Try another food filter or check back later.";
+    const hasFilter = filter !== "all" || categoryFilter !== "all";
+    const emptyTitle = hasFilter ? "No dishes match these filters" : "Menu coming soon";
+    const emptyMessage = hasFilter ? "Try another food filter or check back later." : "Al-Madina has no available dishes listed yet.";
     menuRoot.innerHTML = `<div class="empty-state"><h3>${emptyTitle}</h3><p>${emptyMessage}</p></div>`;
   }
 }
@@ -244,4 +284,5 @@ menuFoodButtons.forEach(button => button.addEventListener("click", () => {
   selectedMenuFood = button.dataset.menuFood;
   renderFilteredMenu();
 }));
+menuCategorySelect?.addEventListener("change", renderFilteredMenu);
 loadStorefront();
