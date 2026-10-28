@@ -15,6 +15,7 @@ const restaurantViewInfo = {
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
   subscription: ["Subscription", "View your access term and renew securely online."],
   reviews: ["Customer reviews", "Read feedback from your customers."],
+  kitchen: ["Kitchen queue", "Prepare dine-in and delivery tickets in one live kitchen board."],
   orders: ["Incoming orders", "Manage all restaurant orders."],
   "dine-in": ["Dine-in tables", "Manage occupied tables, running bills, and dine-in payments."],
   delivery: ["Home delivery", "Manage orders placed through the customer website or app."],
@@ -27,6 +28,7 @@ function showRestaurantView(view) {
   if (!button || button.hidden) return;
   if (view === "dine-in") restaurantOrderMode = "dine_in";
   else if (view === "delivery") restaurantOrderMode = "delivery";
+  else if (view === "kitchen") restaurantOrderMode = "kitchen";
   else if (view === "orders") restaurantOrderMode = "all";
   const sectionView = ["dine-in", "delivery"].includes(view) ? "orders" : view;
   document.querySelectorAll("[data-restaurant-section]").forEach(section => {
@@ -40,6 +42,10 @@ function showRestaurantView(view) {
   document.querySelector("#restaurant-page-description").textContent = restaurantViewInfo[view][1];
   if (sectionView === "orders") {
     const dineInMode = restaurantOrderMode === "dine_in";
+    const kitchenMode = restaurantOrderMode === "kitchen";
+    document.querySelector("#kitchen-queue-panel").hidden = !kitchenMode;
+    document.querySelector(".orders-queue-filters").hidden = kitchenMode;
+    document.querySelector("#orders").hidden = kitchenMode;
     document.querySelector("#active-table-panel").hidden = !dineInMode;
     document.querySelector("#dine-in-start-panel").hidden = !dineInMode;
     document.querySelector("#orders-heading-title").textContent = dineInMode ? "Dine-in orders" : restaurantOrderMode === "delivery" ? "Home delivery orders" : "All orders";
@@ -456,7 +462,11 @@ async function loadMenu() {
   if (restaurant.status === "approved" && (!restaurantStaffRole || restaurantStaffRole === "secondary_admin")) { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
   else { toggle.hidden = true; }
   const foodFilter = document.querySelector("#owner-food-filter").value;
-  const visibleItems = foodFilter === "all" ? items : items.filter(item => item.foodType === foodFilter);
+  const availabilityFilter = document.querySelector("#owner-availability-filter")?.value || "all";
+  const availableCount = items.filter(item => item.available).length;
+  const availabilitySummary = document.querySelector("#menu-availability-summary");
+  if (availabilitySummary) availabilitySummary.textContent = `${availableCount} available · ${items.length - availableCount} sold out`;
+  const visibleItems = items.filter(item => (foodFilter === "all" || item.foodType === foodFilter) && (availabilityFilter === "all" || (availabilityFilter === "available" ? item.available : !item.available)));
   const menuCategories = ["Indian", "North Indian", "South Indian", "Maharashtrian", "Chinese", "Italian", "Pizza", "Fast Food", "Burger", "Biryani", "Noodles", "Rolls", "Shawarma", "Vada", "Dosa", "Momo", "Desserts", "Salads", "Other"];
   for (const item of visibleItems) {
     const card = document.createElement("article");
@@ -464,7 +474,7 @@ async function loadMenu() {
     const matchingCategory = menuCategories.find(category => category.toLocaleLowerCase() === currentCategory.toLocaleLowerCase());
     const categoryOptions = [...menuCategories];
     if (!matchingCategory && currentCategory) categoryOptions.unshift(currentCategory);
-    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p class="menu-item-summary">${escapeHtml(currentCategory)} · ${formatRupees(item.pricePaise)}</p><button type="button" class="secondary menu-edit-toggle">Edit dish details</button><form class="menu-edit-form" hidden><label>Dish name<input name="name" required maxlength="150" value="${escapeHtml(item.name)}"></label><label>Category / cuisine<select name="category" required>${categoryOptions.map(category => `<option value="${escapeHtml(category)}" ${category === (matchingCategory || currentCategory) ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label><label>Food type<select name="foodType" required><option value="veg" ${item.foodType === "veg" ? "selected" : ""}>Veg</option><option value="nonVeg" ${item.foodType === "nonVeg" ? "selected" : ""}>Non-Veg</option></select></label><label>Price in rupees<input name="price" type="number" min="0.01" step="0.01" required value="${(Number(item.pricePaise) / 100).toFixed(2)}"></label><label>Description<textarea name="description" maxlength="1000">${escapeHtml(item.description || "")}</textarea></label><label>Dish image URL (HTTPS)<input name="imageUrl" type="url" maxlength="2048" placeholder="https://…" value="${escapeHtml(item.imageUrl || "")}"></label><div class="menu-edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary menu-edit-cancel">Cancel</button></div></form><p class="menu-item-actions"><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary menu-delete">Delete</button></p>`;
+    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p class="menu-item-summary">${escapeHtml(currentCategory)} · ${formatRupees(item.pricePaise)}</p><span class="menu-availability-badge ${item.available ? "is-available" : "is-sold-out"}">${item.available ? "Available to order" : "Sold out · hidden from customers"}</span><button type="button" class="secondary menu-edit-toggle">Edit dish details</button><form class="menu-edit-form" hidden><label>Dish name<input name="name" required maxlength="150" value="${escapeHtml(item.name)}"></label><label>Category / cuisine<select name="category" required>${categoryOptions.map(category => `<option value="${escapeHtml(category)}" ${category === (matchingCategory || currentCategory) ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label><label>Food type<select name="foodType" required><option value="veg" ${item.foodType === "veg" ? "selected" : ""}>Veg</option><option value="nonVeg" ${item.foodType === "nonVeg" ? "selected" : ""}>Non-Veg</option></select></label><label>Price in rupees<input name="price" type="number" min="0.01" step="0.01" required value="${(Number(item.pricePaise) / 100).toFixed(2)}"></label><label>Description<textarea name="description" maxlength="1000">${escapeHtml(item.description || "")}</textarea></label><label>Dish image URL (HTTPS)<input name="imageUrl" type="url" maxlength="2048" placeholder="https://…" value="${escapeHtml(item.imageUrl || "")}"></label><div class="menu-edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary menu-edit-cancel">Cancel</button></div></form><p class="menu-item-actions"><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary menu-delete">Delete</button></p>`;
     const editToggle = card.querySelector(".menu-edit-toggle");
     const editForm = card.querySelector(".menu-edit-form");
     editToggle.addEventListener("click", () => {
@@ -526,6 +536,8 @@ async function loadMenu() {
       try {
         await api(`/restaurants/owner/menu/${item._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ available: nextAvailability }) });
         msg.textContent = `${item.name} is ${nextAvailability ? "now available" : "now hidden from customers"}.`;
+        console.log("[menu availability] updated", { itemId: item._id, available: nextAvailability, status: 200 });
+        await loadMenu();
       } catch (error) {
         availability.checked = !nextAvailability;
         msg.textContent = error.message;
@@ -540,6 +552,7 @@ async function loadMenu() {
   else if (!visibleItems.length) root.textContent = `No ${foodFilter === "veg" ? "Veg" : "Non-Veg"} dishes. Choose another filter.`;
 }
 document.querySelector("#owner-food-filter").addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
+document.querySelector("#owner-availability-filter")?.addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
 document.querySelector("#hours-form").addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -931,6 +944,111 @@ function filterRestaurantOrders(orders) {
   });
 }
 
+function renderKitchenQueue(orders) {
+  const root = document.querySelector("#kitchen-queue");
+  root.replaceChildren();
+  const lanes = [
+    { status: "placed", title: "New", matches: order => ["placed", "confirmed"].includes(order.status) },
+    { status: "preparing", title: "Preparing", matches: order => order.status === "preparing" },
+    { status: "ready", title: "Ready", matches: order => order.status === "ready" }
+  ];
+  const activeOrders = orders.filter(order => ["placed", "confirmed", "preparing", "ready"].includes(order.status) && !(order.orderType === "dine_in" && order.paymentStatus === "paid"));
+  for (const lane of lanes) {
+    const tickets = activeOrders.filter(lane.matches);
+    const column = document.createElement("section");
+    column.className = `kitchen-lane kitchen-lane-${lane.status}`;
+    const heading = document.createElement("h3");
+    heading.className = "kitchen-lane-heading";
+    heading.textContent = `${lane.title} · ${tickets.length}`;
+    column.append(heading);
+    if (!tickets.length) {
+      const empty = document.createElement("p");
+      empty.className = "muted kitchen-lane-empty";
+      empty.textContent = "No tickets";
+      column.append(empty);
+    }
+    for (const order of tickets) {
+      const card = document.createElement("article");
+      card.className = "kitchen-ticket";
+      const type = order.orderType === "dine_in" ? `Dine-in · Table ${order.tableNumber}` : "Home delivery";
+      const customer = order.customerName || order.customerId?.name || order.deliveryDetails?.name || "Customer";
+      const heading = document.createElement("h4");
+      heading.textContent = `${type} · #${String(order._id).slice(-6)}`;
+      const details = document.createElement("p");
+      details.className = "kitchen-ticket-customer";
+      details.textContent = `${customer} · ${new Date(order.createdAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`;
+      const items = document.createElement("ul");
+      items.className = "kitchen-ticket-items";
+      for (const item of order.items) {
+        const line = document.createElement("li");
+        line.textContent = `${item.quantity} × ${item.name}`;
+        items.append(line);
+      }
+      const total = document.createElement("p");
+      total.className = "kitchen-ticket-total";
+      total.textContent = formatRupees(order.totalPaise);
+      card.append(heading, details, items, total);
+      if (restaurantStaffRole !== "viewer" && ["placed", "confirmed", "preparing"].includes(order.status)) {
+        const nextStatus = order.status === "preparing" ? "ready" : "preparing";
+        const action = document.createElement("button");
+        action.type = "button";
+        action.textContent = nextStatus === "preparing" ? "Start preparing" : "Mark ready";
+        action.addEventListener("click", async () => {
+          action.disabled = true;
+          try {
+            const response = await api(`/orders/restaurant/${encodeURIComponent(order._id)}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: nextStatus })
+            });
+            console.log("[kitchen queue] status updated", { orderId: order._id, status: response.order?.status, httpStatus: 200 });
+            msg.textContent = `Order #${String(order._id).slice(-6)} moved to ${nextStatus === "ready" ? "Ready" : "Preparing"}.`;
+            await loadOrders();
+          } catch (error) {
+            msg.textContent = error.message;
+            action.disabled = false;
+          }
+        });
+        card.append(action);
+      } else if (lane.status === "ready" && order.orderType === "delivery" && order.deliveryAssignmentStatus === "accepted" && restaurantStaffRole !== "viewer") {
+        const handoff = document.createElement("button");
+        handoff.type = "button";
+        handoff.textContent = "Hand off to delivery";
+        handoff.addEventListener("click", async () => {
+          handoff.disabled = true;
+          try {
+            await api(`/orders/restaurant/${encodeURIComponent(order._id)}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "out_for_delivery" })
+            });
+            console.log("[kitchen queue] delivery handoff", { orderId: order._id, status: 200 });
+            msg.textContent = `Order #${String(order._id).slice(-6)} handed off for delivery.`;
+            await loadOrders();
+          } catch (error) {
+            msg.textContent = error.message;
+            handoff.disabled = false;
+          }
+        });
+        card.append(handoff);
+      } else if (lane.status === "ready" && order.orderType === "delivery") {
+        const note = document.createElement("p");
+        note.className = "muted kitchen-ticket-note";
+        note.textContent = order.deliveryAssignmentStatus === "accepted" ? "Ready for delivery pickup" : "Ready · waiting for delivery acceptance";
+        card.append(note);
+      }
+      column.append(card);
+    }
+    root.append(column);
+  }
+  if (!activeOrders.length) {
+    const empty = document.createElement("p");
+    empty.className = "kitchen-queue-empty muted";
+    empty.textContent = "No active kitchen tickets. New dine-in and home-delivery orders will appear here.";
+    root.prepend(empty);
+  }
+}
+
 async function loadOrders(fetchLatest = true) {
   if (fetchLatest) {
     const data = await api("/orders/restaurant");
@@ -938,6 +1056,13 @@ async function loadOrders(fetchLatest = true) {
   }
   const orders = restaurantOrdersCache; const root = document.querySelector("#orders"); root.replaceChildren();
   renderActiveTableBoard(orders);
+  if (restaurantOrderMode === "kitchen") {
+    const activeCount = orders.filter(order => ["placed", "confirmed", "preparing", "ready"].includes(order.status) && !(order.orderType === "dine_in" && order.paymentStatus === "paid")).length;
+    const count = document.querySelector("#order-filter-count");
+    if (count) count.textContent = `${activeCount} active kitchen tickets`;
+    renderKitchenQueue(orders);
+    return;
+  }
   const visibleOrders = filterRestaurantOrders(orders);
   const count = document.querySelector("#order-filter-count");
   const scopedCount = restaurantOrderMode === "all" ? orders.length : orders.filter(order => order.orderType === restaurantOrderMode).length;
@@ -1053,6 +1178,7 @@ async function loadOrders(fetchLatest = true) {
 }
 document.querySelector("#order-search")?.addEventListener("input", () => loadOrders(false).catch(error => { msg.textContent = error.message; }));
 document.querySelector("#order-status-filter")?.addEventListener("change", () => loadOrders(false).catch(error => { msg.textContent = error.message; }));
+document.querySelector("#kitchen-refresh")?.addEventListener("click", () => loadOrders().catch(error => { msg.textContent = error.message; }));
 async function loadReviews() {
   const root = document.querySelector("#owner-reviews");
   const { reviews } = await api("/reviews/restaurant/mine");
@@ -1144,8 +1270,8 @@ async function initializeRestaurantDashboard() {
   if (restaurantStaffRole) {
     document.querySelector("#subscription-nav").hidden = true;
     const allowedViews = restaurantStaffRole === "secondary_admin"
-      ? ["overview", "menu", "hours", "delivery-areas", "delivery-team", "reviews", "orders", "dine-in", "delivery", "reports", "notifications"]
-      : ["overview", "menu", "reviews", "orders", "dine-in", "delivery", "notifications"];
+      ? ["overview", "menu", "hours", "delivery-areas", "delivery-team", "reviews", "kitchen", "orders", "dine-in", "delivery", "reports", "notifications"]
+      : ["overview", "menu", "reviews", "kitchen", "orders", "dine-in", "delivery", "notifications"];
     document.querySelectorAll("[data-restaurant-view]").forEach(button => {
       button.hidden = !allowedViews.includes(button.dataset.restaurantView);
     });

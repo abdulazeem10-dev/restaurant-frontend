@@ -170,3 +170,25 @@ body { color: var(--foodway-ink); }
 .dine-in-table-count-form { display:flex; flex-wrap:wrap; align-items:end; gap:.75rem; }
 .dine-in-table-count-form label { display:grid; gap:.35rem; font-weight:650; }
 .dine-in-table-count-form input { width:min(100%,12rem); min-height:44px; padding:.6rem .75rem; border:1px solid #dfd4cb; border-radius:9px; font:inherit; }
+
+.owner-menu-filters { display:flex; flex-wrap:wrap; gap:.75rem; }
+.owner-menu-filter { display:grid; gap:.35rem; }
+.menu-availability-badge { display:inline-flex; width:max-content; max-width:100%; margin:.15rem 0 .75rem; padding:.3rem .6rem; border-radius:999px; font-size:.8rem; font-weight:700; }
+.menu-availability-badge.is-available { color:#16513d; background:#e7f4e9; }
+.menu-availability-badge.is-sold-out { color:#8a3b24; background:#fff0e8; }
+.kitchen-queue-panel { margin-block:1rem; }
+.kitchen-queue-summary { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+.kitchen-queue-summary p { margin:0; }
+.kitchen-queue { display:grid; grid-template-columns:repeat(3,minmax(230px,1fr)); align-items:start; gap:1rem; }
+.kitchen-lane { display:grid; min-width:0; gap:.75rem; padding:.85rem; border:1px solid var(--foodway-line,#e7e1d7); border-radius:1rem; background:#f8f8f4; }
+.kitchen-lane-heading { margin:0; padding-bottom:.65rem; border-bottom:1px solid var(--foodway-line,#e7e1d7); }
+.kitchen-lane-empty { margin:0; padding:.5rem 0; }
+.kitchen-ticket { display:grid; gap:.45rem; padding:.9rem; border:1px solid var(--foodway-line,#e7e1d7); border-radius:.8rem; background:#fff; box-shadow:0 4px 14px rgb(20 45 35 / 5%); }
+.kitchen-ticket h4,.kitchen-ticket p { margin:0; }
+.kitchen-ticket-customer,.kitchen-ticket-note { color:var(--muted,#68736b); font-size:.9rem; }
+.kitchen-ticket-items { display:grid; gap:.35rem; margin:0; padding:.6rem 0 .6rem 1.2rem; border-block:1px solid #eeeae3; }
+.kitchen-ticket-total { color:var(--green,#174b3d); font-weight:750; }
+.kitchen-ticket button { width:100%; }
+.kitchen-queue-empty { grid-column:1/-1; margin:.25rem; padding:1rem; text-align:center; }
+@media(max-width:900px) { .kitchen-queue { grid-template-columns:1fr; } }
+@media(max-width:600px) { .kitchen-queue-summary { align-items:stretch; flex-direction:column; } }
