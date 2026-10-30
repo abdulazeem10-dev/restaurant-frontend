@@ -1,0 +1,28 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.almadina.restaurant'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'com.almadina.restaurant'
+        minSdk 27
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+    }
+}
+dependencies {
+    implementation 'androidx.webkit:webkit:1.17.1'
+}
+
+// The WebView serves the website from app assets. Sync the repository's live
+// frontend into the generated assets folder before every Android build so the
+// APK always contains current website screens and JavaScript.
+tasks.register('syncWebsiteAssets', Sync) {
+    from(rootProject.projectDir.parentFile)
+    exclude 'android/**', '.git/**', 'node_modules/**', '.github/**'
+    into(layout.projectDirectory.dir('src/main/assets'))
+}
+
+tasks.named('preBuild').configure {
+    dependsOn('syncWebsiteAssets')
+}
