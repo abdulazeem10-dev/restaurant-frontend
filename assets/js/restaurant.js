@@ -75,6 +75,7 @@ async function loadOwnSubscription() {
   const form = document.querySelector("#subscription-payment-form");
   if (!subscription) {
     summary.textContent = `No paid plan is active. Current accounts: ${quota.totalAccounts} (owner included). Choose a plan below to activate restaurant access.`;
+    updateSubscriptionPricing(form);
     if (status) status.textContent = "";
     return true;
   }
@@ -82,6 +83,7 @@ async function loadOwnSubscription() {
   const expired = subscription.status !== "active" || !end || end <= new Date();
   const caps = { bronze: 5, silver: 7, gold: 9 };
   summary.textContent = `Plan: ${(subscription.planTier || "bronze").toUpperCase()} · Status: ${expired ? "Expired" : "Active"} · ${subscription.termYears || "—"} year(s) · Expires ${end ? end.toLocaleDateString("en-IN") : "date not set"} · Accounts: ${quota.totalAccounts}/${caps[subscription.planTier || "bronze"] || quota.maxAccounts} (owner included)`;
+  updateSubscriptionPricing(form);
   if (status) status.textContent = "";
   return expired;
 }
@@ -97,12 +99,34 @@ function loadRazorpayCheckout() {
   });
 }
 
+const subscriptionPlanPrices = {
+  bronze: { 1: 5000, 2: 6000, 3: 7000 },
+  silver: { 1: 6000, 2: 7000, 3: 8000 },
+  gold: { 1: 7000, 2: 8000, 3: 9000 }
+};
+function updateSubscriptionPricing(form) {
+  if (!form) return;
+  const tier = form.elements.planTier.value;
+  const years = Number(form.elements.years.value);
+  const prices = subscriptionPlanPrices[tier];
+  for (const option of form.elements.years.options) {
+    const termYears = Number(option.value);
+    option.textContent = `${termYears} year${termYears === 1 ? "" : "s"} · ₹${prices[termYears].toLocaleString("en-IN")}`;
+  }
+  form.querySelector("button[type=submit]").textContent = `Continue to payment · ₹${prices[years].toLocaleString("en-IN")}`;
+}
+
 document.querySelector("#subscription-payment-form")?.addEventListener("change", event => {
   if (!(["years", "planTier"].includes(event.target.name))) return;
   const form = event.currentTarget;
   const years = Number(form.elements.years.value);
-  const termPrice = { 1: 5000, 2: 9000, 3: 12000 }[years];
-  form.querySelector("button[type=submit]").textContent = `Continue to payment · ₹${termPrice.toLocaleString("en-IN")}`;
+  const tier = form.elements.planTier.value;
+  const prices = subscriptionPlanPrices[tier];
+  form.querySelector("button[type=submit]").textContent = `Continue to payment · ₹${prices[years].toLocaleString("en-IN")}`;
+  for (const option of form.elements.years.options) {
+    const termYears = Number(option.value);
+    option.textContent = `${termYears} year${termYears === 1 ? "" : "s"} · ₹${prices[termYears].toLocaleString("en-IN")}`;
+  }
 });
 
 document.querySelector("#subscription-payment-form")?.addEventListener("submit", async event => {
