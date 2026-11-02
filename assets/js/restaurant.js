@@ -13,7 +13,7 @@ const restaurantViewInfo = {
   "delivery-areas": ["Delivery areas", "Name the neighbourhoods you serve and assign their PIN codes."],
   "delivery-team": ["Delivery team", "Create and manage this restaurant’s delivery logins."],
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
-  subscription: ["Subscription", "View your access term and renew securely online."],
+  subscription: ["Subscription", "Choose a paid plan and manage account limits."],
   reviews: ["Customer reviews", "Read feedback from your customers."],
   kitchen: ["Kitchen queue", "Prepare dine-in and delivery tickets in one live kitchen board."],
   orders: ["Incoming orders", "Manage all restaurant orders."],
@@ -69,14 +69,19 @@ async function api(path, options = {}) {
   if (!response.ok) throw new Error(data.error || "Request failed"); return data;
 }
 async function loadOwnSubscription() {
-  const { subscription } = await api("/restaurants/owner/subscription");
+  const { subscription, quota } = await api("/restaurants/owner/subscription");
   const summary = document.querySelector("#subscription-summary");
   const status = document.querySelector("#subscription-payment-status");
   const form = document.querySelector("#subscription-payment-form");
-  if (!subscription) { summary.textContent = "No subscription record is on file. Contact the platform administrator."; form.hidden = true; return false; }
+  if (!subscription) {
+    summary.textContent = `No paid plan is active. Current accounts: ${quota.totalAccounts} (owner included). Choose a plan below to activate restaurant access.`;
+    if (status) status.textContent = "";
+    return true;
+  }
   const end = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
   const expired = subscription.status !== "active" || !end || end <= new Date();
-  summary.textContent = `Status: ${expired ? "Expired" : "Active"} · ${subscription.termYears || "—"} year(s) · Expires ${end ? end.toLocaleDateString("en-IN") : "date not set"}`;
+  const caps = { bronze: 5, silver: 7, gold: 9 };
+  summary.textContent = `Plan: ${(subscription.planTier || "bronze").toUpperCase()} · Status: ${expired ? "Expired" : "Active"} · ${subscription.termYears || "—"} year(s) · Expires ${end ? end.toLocaleDateString("en-IN") : "date not set"} · Accounts: ${quota.totalAccounts}/${caps[subscription.planTier || "bronze"] || quota.maxAccounts} (owner included)`;
   if (status) status.textContent = "";
   return expired;
 }
@@ -93,9 +98,11 @@ function loadRazorpayCheckout() {
 }
 
 document.querySelector("#subscription-payment-form")?.addEventListener("change", event => {
-  if (event.target.name !== "years") return;
-  const price = { 1: 5000, 2: 9000, 3: 12000 }[Number(event.target.value)];
-  event.currentTarget.querySelector("button[type=submit]").textContent = `Continue to payment · ₹${price.toLocaleString("en-IN")}`;
+  if (!(["years", "planTier"].includes(event.target.name))) return;
+  const form = event.currentTarget;
+  const years = Number(form.elements.years.value);
+  const termPrice = { 1: 5000, 2: 9000, 3: 12000 }[years];
+  form.querySelector("button[type=submit]").textContent = `Continue to payment · ₹${termPrice.toLocaleString("en-IN")}`;
 });
 
 document.querySelector("#subscription-payment-form")?.addEventListener("submit", async event => {
@@ -107,22 +114,25 @@ document.querySelector("#subscription-payment-form")?.addEventListener("submit",
   status.textContent = "Preparing secure payment…";
   try {
     await loadRazorpayCheckout();
-    const years = Number(new FormData(form).get("years"));
-    const order = await api("/restaurants/owner/subscription/payment/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ years }) });
-    console.log("[restaurant subscription] checkout order created", { status: 200, years, amount: order.amount });
+    const formData = new FormData(form);
+    const years = Number(formData.get("years"));
+    const planTier = String(formData.get("planTier"));
+    const order = await api("/restaurants/owner/subscription/payment/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ years, planTier }) });
+    console.log("[restaurant subscription] checkout order created", { status: 200, planTier, years, amount: order.amount });
     const checkout = new window.Razorpay({
       key: order.keyId, amount: order.amount, currency: order.currency, name: "Al-Madina",
-      description: `${years}-year restaurant subscription · ₹${(order.amount / 100).toLocaleString("en-IN")}`,
+      description: `${planTier} plan · ${years} year(s) · ₹${(order.amount / 100).toLocaleString("en-IN")}`,
       order_id: order.razorpayOrderId,
       handler: async response => {
         status.textContent = "Payment received. Verifying it securely…";
         try {
           const result = await api("/restaurants/owner/subscription/payment/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(response) });
-          console.log("[restaurant subscription] payment verification", { status: 200, paid: result.paid });
+          console.log("[restaurant subscription] payment verification", { status: 200, paid: result.paid, planTier: result.planTier, maxAccounts: result.maxAccounts });
           if (!result.paid) throw new Error(result.error || "Payment is still being confirmed. Refresh the subscription page shortly.");
-          status.textContent = `Payment successful. Subscription active until ${new Date(result.expiresAt).toLocaleDateString("en-IN")}.`;
+          status.textContent = `Payment successful. ${String(result.planTier).toUpperCase()} plan active until ${new Date(result.expiresAt).toLocaleDateString("en-IN")}. Your plan allows ${result.maxAccounts} total accounts.`;
           msg.textContent = status.textContent;
           await loadOwnSubscription();
+          window.setTimeout(() => location.reload(), 1200);
         } catch (error) { console.error("[restaurant subscription] verification failed", error); status.textContent = error.message; }
         finally { button.disabled = false; }
       },
@@ -191,7 +201,13 @@ const restaurantStaffRoles = [
 async function loadDeliveryPartners() {
  const root = document.querySelector("#delivery-partners");
  if (!root) return;
- const { deliveryPartners } = await api("/restaurants/owner/delivery-partners");
+ const { deliveryPartners, quota } = await api("/restaurants/owner/delivery-partners");
+ const usage = document.querySelector("#delivery-seat-usage");
+ const createForm = document.querySelector("#delivery-partner-form");
+ if (usage && quota) usage.textContent = `${String(quota.planTier || "").toUpperCase()} plan · ${quota.totalAccounts}/${quota.maxAccounts} total accounts used (${quota.remainingAccounts} available; owner included).`;
+ const createButton = createForm?.querySelector('button[type="submit"]');
+ if (createButton) createButton.disabled = !quota?.active || quota.remainingAccounts <= 0;
+ if (createForm) createForm.querySelectorAll("input").forEach(input => input.disabled = !quota?.active || quota.remainingAccounts <= 0);
  root.replaceChildren();
  if (!deliveryPartners.length) {
   const empty = document.createElement("p"); empty.className = "muted";
@@ -243,12 +259,14 @@ document.querySelector("#delivery-partner-form")?.addEventListener("submit", asy
 });
 
 async function loadStaffAccounts() {
-  const { accounts } = await api("/restaurants/owner/staff");
+  const { accounts, quota } = await api("/restaurants/owner/staff");
   const list = document.querySelector("#owner-staff-list");
   const form = document.querySelector("#owner-staff-form");
   const roleSelect = form.elements.staffRole;
   const assignedRoles = new Set(accounts.map(account => account.restaurantStaffRole));
   const availableRoles = restaurantStaffRoles.filter(([key]) => !assignedRoles.has(key));
+  const usage = document.querySelector("#staff-seat-usage");
+  if (usage && quota) usage.textContent = `${String(quota.planTier || "").toUpperCase()} plan · ${quota.totalAccounts}/${quota.maxAccounts} total accounts used (${quota.remainingAccounts} available; owner included).`;
   list.replaceChildren();
   for (const account of accounts) {
     const item = document.createElement("li");
@@ -281,7 +299,15 @@ async function loadStaffAccounts() {
     return option;
   }));
   form.hidden = availableRoles.length === 0;
-  document.querySelector("#staff-roles-complete").hidden = availableRoles.length > 0;
+  const createButton = form.querySelector('button[type="submit"]');
+  if (createButton) createButton.disabled = !quota?.active || quota.remainingAccounts <= 0;
+  const notice = document.querySelector("#staff-roles-complete");
+  notice.hidden = availableRoles.length > 0 && quota?.active && quota.remainingAccounts > 0;
+  notice.textContent = availableRoles.length === 0
+    ? "All three staff roles have accounts."
+    : quota?.active
+      ? "Your plan has reached its total account limit. Upgrade your plan or deactivate an account to create another login."
+      : "Choose and pay for a subscription plan to create staff and delivery logins.";
 }
 
 const restaurantProfileForm = document.querySelector("#restaurant-profile-form");
@@ -1282,11 +1308,16 @@ async function initializeRestaurantDashboard() {
   } else if (user.role === "restaurant") {
     document.querySelector("#staff-management-panel").hidden = false;
     document.querySelector("#staff-management-panel-list").hidden = false;
-    await loadStaffAccounts();
   }
   if (!restaurantStaffRole) {
     const expired = await loadOwnSubscription();
-    if (expired) { showRestaurantView("subscription"); msg.textContent = "This subscription has expired. Choose a term and complete payment to restore restaurant access."; return; }
+    if (expired) {
+      document.querySelectorAll("[data-restaurant-view]").forEach(button => { button.hidden = button.dataset.restaurantView !== "subscription"; });
+      showRestaurantView("subscription");
+      msg.textContent = "Choose a plan and complete payment to activate restaurant access.";
+      return;
+    }
+    await loadStaffAccounts();
   }
   showRestaurantView("overview");
   const dashboardLoads = [loadMenu(), loadOrders(), loadReviews(), loadNotifications()];

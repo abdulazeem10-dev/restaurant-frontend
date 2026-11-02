@@ -38,7 +38,7 @@
       </section>
 
       <section class="admin-view" data-admin-section="add-restaurant" hidden>
-        <section class="panel admin-form-panel"><p class="eyebrow">RESTAURANT ONBOARDING</p><h2>Create a restaurant account</h2><p>Set up the restaurant owner login, contact number, and subscription term. Share the credentials securely.</p><form id="restaurant-form" class="form-grid">
+        <section class="panel admin-form-panel"><p class="eyebrow">RESTAURANT ONBOARDING</p><h2>Create a restaurant account</h2><p>Set up the restaurant owner login and contact number. The owner selects and pays for a plan after signing in.</p><form id="restaurant-form" class="form-grid">
           <label>Restaurant name<br><input name="restaurantName" required maxlength="150"></label>
           <label>Restaurant address<br><textarea name="address" required minlength="5" maxlength="500" rows="3" placeholder="Full street address, area, city, PIN"></textarea></label>
           <label>Description<br><input name="description" maxlength="2000"></label>
@@ -48,10 +48,9 @@
           <label>Owner name<br><input name="ownerName" required maxlength="100"></label>
           <label>Owner email / username<br><input name="email" type="email" required maxlength="254"></label>
           <label>Owner phone<br><input name="phone" type="tel" required minlength="8" maxlength="20" autocomplete="tel" placeholder="+91 9876543210"></label>
-          <label>Subscription term<br><select name="subscriptionYears" required><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years</option></select></label>
           <label>Initial password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
           <button type="submit">Create owner account</button>
-        </form><p class="muted admin-form-note">Paste a publicly accessible image link. The image must already be hosted online. The subscription starts when the owner account is created. The restaurant still needs approval before accepting customer orders.</p></section>
+        </form><p class="muted admin-form-note">Paste a publicly accessible image link. The image must already be hosted online. After signing in, the owner must buy a subscription. The restaurant still needs approval before accepting customer orders.</p></section>
       </section>
 
       <section class="admin-view" data-admin-section="restaurants" hidden>

@@ -1,7 +1,7 @@
 const message = document.querySelector("#message");
 const adminPageTitles = {
   overview: ["Admin overview", "Manage restaurant-owner accounts, subscriptions, and approvals from one place."],
-  "add-restaurant": ["Create restaurant account", "Set up the owner login and subscription for the restaurant."],
+  "add-restaurant": ["Create restaurant account", "Set up the owner login. The owner buys a plan after signing in."],
   restaurants: ["Restaurant accounts", "Review owner details, subscription periods, and restaurant approvals."]
 };
 
@@ -146,28 +146,8 @@ async function loadRestaurants() {
     subscriptionInfo.className = "muted";
     const expires = subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString("en-IN") : "";
     const expired = subscription && (subscription.status !== "active" || !expires || new Date(subscription.currentPeriodEnd) <= new Date());
-    subscriptionInfo.textContent = subscription ? `Subscription: ${expired ? "Expired" : "Active"} · ${subscription.termYears || 1} year(s) · Expires ${expires || "not set"}${subscription.renewalRequest?.status === "pending" ? ` · Owner requests ${subscription.renewalRequest.years} year(s)` : ""}` : "Subscription: not set (legacy account)";
+    subscriptionInfo.textContent = subscription ? `Subscription: ${String(subscription.planTier || "bronze").toUpperCase()} · ${expired ? "Expired" : "Active"} · ${subscription.termYears || 1} year(s) · Expires ${expires || "not set"}` : "Subscription: no paid plan yet; owner must choose a plan and pay.";
     card.append(subscriptionInfo);
-    const renewal = document.createElement("div");
-    renewal.className = "admin-subscription-renewal";
-    const term = document.createElement("select");
-    term.setAttribute("aria-label", "Renewal term");
-    term.innerHTML = `<option value="1">Renew 1 year</option><option value="2">Renew 2 years</option><option value="3">Renew 3 years</option>`;
-    if (subscription?.renewalRequest?.status === "pending") term.value = String(subscription.renewalRequest.years || 1);
-    const renewButton = document.createElement("button");
-    renewButton.type = "button";
-    renewButton.textContent = subscription ? "Renew subscription" : "Set subscription";
-    renewButton.addEventListener("click", async () => {
-      renewButton.disabled = true;
-      try {
-        await adminRequest(`/admin/restaurants/${encodeURIComponent(restaurant._id)}/subscription/renew`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ years: Number(term.value) }) });
-        message.textContent = `Restaurant access renewed for ${term.value} year(s).`;
-        await loadRestaurants();
-      } catch (error) { message.textContent = error.message; renewButton.disabled = false; }
-    });
-    renewal.append(term, renewButton);
-    card.append(renewal);
-
     const deactivateProfile = document.createElement("button");
     deactivateProfile.type = "button";
     deactivateProfile.className = restaurant.profileDeactivatedAt ? "" : "secondary";
@@ -360,7 +340,7 @@ document
     const form = new FormData(restaurantForm);
     const fields = [
       "restaurantName", "address", "description", "imageUrl", "foodType",
-      "cuisine", "ownerName", "email", "phone", "subscriptionYears", "password"
+      "cuisine", "ownerName", "email", "phone", "password"
     ];
     const body = Object.fromEntries(fields.map(key => [key, form.get(key)]));
     let accountCreated = false;
@@ -371,7 +351,7 @@ document
       });
       accountCreated = true;
       restaurantForm.reset();
-      message.textContent = "Restaurant owner account created with its subscription. The restaurant is pending approval.";
+      message.textContent = "Restaurant owner account created. The owner can sign in to buy a plan; the restaurant is pending approval.";
       await loadRestaurants();
       showAdminView("restaurants");
     } catch (error) {
