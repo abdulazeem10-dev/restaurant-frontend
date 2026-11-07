@@ -1,0 +1,25 @@
+name: Frontend security checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: find assets/js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Validate Vercel configuration
+        run: node -e "JSON.parse(require('fs').readFileSync('vercel.json', 'utf8'))"
