@@ -154,7 +154,7 @@ async function setupHomeAccountNav() {
   if (!getToken()) return;
   try {
     const response = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() }); console.info(`[customer account] GET /auth/me → ${response.status}`);
-    if (response.status === 401) { sessionStorage.removeItem(TOKEN_KEY); return; }
+    if (response.status === 401) { clearLocalSession(); return; }
     if (!response.ok) return;
     const { user } = await response.json();
     const destinations = { admin: ["../admin/dashboard.html", "Admin dashboard"], restaurant: ["../restaurant/dashboard.html", "Restaurant dashboard"], restaurant_staff: ["../restaurant/staff-dashboard.html", "Restaurant staff dashboard"], delivery: ["../delivery/dashboard.html", "Delivery dashboard"] };
@@ -163,7 +163,7 @@ async function setupHomeAccountNav() {
     const loginLink = document.querySelector(".login-link"); if (loginLink) loginLink.hidden = true;
     const mobileAccountLink = document.querySelector("#mobile-account-link"); if (mobileAccountLink) mobileAccountLink.href = destination?.[0] || "orders.html";
     const logout = document.querySelector("#home-logout");
-    if (logout) { logout.hidden = false; logout.addEventListener("click", () => { sessionStorage.removeItem(TOKEN_KEY); location.href = "index.html"; }, { once: true }); }
+    if (logout) { logout.hidden = false; logout.addEventListener("click", () => { logoutSession().finally(() => { location.href = "index.html"; }); }, { once: true }); }
   } catch (error) { console.error("[customer account] could not load account", error); }
 }
 async function loadRestaurants() {

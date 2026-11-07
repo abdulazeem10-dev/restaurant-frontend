@@ -1,5 +1,10 @@
-// const API_BASE = "http://localhost:5000/api";
-const API_BASE = "https://restaurant-backend-gray.vercel.app/api";
+const FOODWAY_NATIVE_APP = /AlMadinaAndroidApp/i.test(navigator.userAgent);
+const FOODWAY_LOCAL_DEV = ["localhost", "127.0.0.1"].includes(location.hostname);
+// Browser calls go through Vercel's same-origin rewrite, so session cookies
+// remain first-party. Android uses the deployed API directly with bearer auth.
+const API_BASE = FOODWAY_NATIVE_APP
+  ? "https://restaurant-backend-gray.vercel.app/api"
+  : (window.FOODWAY_API_BASE || (FOODWAY_LOCAL_DEV ? "http://127.0.0.1:5100/api" : "/api"));
 const RAW_FETCH = window.fetch.bind(window);
 window.fetch = async function(input, init = {}) {
   const requestUrl = input instanceof Request ? input.url : String(input);
@@ -13,7 +18,20 @@ window.fetch = async function(input, init = {}) {
     safePath = parsed.pathname;
   } catch {}
   try {
-    const response = await RAW_FETCH(input, init);
+    let requestInit = init;
+    if (apiRequest) {
+      requestInit = { ...init, credentials: "include" };
+      const csrfCookieName = location.protocol === "https:" ? "__Host-foodway_csrf" : "foodway_csrf";
+      const csrfToken = document.cookie.split(";").map(value => value.trim())
+        .find(value => value.startsWith(`${csrfCookieName}=`))?.slice(csrfCookieName.length + 1);
+      if (!FOODWAY_NATIVE_APP && !FOODWAY_LOCAL_DEV && csrfToken && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+        const headers = new Headers(input instanceof Request ? input.headers : undefined);
+        new Headers(init.headers || {}).forEach((value, key) => headers.set(key, value));
+        headers.set("X-Foodway-CSRF", decodeURIComponent(csrfToken));
+        requestInit = { ...requestInit, headers };
+      }
+    }
+    const response = await RAW_FETCH(input, requestInit);
     if (apiRequest) console.info(`[API] ${method} ${safePath} → ${response.status}`);
     return response;
   } catch (error) {
@@ -26,8 +44,45 @@ async function apiFetch(path, options = {}) {
   return window.fetch(url, options);
 }
 const TOKEN_KEY = "food-platform-token";
-function getToken() { return sessionStorage.getItem(TOKEN_KEY); }
-function authHeaders(extra = {}) { return { ...extra, ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) }; }
+function readCsrfCookie() {
+  const name = location.protocol === "https:" ? "__Host-foodway_csrf" : "foodway_csrf";
+  const value = document.cookie.split(";").map(entry => entry.trim())
+    .find(entry => entry.startsWith(`${name}=`))?.slice(name.length + 1);
+  try { return value ? decodeURIComponent(value) : ""; } catch { return ""; }
+}
+// Keep only a UI marker once the secure backend has issued its CSRF cookie;
+// the browser's real credential is inaccessible to JavaScript in an HttpOnly cookie.
+const storedSession = sessionStorage.getItem(TOKEN_KEY);
+// During the two-repository rollout, retain the old JWT only until the secure
+// API issues its CSRF cookie. The hardened API rejects browser bearer tokens.
+if (!FOODWAY_NATIVE_APP && !FOODWAY_LOCAL_DEV && readCsrfCookie() && storedSession && storedSession.length > 80) sessionStorage.removeItem(TOKEN_KEY);
+function getToken() {
+  const marker = sessionStorage.getItem(TOKEN_KEY);
+  if (marker) return marker;
+  if (FOODWAY_NATIVE_APP || FOODWAY_LOCAL_DEV) return null;
+  return readCsrfCookie() ? "cookie-session" : null;
+}
+function authHeaders(extra = {}) {
+  const stored = getToken();
+  const token = (FOODWAY_NATIVE_APP || FOODWAY_LOCAL_DEV || (!readCsrfCookie() && stored?.length > 80)) ? stored : "";
+  return { ...extra, ...(token && token.length > 80 ? { Authorization: `Bearer ${token}` } : {}) };
+}
+function completeAuthentication(data) {
+  if ((FOODWAY_NATIVE_APP || FOODWAY_LOCAL_DEV || (!readCsrfCookie() && data.accessToken)) && data.accessToken) sessionStorage.setItem(TOKEN_KEY, data.accessToken);
+  else sessionStorage.setItem(TOKEN_KEY, "cookie-session");
+}
+function clearLocalSession() {
+  sessionStorage.removeItem(TOKEN_KEY);
+  if (!FOODWAY_NATIVE_APP && !FOODWAY_LOCAL_DEV) {
+    const csrfCookieName = location.protocol === "https:" ? "__Host-foodway_csrf" : "foodway_csrf";
+    document.cookie = `${csrfCookieName}=; Max-Age=0; Path=/; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+  }
+}
+async function logoutSession() {
+  try { await fetch(`${API_BASE}/auth/logout`, { method: "POST", headers: authHeaders() }); }
+  catch (error) { console.warn("[auth] remote logout could not be reached", error); }
+  clearLocalSession();
+}
 function setStatusMessage(element, message, state = "info") {
   if (!element) return;
   element.dataset.state = state;

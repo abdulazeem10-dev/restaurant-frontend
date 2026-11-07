@@ -624,7 +624,7 @@ async function loadOrders(force = false) {
     const response = await fetch(`${API_BASE}/orders/mine`, { headers: authHeaders() });
     const data = await response.json();
     if (response.status === 401) {
-      sessionStorage.removeItem(TOKEN_KEY);
+      clearLocalSession();
       showOrdersSignIn("Your session expired. Sign in again to see your orders and delivery updates.");
       return;
     }

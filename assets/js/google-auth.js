@@ -73,7 +73,7 @@ async function handleGoogleCredential(response) {
     const data = await result.json();
     if (!result.ok) throw new Error(data.error || "Google sign-in failed");
 
-    sessionStorage.setItem(TOKEN_KEY, data.accessToken);
+    completeAuthentication(data);
     location.href = new URLSearchParams(location.search).get("next") === "cart.html"
       ? "cart.html"
       : "index.html";

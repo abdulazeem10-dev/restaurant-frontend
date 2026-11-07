@@ -1,6 +1,6 @@
 const message = document.querySelector("#message");
 if (!getToken()) location.href = "../customer/login.html";
-document.querySelector("#logout").addEventListener("click", () => { sessionStorage.removeItem(TOKEN_KEY); location.href = "../customer/login.html"; });
+document.querySelector("#logout").addEventListener("click", () => { logoutSession().finally(() => { location.href = "../customer/login.html"; }); });
 
 async function staffApi(path, options = {}) {
   const response = await apiFetch(path, options);

@@ -60,7 +60,7 @@ function showRestaurantView(view) {
 document.querySelectorAll("[data-restaurant-view]").forEach(button => button.addEventListener("click", () => showRestaurantView(button.dataset.restaurantView)));
 document.querySelectorAll("[data-open-restaurant-view]").forEach(button => button.addEventListener("click", () => showRestaurantView(button.dataset.openRestaurantView)));
 if (!getToken()) location.href = "../customer/login.html";
-document.querySelector("#logout").addEventListener("click", () => { sessionStorage.removeItem(TOKEN_KEY); location.href = "../customer/login.html"; });
+document.querySelector("#logout").addEventListener("click", () => { logoutSession().finally(() => { location.href = "../customer/login.html"; }); });
 async function api(path, options = {}) {
   let response;
   try { response = await fetch(`${API_BASE}${path}`, { ...options, headers: authHeaders(options.headers || {}) }); console.log("[restaurant API]", options.method || "GET", path, response.status); }
@@ -365,7 +365,7 @@ if (deactivateOwnProfileButton) deactivateOwnProfileButton.addEventListener("cli
   deactivateOwnProfileButton.disabled = true;
   try {
     await api("/restaurants/owner/deactivate-profile", { method: "PATCH" });
-    sessionStorage.removeItem(TOKEN_KEY);
+    await logoutSession();
     location.replace("../customer/login.html");
   } catch (error) {
     msg.textContent = error.message;

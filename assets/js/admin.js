@@ -42,8 +42,7 @@ if (!getToken()) {
 }
 
 document.querySelector("#logout").addEventListener("click", () => {
-  sessionStorage.removeItem(TOKEN_KEY);
-  location.href = "../customer/login.html";
+  logoutSession().finally(() => { location.href = "../customer/login.html"; });
 });
 
 async function adminRequest(path, options = {}) {

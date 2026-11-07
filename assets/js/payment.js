@@ -98,7 +98,7 @@ async function createOrder(paymentMethod) {
   });
   const data = await response.json().catch(() => ({}));
   if (response.status === 401) {
-    sessionStorage.removeItem(TOKEN_KEY);
+    clearLocalSession();
     location.replace(`login.html?next=${encodeURIComponent("payment.html")}`);
     throw new Error("Your sign-in expired. Sign in again to finish placing your order.");
   }
