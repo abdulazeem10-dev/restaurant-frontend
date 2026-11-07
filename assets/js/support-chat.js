@@ -7,17 +7,17 @@
   launcher.id = "support-chat-launcher";
   launcher.className = "support-chat-launcher";
   launcher.type = "button";
-  launcher.setAttribute("aria-label", "Chat with Al-Madina support");
+  launcher.setAttribute("aria-label", "Ask Al-Madina AI");
   launcher.setAttribute("aria-expanded", "false");
   launcher.setAttribute("aria-controls", "support-chat-panel");
-  launcher.textContent = "Help";
+  launcher.textContent = "Ask Al-Madina AI";
 
   const panel = document.createElement("section");
   panel.id = "support-chat-panel";
   panel.className = "support-chat-panel";
-  panel.setAttribute("aria-label", "Al-Madina customer support chat");
+  panel.setAttribute("aria-label", "Al-Madina AI chat");
   panel.hidden = true;
-  panel.innerHTML = '<header class="support-chat-header"><div><h2>Al-Madina support</h2><p>Ask about our menu and restaurant</p></div><button class="support-chat-close" type="button" aria-label="Close support chat">×</button></header><div class="support-chat-messages" id="support-chat-messages" role="log" aria-live="polite" aria-relevant="additions text"></div><form class="support-chat-form"><label class="visually-hidden" for="support-chat-input">Your question</label><textarea id="support-chat-input" maxlength="500" rows="2" placeholder="Type your question…" required></textarea><button type="submit">Send</button></form><p class="support-chat-note">Do not share passwords, OTPs, or payment details. For order status, open My Orders.</p>';
+  panel.innerHTML = '<header class="support-chat-header"><div><h2>Al-Madina AI</h2><p>Ask about our menu and restaurant</p></div><button class="support-chat-close" type="button" aria-label="Close Al-Madina AI chat">×</button></header><div class="support-chat-messages" id="support-chat-messages" role="log" aria-live="polite" aria-relevant="additions text"></div><form class="support-chat-form"><label class="visually-hidden" for="support-chat-input">Your question</label><textarea id="support-chat-input" maxlength="500" rows="2" placeholder="Type your question…" required></textarea><button type="submit">Send</button></form><p class="support-chat-note">Do not share passwords, OTPs, or payment details. For order status, open My Orders.</p>';
   document.body.append(launcher, panel);
 
   const close = panel.querySelector(".support-chat-close");

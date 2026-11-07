@@ -1,4 +1,4 @@
-.support-chat-launcher{position:fixed;right:24px;bottom:24px;z-index:30;min-width:62px;min-height:62px;border:0;border-radius:50%;background:#173d32;color:#fff;box-shadow:0 8px 28px #102d2580;font:inherit;font-weight:700;cursor:pointer;transition:transform .2s ease,background .2s ease}
+.support-chat-launcher{position:fixed;right:24px;bottom:24px;z-index:30;min-height:54px;padding:0 20px;border:0;border-radius:999px;background:#173d32;color:#fff;box-shadow:0 8px 28px #102d2580;font:inherit;font-weight:700;cursor:pointer;transition:transform .2s ease,background .2s ease}
 .support-chat-launcher:hover{background:#245b4b;transform:translateY(-2px)}
 .support-chat-launcher:focus-visible,.support-chat-close:focus-visible,.support-chat-form button:focus-visible,.support-chat-form textarea:focus-visible{outline:3px solid #dfed9e;outline-offset:3px}
 .support-chat-panel{position:fixed;right:24px;bottom:98px;z-index:30;display:flex;flex-direction:column;width:min(390px,calc(100vw - 28px));height:min(540px,calc(100dvh - 125px));overflow:hidden;border:1px solid #dce4d8;border-radius:20px;background:#fff;color:#242821;box-shadow:0 16px 55px #102d2533}
