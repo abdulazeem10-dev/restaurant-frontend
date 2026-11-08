@@ -147,6 +147,32 @@ async function loadRestaurants() {
     const expired = subscription && (subscription.status !== "active" || !expires || new Date(subscription.currentPeriodEnd) <= new Date());
     subscriptionInfo.textContent = subscription ? `Subscription: ${String(subscription.planTier || "bronze").toUpperCase()} · ${expired ? "Expired" : "Active"} · ${subscription.termYears || 1} year(s) · Expires ${expires || "not set"}` : "Subscription: no paid plan yet; owner must choose a plan and pay.";
     card.append(subscriptionInfo);
+    const subscriptionPayments = restaurant.subscriptionPayments || [];
+    const latestSubscriptionPayment = subscriptionPayments[0];
+    const paymentInfo = document.createElement("p");
+    paymentInfo.className = "muted";
+    if (latestSubscriptionPayment) {
+      const paymentDate = new Date(latestSubscriptionPayment.createdAt).toLocaleDateString("en-IN");
+      const paymentEnd = latestSubscriptionPayment.subscriptionEndsAt ? new Date(latestSubscriptionPayment.subscriptionEndsAt).toLocaleDateString("en-IN") : "not set";
+      paymentInfo.textContent = `Latest subscription payment: ${String(latestSubscriptionPayment.planTier).toUpperCase()} · ${latestSubscriptionPayment.termYears} year(s) · ${formatRupees(latestSubscriptionPayment.amountPaise)} · Paid ${paymentDate} · Term ends ${paymentEnd}`;
+    } else {
+      paymentInfo.textContent = "No completed subscription payments recorded yet.";
+    }
+    card.append(paymentInfo);
+    if (subscriptionPayments.length > 1) {
+      const history = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = `Subscription payment history (${subscriptionPayments.length})`;
+      const list = document.createElement("ul");
+      for (const payment of subscriptionPayments) {
+        const item = document.createElement("li");
+        const date = new Date(payment.createdAt).toLocaleDateString("en-IN");
+        item.textContent = `${String(payment.planTier).toUpperCase()} · ${payment.termYears} year(s) · ${formatRupees(payment.amountPaise)} · Paid ${date} · Expires ${payment.subscriptionEndsAt ? new Date(payment.subscriptionEndsAt).toLocaleDateString("en-IN") : "not set"}`;
+        list.append(item);
+      }
+      history.append(summary, list);
+      card.append(history);
+    }
     const deactivateProfile = document.createElement("button");
     deactivateProfile.type = "button";
     deactivateProfile.className = restaurant.profileDeactivatedAt ? "" : "secondary";
