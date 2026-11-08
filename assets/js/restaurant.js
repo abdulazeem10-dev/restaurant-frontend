@@ -985,6 +985,7 @@ function filterRestaurantOrders(orders) {
   const query = document.querySelector("#order-search")?.value.trim().toLocaleLowerCase() || "";
   const status = document.querySelector("#order-status-filter")?.value || "all";
   return orders.filter(order => {
+    if (order.queueClearedAt) return false;
     if (restaurantOrderMode !== "all" && order.orderType !== restaurantOrderMode) return false;
     const normalizedStatus = order.status === "confirmed" ? "placed" : order.status === "picked_up" ? "out_for_delivery" : order.status;
     if (status !== "all" && status !== normalizedStatus) return false;
@@ -1115,7 +1116,8 @@ async function loadOrders(fetchLatest = true) {
   }
   const visibleOrders = filterRestaurantOrders(orders);
   const count = document.querySelector("#order-filter-count");
-  const scopedCount = restaurantOrderMode === "all" ? orders.length : orders.filter(order => order.orderType === restaurantOrderMode).length;
+  const unclearedOrders = orders.filter(order => !order.queueClearedAt);
+  const scopedCount = restaurantOrderMode === "all" ? unclearedOrders.length : unclearedOrders.filter(order => order.orderType === restaurantOrderMode).length;
   const scopeLabel = restaurantOrderMode === "dine_in" ? "dine-in" : restaurantOrderMode === "delivery" ? "home delivery" : "all";
   if (count) count.textContent = `${visibleOrders.length} of ${scopedCount} ${scopeLabel} orders`;
   for (const order of visibleOrders) {
@@ -1146,6 +1148,24 @@ async function loadOrders(fetchLatest = true) {
       const printButton = document.createElement("button"); printButton.type = "button";
       printButton.className = "secondary order-print-bill"; printButton.textContent = "Print bill";
       printButton.addEventListener("click", () => printRestaurantOrderBill(order)); card.append(printButton);
+    }
+    if (order.orderType === "dine_in" && order.paymentStatus === "paid" && !order.queueClearedAt && restaurantStaffRole !== "viewer") {
+      const doneButton = document.createElement("button");
+      doneButton.type = "button";
+      doneButton.className = "secondary order-done-button";
+      doneButton.textContent = "Done · clear from queue";
+      doneButton.setAttribute("aria-label", `Mark Table ${order.tableNumber} order ${order._id.slice(-6)} done and clear it from the queue`);
+      doneButton.addEventListener("click", async () => {
+        if (!window.confirm(`Mark Table ${order.tableNumber} order as done? It will leave the active order list, but its payment and sales history will be kept.`)) return;
+        doneButton.disabled = true;
+        try {
+          await api(`/orders/restaurant/${encodeURIComponent(order._id)}/done`, { method: "PATCH" });
+          console.info("[dine-in] order cleared from queue", { orderId: order._id, status: 200 });
+          msg.textContent = `Table ${order.tableNumber} order marked done. Its history is retained.`;
+          await loadOrders();
+        } catch (error) { msg.textContent = error.message; doneButton.disabled = false; }
+      });
+      card.append(doneButton);
     }
     if (order.orderType === "dine_in" && restaurantStaffRole !== "viewer" && order.paymentStatus !== "paid" && order.status !== "cancelled") {
       const addForm = document.createElement("form"); addForm.className = "dine-in-add-items";
