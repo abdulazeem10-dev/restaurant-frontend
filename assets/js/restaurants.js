@@ -88,8 +88,9 @@ function renderMenuPreview() {
     card.href = `menu.html?id=${encodeURIComponent(currentRestaurant._id)}`;
     card.setAttribute("aria-label", `View ${item.name} from ${brandName}, ${formatRupees(item.pricePaise)}`);
     const imageWrap = document.createElement("div"); imageWrap.className = "featured-dish-image-wrap";
-    const image = document.createElement("img"); image.src = item.imageUrl || cuisineImageFor(item); image.alt = item.imageUrl ? item.name : "";
-    image.loading = "lazy"; image.decoding = "async"; image.addEventListener("error", () => image.remove(), { once: true }); imageWrap.append(image);
+    const dishImage = window.foodwayDishImage?.(item);
+    const image = document.createElement("img"); image.src = dishImage?.src || cuisineImageFor(item); image.alt = item.name ? `Food photo for ${item.name}` : "Al-Madina dish";
+    image.loading = "lazy"; image.decoding = "async"; image.addEventListener("error", () => { console.warn(`[dish images] Failed to load image for ${item.name} → asset unavailable`, image.src); image.remove(); }, { once: true }); imageWrap.append(image);
     const details = document.createElement("div"); details.className = "featured-dish-details";
     const name = document.createElement("h3"); name.textContent = item.name;
     const price = document.createElement("strong"); price.textContent = formatRupees(item.pricePaise);
@@ -124,10 +125,11 @@ function renderRecentOrders(orders = []) {
     const firstDishId = firstDish?.menuItemId?._id || firstDish?.menuItemId;
     const menuDish = allMenuItems.find(item => String(item._id) === String(firstDishId))
       || allMenuItems.find(item => item.name?.trim().toLocaleLowerCase() === firstDish?.name?.trim().toLocaleLowerCase());
-    const fallbackImage = cuisineImageFor(menuDish || { category: firstDish?.category || firstDish?.name });
+    const orderedDish = menuDish || { name: firstDish?.name, category: firstDish?.category };
+    const fallbackImage = window.foodwayDishImage?.(orderedDish)?.src || cuisineImageFor(orderedDish);
     const image = document.createElement("img"); image.className = "recent-order-image"; image.src = menuDish?.imageUrl || firstDish?.imageUrl || fallbackImage;
     image.alt = firstDish?.name ? `${firstDish.name} dish` : "Al-Madina dish"; image.loading = "lazy"; image.decoding = "async";
-    image.addEventListener("error", () => { if (image.dataset.fallbackApplied) image.remove(); else { image.dataset.fallbackApplied = "true"; image.src = fallbackImage; } });
+    image.addEventListener("error", () => { if (image.dataset.fallbackApplied) { console.warn(`[dish images] Failed to load recent-order photo → asset unavailable`, image.src); image.remove(); } else { console.warn(`[dish images] Order photo unavailable; using local fallback`, image.src); image.dataset.fallbackApplied = "true"; image.src = fallbackImage; } });
     const name = document.createElement("strong"); name.textContent = brandName;
     const items = document.createElement("span"); items.textContent = (order.items || []).slice(0, 2).map(item => `${item.quantity} × ${item.name}`).join(" · ") || "View the current menu";
     const action = document.createElement("span"); action.className = "recent-order-action"; action.textContent = "View menu →";
