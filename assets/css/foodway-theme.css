@@ -1,4 +1,4 @@
-/* Final visual system: one Foodway identity across shopping and operations. */
+/* Shared Foodway dashboard styles with Al Madina storefront and workspace branding below. */
 :root {
   --foodway-ink: #202521;
   --foodway-muted: #5f6b63;
@@ -196,3 +196,79 @@ body { color: var(--foodway-ink); }
 .kitchen-queue-empty { grid-column:1/-1; margin:.25rem; padding:1rem; text-align:center; }
 @media(max-width:900px) { .kitchen-queue { grid-template-columns:1fr; } }
 @media(max-width:600px) { .kitchen-queue-summary { align-items:stretch; flex-direction:column; } }
+
+/* Al Madina Family Restaurant identity: black, warm ivory and the logo's gold. */
+.customer-page,
+.restaurant-page,
+.delivery-page {
+  --foodway-ink: #191713;
+  --foodway-muted: #655f52;
+  --foodway-green: #171511;
+  --foodway-green-deep: #080807;
+  --foodway-lime: #e8c900;
+  --foodway-tomato: #d0ad00;
+  --foodway-tomato-deep: #b49400;
+  --foodway-paper: #f8f6ef;
+  --foodway-line: #e8dfbd;
+}
+.customer-page .site-header,
+.customer-page .auth-header { background: #f8f6eff5; }
+.customer-page .hero-banner {
+  background: linear-gradient(115deg, #11100d 0%, #1b1912 65%, #29230c 100%);
+}
+.customer-page .hero-copy h1 span { color: #f0d21b; }
+.customer-page .hero-copy .eyebrow { color: #f0d21b; }
+.customer-page .hero-cta,
+.customer-page .cart-submit,
+.customer-page .payment-summary .cart-submit {
+  background: #e2c000;
+  color: #171511;
+}
+.customer-page .hero-cta:hover,
+.customer-page .cart-submit:hover,
+.customer-page .payment-summary .cart-submit:hover { background: #f0d21b; color: #111; }
+.customer-page .top-search button { background: #171511; color: #f0d21b; }
+.customer-page .top-search button:hover { background: #080807; }
+.customer-page .site-nav a:hover,
+.customer-page .breadcrumbs a,
+.customer-page .back-link { color: #806900; }
+.customer-page :is(a, button, input, select, textarea):focus-visible,
+.restaurant-page :is(input, select, textarea, button):focus-visible,
+.delivery-page :is(input, select, textarea, button):focus-visible { outline-color: #d2ae00aa; }
+.customer-page .quick-food-filters button[aria-pressed="true"],
+.customer-page .cuisine-option[aria-pressed="true"] { border-color: #d6bc45; background: #fbf4d4; color: #5d4c00; }
+.customer-page .cuisine-section { background: linear-gradient(130deg, #fff 15%, #fbf6df 100%); }
+.customer-page .site-footer { background: #11100d; color: #f5e8a5; border-top-color: #403716; }
+.customer-page .site-footer .wordmark { color: #fff; }
+.brand-logo {
+  display: block;
+  width: 176px;
+  height: 64px;
+  border-radius: 4px;
+  background: #080807;
+  object-fit: cover;
+  object-position: center 68%;
+}
+.brand-logo-workspace { width: 166px; height: 60px; }
+.restaurant-workspace-label,
+.delivery-workspace-label {
+  padding-left: .7rem;
+  border-left: 1px solid #d8c777;
+  color: #71684b;
+  font-size: .78rem;
+  font-weight: 650;
+}
+.restaurant-page .restaurant-brand,
+.delivery-page .delivery-brand { color: #191713; }
+.restaurant-page .restaurant-sidebar,
+.delivery-page .delivery-sidebar { background: #171511; }
+.restaurant-page .restaurant-sidebar button[aria-current="page"] { box-shadow: inset 3px 0 #e8c900; }
+.restaurant-page .restaurant-sidebar button[aria-current="page"],
+.restaurant-page .restaurant-sidebar button:hover { background: #302a14; }
+.admin-page { --foodway-green: #173d32; --foodway-green-deep: #102f27; --foodway-lime: #d6e5b5; --foodway-tomato: #c73b2d; --foodway-tomato-deep: #a92f25; }
+@media (max-width: 580px) {
+  .brand-logo { width: 148px; height: 54px; }
+  .brand-logo-workspace { width: 138px; height: 52px; }
+  .restaurant-workspace-label,
+  .delivery-workspace-label { display: none; }
+}

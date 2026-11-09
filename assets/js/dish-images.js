@@ -27,6 +27,20 @@
     return String(name).replace(/\s+\((?:half|full)\)$/i, "").trim();
   }
 
+  function menuCategoryFor(item = {}) {
+    const sourceCategory = String(item.category || "Menu").trim();
+    const category = sourceCategory.toLocaleLowerCase();
+    const name = String(item.name || "").toLocaleLowerCase();
+    if (category.includes("chinese") || /\bchinese\b/.test(name)) {
+      if (/soup/.test(category) || /soup/.test(name)) return "Soup";
+      if (/noodle/.test(category) || /noodle/.test(name)) return "Chinese Noodles";
+      if (/rice/.test(category) || /rice/.test(name)) return "Chinese Rice";
+      if (/starter/.test(category)) return "Chinese Starters";
+      return "Chinese";
+    }
+    return sourceCategory;
+  }
+
   function groupMenuItems(items = []) {
     const groups = new Map();
     for (const item of items) {
@@ -46,6 +60,7 @@
 
   window.foodwayDishImage = dishImage;
   window.foodwayBaseDishName = baseDishName;
+  window.foodwayMenuCategoryFor = menuCategoryFor;
   window.foodwayGroupMenuItems = groupMenuItems;
   console.info("[dish images] Local representative food photos ready");
 })();

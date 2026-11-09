@@ -19,3 +19,11 @@
 .support-chat-form .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:520px){.support-chat-launcher{right:16px;bottom:78px}.support-chat-panel{right:10px;bottom:148px;width:calc(100vw - 20px);height:min(520px,calc(100dvh - 180px))}}
 @media(prefers-reduced-motion:reduce){.support-chat-launcher{transition:none}}
+
+/* Customer help widget follows the Al Madina black-and-gold identity. */
+body.customer-page .support-chat-launcher { background:#171511; color:#f0d21b; box-shadow:0 8px 28px #17151155; }
+body.customer-page .support-chat-launcher:hover { background:#080807; }
+body.customer-page .support-chat-header { background:#171511; }
+body.customer-page .support-chat-close:focus-visible,
+body.customer-page .support-chat-form button:focus-visible,
+body.customer-page .support-chat-form textarea:focus-visible { outline-color:#e8c900; }

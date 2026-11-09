@@ -1,4 +1,4 @@
-const CACHE_NAME = "foodway-shell-v8";
+const CACHE_NAME = "foodway-shell-v11";
 const APP_SHELL = [
   "/customer/index.html",
   "/offline.html",
@@ -9,7 +9,8 @@ const APP_SHELL = [
   "/assets/js/restaurants.js",
   "/assets/js/pwa.js",
   "/assets/icons/icon-192.png",
-  "/assets/icons/icon-512.png"
+  "/assets/icons/icon-512.png",
+  "/assets/images/al-madina-family-restaurant.png"
 ];
 
 self.addEventListener("install", event => {

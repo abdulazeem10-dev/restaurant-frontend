@@ -1,4 +1,4 @@
-/* Foodway customer home: image-led discovery and mobile-first navigation. */
+/* Al Madina Family Restaurant: image-led discovery and mobile-first navigation. */
 .customer-page .discovery-main {
   width: min(100% - 3rem, 1280px);
   max-width: 1280px;
@@ -445,3 +445,15 @@ body.customer-page::-webkit-scrollbar { display: none !important; width: 0 !impo
   background: linear-gradient(180deg, rgba(16,23,19,0) 0%, rgba(16,23,19,.14) 42%, rgba(16,23,19,.8) 100%) !important;
   transform: none !important;
 }
+
+/* Match the storefront hero lighting to the black-and-gold restaurant mark. */
+.customer-page .hero-banner {
+  border-color: #3a3214;
+  background: linear-gradient(112deg, #0c0b09 0%, #18160f 56%, #2b250d 100%);
+  box-shadow: 0 22px 55px #1715112a;
+}
+.customer-page .hero-art::after {
+  background: linear-gradient(90deg, #0c0b09 0%, #0c0b092e 35%, transparent 76%), linear-gradient(0deg, #08080780, transparent 42%);
+}
+.customer-page .hero-live-dot { box-shadow: 0 0 0 5px #e2c00025; }
+.customer-page .hero-caption { color: #f4e7a1; }

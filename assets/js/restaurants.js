@@ -19,7 +19,8 @@ function getVisibleDishes() {
   const maxPricePaise = selectedBudgetFilter === "all" ? Infinity : Number(selectedBudgetFilter) * 100;
   return allMenuItems.filter(item => {
     const text = [item.name, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
-    const matchesCuisine = selectedCuisineFilter === "all" || String(item.category || "").trim() === selectedCuisineFilter;
+    const category = window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim();
+    const matchesCuisine = selectedCuisineFilter === "all" || category === selectedCuisineFilter;
     return (!term || text.includes(term))
       && (selectedFoodFilter === "all" || item.foodType === selectedFoodFilter)
       && Number(item.pricePaise) <= maxPricePaise
@@ -28,7 +29,7 @@ function getVisibleDishes() {
 }
 function renderCategoryCarousel() {
   if (!cuisineTrack) return;
-  const categories = [...new Set(allMenuItems.map(item => String(item.category || "").trim()).filter(Boolean))]
+  const categories = [...new Set(allMenuItems.map(item => window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, "en"));
   const choices = [{ value: "all", label: "All dishes", image: "../assets/images/cuisines/all.webp" },
     ...categories.map(category => ({ value: category, label: category, image: cuisineImageFor({ category }) }))];
@@ -56,7 +57,8 @@ function renderCategoryCarousel() {
 }
 function cuisineImageFor(item) {
   const category = String(item.category || "").toLocaleLowerCase();
-  if (/chinese|noodle/.test(category)) return "../assets/images/cuisines/chinese.webp";
+  if (/noodle/.test(category)) return "../assets/images/cuisines/noodles.webp";
+  if (/chinese|soup/.test(category)) return "../assets/images/cuisines/chinese.webp";
   if (/pizza/.test(category)) return "../assets/images/cuisines/pizza.webp";
   if (/dessert|sweet/.test(category)) return "../assets/images/cuisines/desserts.webp";
   if (/biryani/.test(category)) return "../assets/images/cuisines/biryani.webp";
@@ -183,7 +185,7 @@ async function loadRestaurants() {
     console.info(`[Al-Madina menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
     if (!menuResponse.ok) throw new Error("Could not load Al-Madina dishes");
     allMenuItems = (await menuResponse.json()).items || [];
-    if (selectedCuisineFilter !== "all" && !allMenuItems.some(item => item.category === selectedCuisineFilter)) selectedCuisineFilter = "all";
+    if (selectedCuisineFilter !== "all" && !allMenuItems.some(item => (window.foodwayMenuCategoryFor?.(item) || item.category) === selectedCuisineFilter)) selectedCuisineFilter = "all";
     renderCategoryCarousel();
     renderMenuPreview(); await loadRecentOrders();
   } catch (error) {

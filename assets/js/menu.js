@@ -28,7 +28,8 @@ function renderFilteredMenu() {
   });
   const filtered = allMenuItems.filter(item => {
     const foodMatches = selectedMenuFood === "all" || item.foodType === selectedMenuFood;
-    const categoryMatches = categoryFilter === "all" || String(item.category || "").trim() === categoryFilter;
+    const category = window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim();
+    const categoryMatches = categoryFilter === "all" || category === categoryFilter;
     const baseName = window.foodwayBaseDishName?.(item.name) || String(item.name || "").replace(/\s+\((?:half|full)\)$/i, "").trim();
     const dishMatches = !requestedDishName || baseName.toLocaleLowerCase() === requestedDishName.toLocaleLowerCase();
     return foodMatches && categoryMatches && dishMatches;
@@ -130,7 +131,7 @@ function addMenuItem(item, button) {
 function renderMenu(items, restaurant, filter = "all", categoryFilter = "all") {
   const groups = new Map();
   for (const item of items) {
-    const category = item.category || "Menu";
+    const category = window.foodwayMenuCategoryFor?.(item) || item.category || "Menu";
     if (!groups.has(category)) groups.set(category, []);
     groups.get(category).push(item);
   }
@@ -284,7 +285,7 @@ async function loadStorefront() {
     storefrontHero.setAttribute("aria-busy", "false");
     allMenuItems = items;
     if (menuCategorySelect) {
-      const categories = [...new Set(allMenuItems.map(item => String(item.category || "").trim()).filter(Boolean))]
+      const categories = [...new Set(allMenuItems.map(item => window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim()).filter(Boolean))]
         .sort((a, b) => a.localeCompare(b, "en"));
       menuCategorySelect.replaceChildren(new Option("All categories", "all"), ...categories.map(category => new Option(category, category)));
     }
