@@ -457,3 +457,9 @@ body.customer-page::-webkit-scrollbar { display: none !important; width: 0 !impo
 }
 .customer-page .hero-live-dot { box-shadow: 0 0 0 5px #e2c00025; }
 .customer-page .hero-caption { color: #f4e7a1; }
+.customer-page .home-food-filters .quick-food-filters button[aria-pressed="true"],
+.customer-page .budget-filters button[aria-pressed="true"] {
+  border-color: #d6bc45;
+  background: #fbf4d4;
+  color: #5d4c00;
+}
