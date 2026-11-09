@@ -27,3 +27,15 @@ body.customer-page .support-chat-header { background:#171511; }
 body.customer-page .support-chat-close:focus-visible,
 body.customer-page .support-chat-form button:focus-visible,
 body.customer-page .support-chat-form textarea:focus-visible { outline-color:#e8c900; }
+body.customer-page .support-chat-form { grid-template-columns:minmax(0,1fr) auto; }
+body.customer-page .support-chat-actions { display:flex; align-items:stretch; gap:8px; }
+body.customer-page .support-chat-actions button { min-width:52px; padding-inline:14px; border:1px solid #171511; background:#171511; color:#f0d21b; }
+body.customer-page .support-chat-actions button:hover { background:#302a14; }
+body.customer-page .support-chat-actions .support-chat-mic { display:grid; width:48px; min-width:48px; place-items:center; padding:0; border-color:#d5b300; border-radius:12px; background:#fffdf5; color:#5d4c00; }
+body.customer-page .support-chat-mic svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:1.8; }
+body.customer-page .support-chat-mic.is-listening { background:#e2c000; color:#171511; animation:madina-mic-pulse 1.2s ease-in-out infinite; }
+body.customer-page .support-chat-mic:disabled { opacity:.5; cursor:wait; }
+body.customer-page .support-chat-voice-status { grid-column:1/-1; min-height:0; color:#655f52; font-size:.78rem; line-height:1.35; }
+body.customer-page .support-chat-note { line-height:1.45; }
+@keyframes madina-mic-pulse { 50% { box-shadow:0 0 0 5px #e2c00042; } }
+@media(prefers-reduced-motion:reduce) { body.customer-page .support-chat-mic.is-listening { animation:none; } }
