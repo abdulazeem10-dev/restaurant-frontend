@@ -29,7 +29,9 @@ function renderFilteredMenu() {
   const filtered = allMenuItems.filter(item => {
     const foodMatches = selectedMenuFood === "all" || item.foodType === selectedMenuFood;
     const categoryMatches = categoryFilter === "all" || String(item.category || "").trim() === categoryFilter;
-    return foodMatches && categoryMatches;
+    const baseName = window.foodwayBaseDishName?.(item.name) || String(item.name || "").replace(/\s+\((?:half|full)\)$/i, "").trim();
+    const dishMatches = !requestedDishName || baseName.toLocaleLowerCase() === requestedDishName.toLocaleLowerCase();
+    return foodMatches && categoryMatches && dishMatches;
   });
   renderMenu(filtered, currentRestaurant, selectedMenuFood, categoryFilter);
 }
@@ -233,8 +235,8 @@ function renderMenu(items, restaurant, filter = "all", categoryFilter = "all") {
   }
   if (!items.length) {
     const hasFilter = filter !== "all" || categoryFilter !== "all";
-    const emptyTitle = hasFilter ? "No dishes match these filters" : "Menu coming soon";
-    const emptyMessage = hasFilter ? "Try another food filter or check back later." : "Al-Madina has no available dishes listed yet.";
+    const emptyTitle = requestedDishName ? `${requestedDishName} is not available right now` : hasFilter ? "No dishes match these filters" : "Menu coming soon";
+    const emptyMessage = requestedDishName ? "Browse the full Al-Madina menu to see other available dishes." : hasFilter ? "Try another food filter or check back later." : "Al-Madina has no available dishes listed yet.";
     menuRoot.innerHTML = `<div class="empty-state"><h3>${emptyTitle}</h3><p>${emptyMessage}</p></div>`;
   }
 }
@@ -258,9 +260,20 @@ async function loadStorefront() {
     const restaurant = { ...restaurantData, name: RESTAURANT_BRAND };
     const { items } = await menuResponse.json();
     currentRestaurant = restaurant;
-    document.title = `${restaurant.name} menu | Al-Madina`;
+    if (requestedDishName) {
+      document.body.classList.add("dish-detail-page");
+      document.querySelector("#menu-page-eyebrow").textContent = "DISH DETAILS · FRESH FROM THE KITCHEN";
+      document.querySelector("#menu-page-title").textContent = requestedDishName;
+      document.querySelector(".menu-category-filter").hidden = true;
+      document.querySelector(".menu-food-filter").hidden = true;
+      document.querySelector("#category-nav").hidden = true;
+      const backLink = document.querySelector(".back-link");
+      backLink.href = `menu.html?id=${encodeURIComponent(restaurantId)}`;
+      backLink.textContent = "← View full menu";
+    }
+    document.title = requestedDishName ? `${requestedDishName} | ${restaurant.name}` : `${restaurant.name} menu | Al-Madina`;
     document.querySelector("#restaurant-name").textContent = restaurant.name;
-    document.querySelector("#crumb-name").textContent = restaurant.name;
+    document.querySelector("#crumb-name").textContent = requestedDishName || restaurant.name;
     document.querySelector("#restaurant-description").textContent = "Freshly prepared veg and non-veg favourites from Al-Madina.";
     document.querySelector("#restaurant-address").textContent = "Cheeta Camp, Mumbai";
     const status = document.querySelector("#restaurant-status");

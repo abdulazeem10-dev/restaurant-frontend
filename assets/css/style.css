@@ -785,6 +785,11 @@ textarea { min-height: unset; }
 .customer-page .menu-item-card { border-color: var(--foodway-line); border-radius: 15px; box-shadow: 0 5px 18px #20252108; }
 .customer-page .menu-item-card:hover { border-color: #d1d9c9; box-shadow: 0 10px 24px #2025210d; }
 .customer-page .menu-item-card.is-selected-dish { border-color: #a6bd99; box-shadow: 0 0 0 3px #dce9d3, 0 8px 22px #20252110; }
+body.dish-detail-page .menu-category-filter, body.dish-detail-page .menu-food-filter, body.dish-detail-page .category-nav { display: none !important; }
+body.dish-detail-page .menu-header { align-items: center; }
+body.dish-detail-page .menu-list { max-width: 860px; }
+body.dish-detail-page .menu-item-card { align-items: flex-start; padding: 1.4rem; }
+body.dish-detail-page .menu-item-card .dish-image { width: min(34%, 240px); height: 180px; flex-basis: min(34%, 240px); }
 .customer-page .menu-cart-card { border-color: var(--foodway-line); border-radius: 17px; box-shadow: 0 10px 28px #2025210c; }
 .customer-page .add-item-button { border-color: #d9e3d0; background: #f4f7ef; color: var(--foodway-green); }
 .customer-page .add-item-button:hover:not(:disabled) { border-color: #b7c8b4; background: #eaf1e5; }
