@@ -158,13 +158,18 @@ function renderMenu(items, restaurant, filter = "all", categoryFilter = "all") {
       row.className = "menu-item-card";
       const info = document.createElement("div");
       info.className = "menu-item-info";
-      if (item.imageUrl) {
+      const dishImage = window.foodwayDishImage?.(item);
+      if (dishImage) {
         const image = document.createElement("img");
-        image.src = item.imageUrl;
-        image.alt = item.name;
+        image.src = dishImage.src;
+        image.alt = dishImage.isFallback ? `Representative food photo for ${item.name}` : item.name;
         image.loading = "lazy";
+        image.decoding = "async";
         image.className = "dish-image";
-        image.addEventListener("error", () => image.remove(), { once: true });
+        image.addEventListener("error", () => {
+          console.warn(`[dish images] Failed to load image for ${item.name} → 404`, image.src);
+          image.remove();
+        }, { once: true });
         row.append(image);
       }
       const title = document.createElement("h4");
@@ -223,7 +228,7 @@ async function loadStorefront() {
     document.querySelector("#restaurant-name").textContent = restaurant.name;
     document.querySelector("#crumb-name").textContent = restaurant.name;
     document.querySelector("#restaurant-description").textContent = "Freshly prepared veg and non-veg favourites from Al-Madina.";
-    document.querySelector("#restaurant-address").textContent = "Ulwe, Navi Mumbai";
+    document.querySelector("#restaurant-address").textContent = "Cheeta Camp, Mumbai";
     const status = document.querySelector("#restaurant-status");
     status.textContent = restaurant.isOpen ? "Open for orders" : "Currently closed";
     status.classList.toggle("closed-badge", !restaurant.isOpen);

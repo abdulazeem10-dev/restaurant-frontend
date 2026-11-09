@@ -430,7 +430,7 @@ function renderDeliveryAreas(areas = [], legacyPincodes = []) {
     nameInput.type = "text";
     nameInput.maxLength = 80;
     nameInput.required = true;
-    nameInput.placeholder = "e.g. Ulwe, Seawoods";
+    nameInput.placeholder = "e.g. Cheeta Camp, Mumbai";
     nameInput.value = area.name || "";
     nameLabel.append(nameInput);
     const pinLabel = document.createElement("label");
@@ -656,13 +656,18 @@ async function loadMenu() {
       card.querySelector(".menu-availability").closest("label").remove();
       card.querySelector(".menu-delete").remove();
     }
-    if (item.imageUrl) {
+    const dishImage = window.foodwayDishImage?.(item);
+    if (dishImage) {
       const image = document.createElement("img");
-      image.src = item.imageUrl;
-      image.alt = item.name;
+      image.src = dishImage.src;
+      image.alt = dishImage.isFallback ? `Representative food photo for ${item.name}` : item.name;
       image.loading = "lazy";
+      image.decoding = "async";
       image.className = "dish-image-preview";
-      image.addEventListener("error", () => image.remove(), { once: true });
+      image.addEventListener("error", () => {
+        console.warn(`[dish images] Failed to load image for ${item.name} → 404`, image.src);
+        image.remove();
+      }, { once: true });
       card.prepend(image);
     }
     const availability = card.querySelector(".menu-availability");
