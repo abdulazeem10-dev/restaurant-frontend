@@ -23,6 +23,29 @@
     return { src: `${location.origin}/assets/images/cuisines/${filename}`, isFallback: true };
   }
 
+  function baseDishName(name = "") {
+    return String(name).replace(/\s+\((?:half|full)\)$/i, "").trim();
+  }
+
+  function groupMenuItems(items = []) {
+    const groups = new Map();
+    for (const item of items) {
+      const name = baseDishName(item.name);
+      const key = `${String(item.category || "Menu").trim().toLocaleLowerCase()}\u0000${name.toLocaleLowerCase()}`;
+      if (!groups.has(key)) groups.set(key, { name, category: item.category || "Menu", variants: [] });
+      groups.get(key).variants.push(item);
+    }
+    return [...groups.values()].map(group => ({
+      ...group,
+      variants: group.variants.sort((a, b) => {
+        const rank = item => /\s+\(half\)$/i.test(item.name) ? 0 : /\s+\(full\)$/i.test(item.name) ? 1 : 2;
+        return rank(a) - rank(b) || a.pricePaise - b.pricePaise;
+      })
+    }));
+  }
+
   window.foodwayDishImage = dishImage;
+  window.foodwayBaseDishName = baseDishName;
+  window.foodwayGroupMenuItems = groupMenuItems;
   console.info("[dish images] Local representative food photos ready");
 })();

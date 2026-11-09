@@ -83,21 +83,31 @@ function renderMenuPreview() {
     empty.textContent = allMenuItems.length ? "No dishes match these filters. Try another cuisine or clear your search." : "The Al-Madina menu is being updated. Please check back soon.";
     featuredDishesTrack.append(empty); return;
   }
-  for (const item of dishes) {
+  const displayDishes = window.foodwayGroupMenuItems?.(dishes) || dishes.map(item => ({ name: item.name, variants: [item] }));
+  for (const dish of displayDishes) {
+    const item = dish.variants[0];
     const card = document.createElement("a"); card.className = "featured-dish-card";
-    card.href = `menu.html?id=${encodeURIComponent(currentRestaurant._id)}`;
-    card.setAttribute("aria-label", `View ${item.name} from ${brandName}, ${formatRupees(item.pricePaise)}`);
+    card.href = `menu.html?id=${encodeURIComponent(currentRestaurant._id)}&dish=${encodeURIComponent(dish.name)}`;
+    card.setAttribute("aria-label", `View ${dish.name} from ${brandName}`);
     const imageWrap = document.createElement("div"); imageWrap.className = "featured-dish-image-wrap";
     const dishImage = window.foodwayDishImage?.(item);
     const image = document.createElement("img"); image.src = dishImage?.src || cuisineImageFor(item); image.alt = item.name ? `Food photo for ${item.name}` : "Al-Madina dish";
     image.loading = "lazy"; image.decoding = "async"; image.addEventListener("error", () => { console.warn(`[dish images] Failed to load image for ${item.name} → asset unavailable`, image.src); image.remove(); }, { once: true }); imageWrap.append(image);
     const details = document.createElement("div"); details.className = "featured-dish-details";
-    const name = document.createElement("h3"); name.textContent = item.name;
-    const price = document.createElement("strong"); price.textContent = formatRupees(item.pricePaise);
+    const name = document.createElement("h3"); name.textContent = dish.name;
+    const price = document.createElement("strong");
+    const dishPrices = dish.variants.map(variant => Number(variant.pricePaise)).sort((a, b) => a - b);
+    price.textContent = dishPrices.length > 1 ? `${formatRupees(dishPrices[0])} – ${formatRupees(dishPrices[dishPrices.length - 1])}` : formatRupees(dishPrices[0]);
     const restaurant = document.createElement("span"); restaurant.textContent = brandName;
     const type = document.createElement("small"); type.className = item.foodType === "veg" ? "dish-food-type dish-food-type-veg" : "dish-food-type dish-food-type-nonveg";
     type.textContent = item.foodType === "veg" ? "Veg" : item.foodType === "nonVeg" ? "Non-Veg" : item.category || "Food";
-    details.append(name, price, restaurant, type); card.append(imageWrap, details); featuredDishesTrack.append(card);
+    details.append(name, price);
+    if (dish.variants.length > 1) {
+      const portions = document.createElement("span");
+      portions.textContent = dish.variants.map(variant => variant.name.match(/\((half|full)\)$/i)?.[1]).filter(Boolean).map(value => value[0].toUpperCase() + value.slice(1)).join(" / ") || "Portion options";
+      details.append(portions);
+    }
+    details.append(restaurant, type); card.append(imageWrap, details); featuredDishesTrack.append(card);
   }
 }
 function renderFoodPassport(orders = []) {

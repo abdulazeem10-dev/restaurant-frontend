@@ -1,4 +1,5 @@
 const restaurantId = new URLSearchParams(location.search).get("id");
+const requestedDishName = new URLSearchParams(location.search).get("dish");
 const RESTAURANT_BRAND = "Al-Madina";
 const menuRoot = document.querySelector("#menu-items");
 const categoryRoot = document.querySelector("#category-nav");
@@ -147,51 +148,84 @@ function renderMenu(items, restaurant, filter = "all", categoryFilter = "all") {
     heading.textContent = category;
     const count = document.createElement("span");
     count.className = "muted";
-    count.textContent = `${entries.length} items`;
+    const groupedEntries = window.foodwayGroupMenuItems?.(entries) || entries.map(item => ({ name: item.name, variants: [item] }));
+    count.textContent = `${groupedEntries.length} dishes`;
     const categoryHeading = document.createElement("div");
     categoryHeading.className = "category-heading";
     categoryHeading.append(heading, count);
     section.append(categoryHeading);
 
-    for (const item of entries) {
+    for (const dish of groupedEntries) {
+      let selectedItem = dish.variants[0];
       const row = document.createElement("article");
       row.className = "menu-item-card";
       const info = document.createElement("div");
       info.className = "menu-item-info";
-      const dishImage = window.foodwayDishImage?.(item);
+      let image = null;
+      const dishImage = window.foodwayDishImage?.(selectedItem);
       if (dishImage) {
-        const image = document.createElement("img");
+        image = document.createElement("img");
         image.src = dishImage.src;
-        image.alt = dishImage.isFallback ? `Representative food photo for ${item.name}` : item.name;
+        image.alt = dishImage.isFallback ? `Representative food photo for ${dish.name}` : dish.name;
         image.loading = "lazy";
         image.decoding = "async";
         image.className = "dish-image";
         image.addEventListener("error", () => {
-          console.warn(`[dish images] Failed to load image for ${item.name} → 404`, image.src);
+          console.warn(`[dish images] Failed to load image for ${dish.name} → 404`, image.src);
           image.remove();
         }, { once: true });
         row.append(image);
       }
       const title = document.createElement("h4");
-      title.textContent = item.name;
+      title.textContent = dish.name;
+      if (requestedDishName && dish.name.toLocaleLowerCase() === requestedDishName.toLocaleLowerCase()) {
+        row.classList.add("is-selected-dish");
+      }
       const typeBadge = document.createElement("span");
-      typeBadge.className = `dish-type-badge ${item.foodType === "veg" ? "dish-type-veg" : "dish-type-nonveg"}`;
-      typeBadge.textContent = item.foodType === "veg" ? "Veg" : "Non-Veg";
+      typeBadge.className = `dish-type-badge ${selectedItem.foodType === "veg" ? "dish-type-veg" : "dish-type-nonveg"}`;
+      typeBadge.textContent = selectedItem.foodType === "veg" ? "Veg" : "Non-Veg";
       const price = document.createElement("strong");
-      price.textContent = formatRupees(item.pricePaise);
+      price.textContent = formatRupees(selectedItem.pricePaise);
       const description = document.createElement("p");
       description.className = "muted";
-      description.textContent = item.description || "Prepared fresh at Al-Madina.";
+      description.textContent = dish.variants.length > 1 ? "Choose a portion size." : selectedItem.description || "Prepared fresh at Al-Madina.";
       info.append(title);
-      if (item.foodType === "veg" || item.foodType === "nonVeg") info.append(typeBadge);
-      info.append(price, description);
+      if (selectedItem.foodType === "veg" || selectedItem.foodType === "nonVeg") info.append(typeBadge);
+      info.append(price);
+      if (dish.variants.length > 1) {
+        const sizeLabel = document.createElement("label");
+        sizeLabel.className = "menu-portion-control";
+        sizeLabel.textContent = "Portion size";
+        const sizeSelect = document.createElement("select");
+        sizeSelect.setAttribute("aria-label", `${dish.name} portion size`);
+        dish.variants.forEach(variant => {
+          const option = document.createElement("option");
+          const portion = variant.name.match(/\((half|full)\)$/i)?.[1];
+          option.value = variant._id;
+          option.textContent = `${portion ? portion[0].toUpperCase() + portion.slice(1) : "Regular"} · ${formatRupees(variant.pricePaise)}`;
+          sizeSelect.append(option);
+        });
+        sizeSelect.addEventListener("change", () => {
+          selectedItem = dish.variants.find(variant => String(variant._id) === sizeSelect.value) || dish.variants[0];
+          price.textContent = formatRupees(selectedItem.pricePaise);
+          typeBadge.textContent = selectedItem.foodType === "veg" ? "Veg" : "Non-Veg";
+          if (image) {
+            const nextImage = window.foodwayDishImage?.(selectedItem);
+            if (nextImage) image.src = nextImage.src;
+          }
+          console.info(`[menu portion] ${dish.name} selected → ${selectedItem.name}`);
+        });
+        sizeLabel.append(sizeSelect);
+        info.append(sizeLabel);
+      }
+      info.append(description);
       const action = document.createElement("button");
       action.type = "button";
       action.className = "add-item-button";
       action.textContent = restaurant.isOpen ? "+ Add" : "Closed";
       action.disabled = !restaurant.isOpen;
-      action.setAttribute("aria-label", `${restaurant.isOpen ? "Add" : "Unavailable"} ${item.name}`);
-      action.addEventListener("click", () => addMenuItem(item, action));
+      action.setAttribute("aria-label", `${restaurant.isOpen ? "Add" : "Unavailable"} ${dish.name}`);
+      action.addEventListener("click", () => addMenuItem(selectedItem, action));
       row.append(info, action);
       section.append(row);
     }
@@ -242,6 +276,13 @@ async function loadStorefront() {
       menuCategorySelect.replaceChildren(new Option("All categories", "all"), ...categories.map(category => new Option(category, category)));
     }
     renderFilteredMenu();
+    if (requestedDishName) {
+      const target = [...menuRoot.querySelectorAll(".menu-item-card")].find(row => row.querySelector("h4")?.textContent.toLocaleLowerCase() === requestedDishName.toLocaleLowerCase());
+      if (target) {
+        console.info(`[menu navigation] Opened requested dish → ${requestedDishName}`);
+        requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "center" }));
+      }
+    }
     updateStoreCart();
     await loadReviews();
   } catch (errorValue) {

@@ -189,6 +189,8 @@ article h3 { margin-top: 0; }
 .menu-item-actions label { display: inline-flex; align-items: center; gap: .45rem; }
 .menu-item-actions .menu-availability { width: auto; }
 .menu-item-info h4 { margin: 0 0 .35rem; font-size: 1.05rem; }.menu-item-info strong { color: #39322d; }.menu-item-info p { margin: .45rem 0 0; font-size: .9rem; }
+.menu-portion-control { display: grid; width: min(100%, 220px); gap: .25rem; margin-top: .5rem; color: var(--foodway-muted, #706e68); font-size: .82rem; font-weight: 700; }
+.menu-portion-control select { min-height: 42px; padding: .5rem .65rem; border: 1px solid var(--foodway-line, #e7e4db); border-radius: 10px; background: #fff; color: var(--foodway-ink, #292a25); font: inherit; }
 .add-item-button { min-width: 86px; border: 1px solid #edc7ca; background: white; color: #df4056; }.add-item-button:hover { background: #fff3f3; }.add-item-button:disabled { border-color: #eee7e2; background: #faf8f6; color: #9b928b; opacity: 1; }
 .menu-cart-card { position: sticky; top: 96px; padding: 1.3rem; border: 1px solid #efe8e2; border-radius: 15px; background: white; box-shadow: 0 6px 20px #3424190a; }
 .cart-card-icon { font-size: 2rem; }.menu-cart-card h3 { margin: .55rem 0; }.menu-cart-card p { min-height: 1.3rem; font-size: .9rem; }
@@ -782,6 +784,7 @@ textarea { min-height: unset; }
 .customer-page .category-nav a:hover { border-color: #a9bca9; background: #f1f5ec; color: var(--foodway-green); }
 .customer-page .menu-item-card { border-color: var(--foodway-line); border-radius: 15px; box-shadow: 0 5px 18px #20252108; }
 .customer-page .menu-item-card:hover { border-color: #d1d9c9; box-shadow: 0 10px 24px #2025210d; }
+.customer-page .menu-item-card.is-selected-dish { border-color: #a6bd99; box-shadow: 0 0 0 3px #dce9d3, 0 8px 22px #20252110; }
 .customer-page .menu-cart-card { border-color: var(--foodway-line); border-radius: 17px; box-shadow: 0 10px 28px #2025210c; }
 .customer-page .add-item-button { border-color: #d9e3d0; background: #f4f7ef; color: var(--foodway-green); }
 .customer-page .add-item-button:hover:not(:disabled) { border-color: #b7c8b4; background: #eaf1e5; }
