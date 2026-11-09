@@ -7,30 +7,6 @@ const menuCategorySelect = document.querySelector("#menu-category-filter");
 let currentRestaurant = null;
 let allMenuItems = [];
 let selectedMenuFood = "all";
-const menuCategoryPatterns = Object.freeze({
-  "north-indian": /\b(north.?indian|paratha|puri|chole|paneer|naan|kulcha|kebab|tikka|korma)\b/i,
-  "south-indian": /\b(south.?indian|dosa|idli|sambar|sambhar|uttapam|upma|medu.?vada|rasam)\b/i,
-  maharashtrian: /\b(maharashtrian|vada.?pav|puran.?poli|misal|poha|sabudana|thalipeeth)\b/i,
-  chinese: /\b(chinese|manchurian|schezwan|chow.?mein|fried.?rice|spring.?roll|hakka|chilli.?chicken)\b/i,
-  pizza: /\b(pizza|calzone|garlic.?bread)\b/i,
-  desserts: /\b(dessert|sweet|ice.?cream|gulab.?jamun|ras.?malai|cake|brownie|kulfi|halwa|kheer)\b/i,
-  burger: /\b(burger|fries|fast.?food)\b/i,
-  biryani: /\bbiryani\b/i,
-  noodles: /\b(noodles?|chow.?mein|hakka|ramen)\b/i,
-  rolls: /\b(rolls?|wraps?|frankie|sandwich)\b/i,
-  shawarma: /\bshawarma\b/i,
-  vada: /\b(vada|pakora|bhaji)\b/i,
-  dosa: /\b(dosa|uttapam)\b/i,
-  momo: /\bmomos?\b/i,
-  salads: /\b(salad|raita)\b/i
-});
-const menuCategoryAliases = Object.freeze({
-  northindian: "north-indian", southindian: "south-indian", "indo-chinese": "chinese",
-  pizzas: "pizza", dessert: "desserts", sweets: "desserts", burgers: "burger", "fast-food": "burger",
-  biriyani: "biryani", noodle: "noodles", roll: "rolls", "vada-pav": "vada", dosas: "dosa",
-  momos: "momo", salad: "salads", miscellaneous: "other", misc: "other"
-});
-
 function formatTodayHours(openingHours) {
   if (!openingHours) return "Today's hours aren't listed.";
   const day = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).format(new Date()).toLowerCase();
@@ -51,21 +27,8 @@ function renderFilteredMenu() {
   });
   const filtered = allMenuItems.filter(item => {
     const foodMatches = selectedMenuFood === "all" || item.foodType === selectedMenuFood;
-    if (!foodMatches || categoryFilter === "all") return foodMatches;
-    const text = [item.name, item.category, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
-    const category = String(item.category || "").trim().toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const mappedCategory = menuCategoryAliases[category] || category;
-    const categoryKnown = Boolean(menuCategoryPatterns[mappedCategory]);
-    if (categoryFilter === "other") {
-      return mappedCategory === "other" || (!categoryKnown && !Object.values(menuCategoryPatterns).some(pattern => pattern.test(text)));
-    }
-    if (mappedCategory === categoryFilter) return true;
-    if (categoryKnown) {
-      if (categoryFilter === "dosa" && mappedCategory === "south-indian") return menuCategoryPatterns.dosa.test(text);
-      if (categoryFilter === "vada" && ["south-indian", "maharashtrian"].includes(mappedCategory)) return menuCategoryPatterns.vada.test(text);
-      return false;
-    }
-    return Boolean(menuCategoryPatterns[categoryFilter]?.test(text));
+    const categoryMatches = categoryFilter === "all" || String(item.category || "").trim() === categoryFilter;
+    return foodMatches && categoryMatches;
   });
   renderMenu(filtered, currentRestaurant, selectedMenuFood, categoryFilter);
 }
@@ -268,6 +231,11 @@ async function loadStorefront() {
     document.querySelector("#restaurant-delivery-area").hidden = true;
     storefrontHero.setAttribute("aria-busy", "false");
     allMenuItems = items;
+    if (menuCategorySelect) {
+      const categories = [...new Set(allMenuItems.map(item => String(item.category || "").trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, "en"));
+      menuCategorySelect.replaceChildren(new Option("All categories", "all"), ...categories.map(category => new Option(category, category)));
+    }
     renderFilteredMenu();
     updateStoreCart();
     await loadReviews();

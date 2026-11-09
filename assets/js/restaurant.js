@@ -492,8 +492,87 @@ function populateDineInTableOptions(tableCount) {
 function normalizeDineInCategory(category) {
   return String(category || "").trim().toLocaleLowerCase().replace(/[\s_-]+/g, " ");
 }
+const printedMenuCategories = [
+  "Appetite Bite", "Veg Starters", "Chicken Tandoori Starters", "Special Tandoori Starters",
+  "Veg Gravy", "Chicken Gravy", "Chicken Gravy (Boneless)", "Rice & Biryani", "Roti Ki Tokri",
+  "Special Thaals", "Mandi Thaals", "Chinese Soup", "Chinese Starters", "Chinese Rice Veg",
+  "Chinese Rice Non-Veg", "Chinese Noodles Veg", "Chinese Noodles Non-Veg", "Kepsa Thaal"
+];
+function ensureMenuManagementControls() {
+  const menuForm = document.querySelector("#menu-form");
+  const categoryControl = menuForm?.elements.category;
+  if (categoryControl?.tagName === "SELECT") {
+    const input = document.createElement("input");
+    input.name = "category";
+    input.setAttribute("list", "menu-category-suggestions");
+    input.placeholder = "Choose or add a category";
+    input.required = true;
+    input.maxLength = 80;
+    categoryControl.replaceWith(input);
+  }
+  const input = menuForm?.elements.category;
+  if (input && !document.querySelector("#menu-category-suggestions")) {
+    const suggestions = document.createElement("datalist");
+    suggestions.id = "menu-category-suggestions";
+    input.after(suggestions);
+  }
+  const toolbar = document.querySelector(".owner-menu-toolbar");
+  if (toolbar && !document.querySelector("#owner-category-filter")) {
+    const label = document.createElement("label");
+    label.className = "owner-menu-filter";
+    label.htmlFor = "owner-category-filter";
+    label.append("Category");
+    const select = document.createElement("select");
+    select.id = "owner-category-filter";
+    select.append(new Option("All categories", "all"));
+    label.append(select);
+    toolbar.querySelector(".owner-menu-filters")?.prepend(label) || toolbar.append(label);
+    select.addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
+  }
+  const panel = document.querySelector("[data-restaurant-section='menu'] .panel");
+  if (panel && !document.querySelector("#import-almadina-menu")) {
+    const importer = document.createElement("section");
+    importer.className = "menu-import-panel";
+    importer.innerHTML = '<div><h3>Load Al-Madina printed menu</h3><p class="muted">Import the dishes and prices from the supplied menu into this account. Half and full portions are separate choices. Matching items already in your menu are skipped.</p><p id="menu-import-status" class="muted" role="status" aria-live="polite"></p></div><button id="import-almadina-menu" type="button" class="secondary">Import printed menu</button>';
+    const form = panel.querySelector("#menu-form");
+    if (form) form.after(importer); else panel.prepend(importer);
+    const button = importer.querySelector("#import-almadina-menu");
+    button.hidden = restaurantCurrentUser?.role !== "restaurant";
+    button.addEventListener("click", importPrintedAlMadinaMenu);
+  }
+}
+async function importPrintedAlMadinaMenu() {
+  const button = document.querySelector("#import-almadina-menu");
+  const status = document.querySelector("#menu-import-status");
+  const entries = window.ALMADINA_MENU_IMPORT;
+  if (!Array.isArray(entries) || !entries.length) {
+    if (status) status.textContent = "Menu data is missing. Reload the page and try again.";
+    console.error("[menu import] printed menu data missing");
+    return;
+  }
+  if (!confirm(`Import ${entries.length} dishes and portion prices from the Al-Madina printed menu? Existing matching dishes will be skipped.`)) return;
+  button.disabled = true;
+  if (status) status.textContent = "Importing menu…";
+  try {
+    const response = await api("/restaurants/owner/menu/import", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: entries })
+    });
+    console.info(`[menu import] POST /restaurants/owner/menu/import → 200`, response);
+    if (status) status.textContent = `Imported ${response.imported} new choices; ${response.alreadyPresent} matching choices were already listed.`;
+    await loadMenu();
+  } catch (error) {
+    console.error("[menu import] failed", error);
+    if (status) status.textContent = error.message || "Could not import the printed menu.";
+  } finally {
+    button.disabled = false;
+  }
+}
+ensureMenuManagementControls();
 async function loadMenu() {
   const { restaurant, items } = await api("/restaurants/owner/menu"); restaurantMenuItems = items || []; const tableCount = restaurant.dineInTableCount || 10; const tableCountForm = document.querySelector("#dine-in-table-count-form"); if (tableCountForm) { tableCountForm.elements.dineInTableCount.value = tableCount; tableCountForm.hidden = Boolean(restaurantStaffRole && restaurantStaffRole !== "secondary_admin"); } populateDineInTableOptions(tableCount); renderDineInMenuPicker(document.querySelector("#dine-in-menu-options")); const root = document.querySelector("#menu-items"); root.replaceChildren();
+  const importButton = document.querySelector("#import-almadina-menu");
+  if (importButton) importButton.hidden = restaurantCurrentUser?.role !== "restaurant";
   document.querySelector("#restaurant-title").textContent = restaurant.name;
   if (restaurantProfileForm) {
     restaurantProfileForm.elements.restaurantName.value = restaurant.name || "";
@@ -516,15 +595,23 @@ async function loadMenu() {
   const availableCount = items.filter(item => item.available).length;
   const availabilitySummary = document.querySelector("#menu-availability-summary");
   if (availabilitySummary) availabilitySummary.textContent = `${availableCount} available · ${items.length - availableCount} sold out`;
-  const visibleItems = items.filter(item => (foodFilter === "all" || item.foodType === foodFilter) && (availabilityFilter === "all" || (availabilityFilter === "available" ? item.available : !item.available)));
-  const menuCategories = ["Indian", "North Indian", "South Indian", "Maharashtrian", "Chinese", "Italian", "Pizza", "Fast Food", "Burger", "Biryani", "Noodles", "Rolls", "Shawarma", "Vada", "Dosa", "Momo", "Desserts", "Salads", "Other"];
+  const categories = [...new Set([...printedMenuCategories, ...items.map(item => item.category).filter(Boolean)])].sort((a, b) => a.localeCompare(b, "en"));
+  const categoryFilter = document.querySelector("#owner-category-filter");
+  if (categoryFilter) {
+    const previousCategory = categoryFilter.value || "all";
+    categoryFilter.replaceChildren(new Option("All categories", "all"), ...categories.map(category => new Option(category, category)));
+    categoryFilter.value = categories.includes(previousCategory) ? previousCategory : "all";
+  }
+  const categorySuggestions = document.querySelector("#menu-category-suggestions");
+  categorySuggestions?.replaceChildren(...categories.map(category => new Option(category, category)));
+  const visibleItems = items.filter(item => (foodFilter === "all" || item.foodType === foodFilter)
+    && (availabilityFilter === "all" || (availabilityFilter === "available" ? item.available : !item.available))
+    && (!categoryFilter || categoryFilter.value === "all" || item.category === categoryFilter.value));
+  const menuCategories = categories;
   for (const item of visibleItems) {
     const card = document.createElement("article");
     const currentCategory = item.category || "Other";
-    const matchingCategory = menuCategories.find(category => category.toLocaleLowerCase() === currentCategory.toLocaleLowerCase());
-    const categoryOptions = [...menuCategories];
-    if (!matchingCategory && currentCategory) categoryOptions.unshift(currentCategory);
-    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p class="menu-item-summary">${escapeHtml(currentCategory)} · ${formatRupees(item.pricePaise)}</p><span class="menu-availability-badge ${item.available ? "is-available" : "is-sold-out"}">${item.available ? "Available to order" : "Sold out · hidden from customers"}</span><button type="button" class="secondary menu-edit-toggle">Edit dish details</button><form class="menu-edit-form" hidden><label>Dish name<input name="name" required maxlength="150" value="${escapeHtml(item.name)}"></label><label>Category / cuisine<select name="category" required>${categoryOptions.map(category => `<option value="${escapeHtml(category)}" ${category === (matchingCategory || currentCategory) ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label><label>Food type<select name="foodType" required><option value="veg" ${item.foodType === "veg" ? "selected" : ""}>Veg</option><option value="nonVeg" ${item.foodType === "nonVeg" ? "selected" : ""}>Non-Veg</option></select></label><label>Price in rupees<input name="price" type="number" min="0.01" step="0.01" required value="${(Number(item.pricePaise) / 100).toFixed(2)}"></label><label>Description<textarea name="description" maxlength="1000">${escapeHtml(item.description || "")}</textarea></label><label>Dish image URL (HTTPS)<input name="imageUrl" type="url" maxlength="2048" placeholder="https://…" value="${escapeHtml(item.imageUrl || "")}"></label><div class="menu-edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary menu-edit-cancel">Cancel</button></div></form><p class="menu-item-actions"><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary menu-delete">Delete</button></p>`;
+    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p class="menu-item-summary">${escapeHtml(currentCategory)} · ${formatRupees(item.pricePaise)}</p><span class="menu-availability-badge ${item.available ? "is-available" : "is-sold-out"}">${item.available ? "Available to order" : "Sold out · hidden from customers"}</span><button type="button" class="secondary menu-edit-toggle">Edit dish details</button><form class="menu-edit-form" hidden><label>Dish name<input name="name" required maxlength="150" value="${escapeHtml(item.name)}"></label><label>Category<input name="category" required maxlength="80" list="menu-category-suggestions" value="${escapeHtml(currentCategory)}"></label><label>Food type<select name="foodType" required><option value="veg" ${item.foodType === "veg" ? "selected" : ""}>Veg</option><option value="nonVeg" ${item.foodType === "nonVeg" ? "selected" : ""}>Non-Veg</option></select></label><label>Price in rupees<input name="price" type="number" min="0.01" step="0.01" required value="${(Number(item.pricePaise) / 100).toFixed(2)}"></label><label>Description<textarea name="description" maxlength="1000">${escapeHtml(item.description || "")}</textarea></label><label>Dish image URL (HTTPS)<input name="imageUrl" type="url" maxlength="2048" placeholder="https://…" value="${escapeHtml(item.imageUrl || "")}"></label><div class="menu-edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary menu-edit-cancel">Cancel</button></div></form><p class="menu-item-actions"><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary menu-delete">Delete</button></p>`;
     const editToggle = card.querySelector(".menu-edit-toggle");
     const editForm = card.querySelector(".menu-edit-form");
     editToggle.addEventListener("click", () => {

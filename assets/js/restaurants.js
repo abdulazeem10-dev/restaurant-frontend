@@ -3,45 +3,11 @@ const searchForm = document.querySelector("#restaurant-search");
 const searchInput = document.querySelector("#search-input");
 const quickFoodFilters = [...document.querySelectorAll("[data-quick-food]")];
 const budgetFilters = [...document.querySelectorAll("[data-budget-filter]")];
-const cuisineFilters = [...document.querySelectorAll("[data-cuisine-filter]")];
 const cuisineTrack = document.querySelector("#cuisine-track");
 const featuredSection = document.querySelector("#restaurant-listing");
 const featuredDishesTrack = document.querySelector("#featured-dishes-track");
 const viewFullMenu = document.querySelector("#view-full-menu");
 const errorMessage = document.querySelector("#error");
-const cuisineLabels = Object.freeze({
-  "north-indian": "North Indian", "south-indian": "South Indian", maharashtrian: "Maharashtrian",
-  chinese: "Chinese", pizza: "Pizza", desserts: "Desserts", burger: "Burger", biryani: "Biryani",
-  noodles: "Noodles", rolls: "Rolls", shawarma: "Shawarma", vada: "Vada", dosa: "Dosa", momo: "Momos", salads: "Salads", other: "Other"
-});
-const cuisinePatterns = Object.freeze({
-  "north-indian": /\b(north.?indian|paratha|puri|chole|paneer|naan|kulcha|kebab|tikka|korma)\b/i,
-  "south-indian": /\b(south.?indian|dosa|idli|sambar|sambhar|uttapam|upma|medu.?vada|rasam)\b/i,
-  maharashtrian: /\b(maharashtrian|vada.?pav|puran.?poli|misal|poha|sabudana|thalipeeth)\b/i,
-  chinese: /\b(chinese|manchurian|schezwan|chow.?mein|fried.?rice|spring.?roll|hakka|chilli.?chicken)\b/i,
-  pizza: /\b(pizza|calzone|garlic.?bread)\b/i,
-  desserts: /\b(dessert|sweet|ice.?cream|gulab.?jamun|ras.?malai|cake|brownie|kulfi|halwa|kheer)\b/i,
-  burger: /\b(burger|fries|fast.?food)\b/i,
-  biryani: /\bbiryani\b/i,
-  noodles: /\b(noodles?|chow.?mein|hakka|ramen)\b/i,
-  rolls: /\b(rolls?|wraps?|frankie|sandwich)\b/i,
-  shawarma: /\bshawarma\b/i,
-  vada: /\b(vada|pakora|bhaji)\b/i,
-  dosa: /\b(dosa|uttapam)\b/i,
-  momo: /\bmomos?\b/i,
-  salads: /\b(salad|raita)\b/i
-});
-const categoryCuisine = Object.freeze({
-  "north-indian": "north-indian", northindian: "north-indian",
-  "south-indian": "south-indian", southindian: "south-indian",
-  maharashtrian: "maharashtrian", chinese: "chinese", "indo-chinese": "chinese",
-  pizza: "pizza", pizzas: "pizza", dessert: "desserts", desserts: "desserts", sweets: "desserts",
-  burger: "burger", burgers: "burger", "fast-food": "burger",
-  biryani: "biryani", biriyani: "biryani", noodle: "noodles", noodles: "noodles",
-  roll: "rolls", rolls: "rolls", shawarma: "shawarma", vada: "vada", "vada-pav": "vada",
-  dosa: "dosa", dosas: "dosa", momo: "momo", momos: "momo", salad: "salads", salads: "salads",
-  other: "other", miscellaneous: "other", misc: "other"
-});
 let currentRestaurant = null;
 let allMenuItems = [];
 let selectedFoodFilter = "all";
@@ -53,17 +19,40 @@ function getVisibleDishes() {
   const maxPricePaise = selectedBudgetFilter === "all" ? Infinity : Number(selectedBudgetFilter) * 100;
   return allMenuItems.filter(item => {
     const text = [item.name, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
-    const pattern = cuisinePatterns[selectedCuisineFilter];
-    const category = String(item.category || "").trim().toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const categoryFilter = categoryCuisine[category];
-    const matchesCuisine = selectedCuisineFilter === "other"
-      ? categoryFilter === "other" || (!categoryFilter && !Object.values(cuisinePatterns).some(knownPattern => knownPattern.test(text)))
-      : !pattern || (categoryFilter ? categoryFilter === selectedCuisineFilter : pattern.test(text));
+    const matchesCuisine = selectedCuisineFilter === "all" || String(item.category || "").trim() === selectedCuisineFilter;
     return (!term || text.includes(term))
       && (selectedFoodFilter === "all" || item.foodType === selectedFoodFilter)
       && Number(item.pricePaise) <= maxPricePaise
       && matchesCuisine;
   });
+}
+function renderCategoryCarousel() {
+  if (!cuisineTrack) return;
+  const categories = [...new Set(allMenuItems.map(item => String(item.category || "").trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "en"));
+  const choices = [{ value: "all", label: "All dishes", image: "../assets/images/cuisines/all.webp" },
+    ...categories.map(category => ({ value: category, label: category, image: cuisineImageFor({ category }) }))];
+  cuisineTrack.replaceChildren(...choices.map(choice => {
+    const button = document.createElement("button");
+    button.className = "cuisine-option";
+    button.type = "button";
+    button.dataset.cuisineFilter = choice.value;
+    button.setAttribute("aria-pressed", String(choice.value === selectedCuisineFilter));
+    const art = document.createElement("span");
+    art.className = "cuisine-art";
+    art.setAttribute("aria-hidden", "true");
+    const image = document.createElement("img");
+    image.src = choice.image;
+    image.alt = "";
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.addEventListener("error", () => image.remove(), { once: true });
+    art.append(image);
+    const label = document.createElement("span");
+    label.textContent = choice.label;
+    button.append(art, label);
+    return button;
+  }));
 }
 function cuisineImageFor(item) {
   const category = String(item.category || "").toLocaleLowerCase();
@@ -84,7 +73,7 @@ function renderMenuPreview() {
   const dishes = getVisibleDishes();
   quickFoodFilters.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.quickFood === selectedFoodFilter)));
   budgetFilters.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.budgetFilter === selectedBudgetFilter)));
-  cuisineFilters.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.cuisineFilter === selectedCuisineFilter)));
+  cuisineTrack?.querySelectorAll("[data-cuisine-filter]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.cuisineFilter === selectedCuisineFilter)));
   featuredSection.hidden = !currentRestaurant;
   if (viewFullMenu) { viewFullMenu.hidden = !currentRestaurant; if (currentRestaurant) viewFullMenu.href = `menu.html?id=${encodeURIComponent(currentRestaurant._id)}`; }
   featuredDishesTrack.replaceChildren();
@@ -182,6 +171,8 @@ async function loadRestaurants() {
     console.info(`[Al-Madina menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
     if (!menuResponse.ok) throw new Error("Could not load Al-Madina dishes");
     allMenuItems = (await menuResponse.json()).items || [];
+    if (selectedCuisineFilter !== "all" && !allMenuItems.some(item => item.category === selectedCuisineFilter)) selectedCuisineFilter = "all";
+    renderCategoryCarousel();
     renderMenuPreview(); await loadRecentOrders();
   } catch (error) {
     console.error("[Al-Madina menu] load failed", error);
@@ -194,7 +185,7 @@ searchForm?.addEventListener("submit", event => { event.preventDefault(); render
 searchInput?.addEventListener("input", renderMenuPreview);
 quickFoodFilters.forEach(button => button.addEventListener("click", () => { selectedFoodFilter = button.dataset.quickFood; renderMenuPreview(); }));
 budgetFilters.forEach(button => button.addEventListener("click", () => { selectedBudgetFilter = button.dataset.budgetFilter; renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
-cuisineFilters.forEach(button => button.addEventListener("click", () => { selectedCuisineFilter = button.dataset.cuisineFilter; renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
+cuisineTrack?.addEventListener("click", event => { const button = event.target.closest("[data-cuisine-filter]"); if (!button) return; selectedCuisineFilter = button.dataset.cuisineFilter; renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
 document.querySelector("#cuisine-scroll-left")?.addEventListener("click", () => cuisineTrack.scrollBy({ left: -Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" }));
 document.querySelector("#cuisine-scroll-right")?.addEventListener("click", () => cuisineTrack.scrollBy({ left: Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" }));
 document.querySelector("#food-scroll-left")?.addEventListener("click", () => featuredDishesTrack.scrollBy({ left: -Math.max(260, featuredDishesTrack.clientWidth * .75), behavior: "smooth" }));

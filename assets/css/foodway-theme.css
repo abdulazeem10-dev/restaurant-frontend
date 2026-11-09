@@ -173,6 +173,10 @@ body { color: var(--foodway-ink); }
 
 .owner-menu-filters { display:flex; flex-wrap:wrap; gap:.75rem; }
 .owner-menu-filter { display:grid; gap:.35rem; }
+.menu-import-panel { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:1rem 0; padding:1rem; border:1px solid var(--foodway-line,#e7e1d7); border-radius:1rem; background:#f8f8f4; }
+.menu-import-panel h3,.menu-import-panel p { margin:.1rem 0 .45rem; }
+.menu-import-panel button { flex:0 0 auto; }
+@media(max-width:650px) { .menu-import-panel { align-items:stretch; flex-direction:column; } }
 .menu-availability-badge { display:inline-flex; width:max-content; max-width:100%; margin:.15rem 0 .75rem; padding:.3rem .6rem; border-radius:999px; font-size:.8rem; font-weight:700; }
 .menu-availability-badge.is-available { color:#16513d; background:#e7f4e9; }
 .menu-availability-badge.is-sold-out { color:#8a3b24; background:#fff0e8; }
