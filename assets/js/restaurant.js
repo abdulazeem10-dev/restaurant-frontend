@@ -4,11 +4,13 @@ let restaurantStaffRole = null;
 let restaurantOrdersCache = [];
 let restaurantOrderMode = "all";
 let restaurantMenuItems = [];
+let restaurantInventoryItems = [];
 let restaurantCurrentUser = null;
 let restaurantCurrentRestaurant = null;
 const restaurantViewInfo = {
   overview: ["Overview", "A quick look at your restaurant workspace."],
   menu: ["Menu", "Manage dishes, prices, food types, and availability."],
+  inventory: ["Inventory", "Track stock for menu dishes and restock low items."],
   hours: ["Hours & cuisine", "Set your service hours and the cuisine customers use to find you."],
   "delivery-areas": ["Delivery areas", "Name the neighbourhoods you serve and assign their PIN codes."],
   "delivery-team": ["Delivery team", "Create and manage this restaurant’s delivery logins."],
@@ -693,6 +695,146 @@ async function loadMenu() {
   if (!items.length) root.textContent = "Add your first menu item above.";
   else if (!visibleItems.length) root.textContent = `No ${foodFilter === "veg" ? "Veg" : "Non-Veg"} dishes. Choose another filter.`;
 }
+
+function renderInventory() {
+  const root = document.querySelector("#inventory-items");
+  const summary = document.querySelector("#inventory-summary");
+  if (!root || !summary) return;
+  const tracked = restaurantInventoryItems.filter(item => item.stockTracked);
+  const lowStock = tracked.filter(item => Number(item.stockQuantity) <= Number(item.lowStockThreshold ?? 5));
+  summary.textContent = `${restaurantInventoryItems.length} menu dishes · ${tracked.length} tracked · ${lowStock.length} low stock`;
+  const categoryFilter = document.querySelector("#inventory-category");
+  const selectedCategory = categoryFilter?.value || "all";
+  const search = document.querySelector("#inventory-search")?.value.trim().toLocaleLowerCase() || "";
+  const statusFilter = document.querySelector("#inventory-stock-filter")?.value || "all";
+  const visible = restaurantInventoryItems.filter(item => {
+    const text = `${item.name} ${item.category || ""}`.toLocaleLowerCase();
+    const low = item.stockTracked && Number(item.stockQuantity) <= Number(item.lowStockThreshold ?? 5);
+    return (!search || text.includes(search))
+      && (selectedCategory === "all" || item.category === selectedCategory)
+      && (statusFilter === "all" || (statusFilter === "tracked" && item.stockTracked) || (statusFilter === "untracked" && !item.stockTracked) || (statusFilter === "low" && low));
+  });
+  root.replaceChildren();
+  if (!restaurantInventoryItems.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "Add dishes in Menu first, then turn on stock tracking here.";
+    root.append(empty);
+    return;
+  }
+  if (!visible.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "No dishes match these inventory filters.";
+    root.append(empty);
+    return;
+  }
+  for (const item of visible) {
+    const card = document.createElement("article");
+    card.className = "inventory-item-card";
+    const top = document.createElement("div");
+    top.className = "inventory-item-top";
+    const nameGroup = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = item.name;
+    const meta = document.createElement("p");
+    meta.className = "muted";
+    meta.textContent = `${item.category || "Uncategorized"} · ${item.available ? "Available" : "Sold out"}`;
+    nameGroup.append(title, meta);
+    const badge = document.createElement("span");
+    const isLow = item.stockTracked && Number(item.stockQuantity) <= Number(item.lowStockThreshold ?? 5);
+    badge.className = `inventory-status${isLow ? " is-low" : ""}`;
+    badge.textContent = !item.stockTracked ? "Not tracked" : isLow ? "Low stock" : "In stock";
+    top.append(nameGroup, badge);
+    const form = document.createElement("form");
+    form.className = "inventory-item-form";
+    const trackingLabel = document.createElement("label");
+    trackingLabel.className = "inventory-track-toggle";
+    const tracking = document.createElement("input");
+    tracking.type = "checkbox";
+    tracking.checked = Boolean(item.stockTracked);
+    trackingLabel.append(tracking, document.createTextNode("Track stock"));
+    const stockLabel = document.createElement("label");
+    stockLabel.textContent = "Portions available";
+    const stock = document.createElement("input");
+    stock.type = "number";
+    stock.min = "0";
+    stock.max = "1000000";
+    stock.step = "1";
+    stock.value = String(item.stockQuantity ?? 0);
+    stock.required = true;
+    stock.disabled = !tracking.checked;
+    stockLabel.append(stock);
+    const thresholdLabel = document.createElement("label");
+    thresholdLabel.textContent = "Low-stock alert at";
+    const threshold = document.createElement("input");
+    threshold.type = "number";
+    threshold.min = "0";
+    threshold.max = "1000000";
+    threshold.step = "1";
+    threshold.value = String(item.lowStockThreshold ?? 5);
+    threshold.required = true;
+    threshold.disabled = !tracking.checked;
+    thresholdLabel.append(threshold);
+    const save = document.createElement("button");
+    save.type = "submit";
+    save.textContent = "Save stock";
+    tracking.addEventListener("change", () => {
+      stock.disabled = !tracking.checked;
+      threshold.disabled = !tracking.checked;
+    });
+    form.append(trackingLabel, stockLabel, thresholdLabel, save);
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      save.disabled = true;
+      const stockQuantity = Number(stock.value);
+      const lowStockThreshold = Number(threshold.value);
+      try {
+        const result = await api(`/restaurants/owner/inventory/${encodeURIComponent(item._id)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stockTracked: tracking.checked, stockQuantity, lowStockThreshold })
+        });
+        console.log("[inventory] stock saved", { itemId: item._id, tracked: result.item.stockTracked, stockQuantity: result.item.stockQuantity, status: 200 });
+        msg.textContent = `${item.name} inventory saved.`;
+        await loadInventory();
+      } catch (error) {
+        msg.textContent = error.message;
+        console.error("[inventory] save failed", { itemId: item._id, error: error.message });
+        save.disabled = false;
+      }
+    });
+    card.append(top, form);
+    root.append(card);
+  }
+}
+
+async function loadInventory() {
+  const root = document.querySelector("#inventory-items");
+  try {
+    const { items = [] } = await api("/restaurants/owner/inventory");
+    restaurantInventoryItems = items;
+    const categoryFilter = document.querySelector("#inventory-category");
+    const previous = categoryFilter?.value || "all";
+    if (categoryFilter) {
+      const categories = [...new Set(items.map(item => item.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "en"));
+      categoryFilter.replaceChildren(new Option("All categories", "all"), ...categories.map(category => new Option(category, category)));
+      categoryFilter.value = categories.includes(previous) ? previous : "all";
+    }
+    console.log("[inventory] GET /restaurants/owner/inventory → 200", { dishes: items.length });
+    renderInventory();
+  } catch (error) {
+    if (root) root.textContent = `Could not load inventory: ${error.message}`;
+    const summary = document.querySelector("#inventory-summary");
+    if (summary) summary.textContent = "Inventory service unavailable";
+    console.error("[inventory] load failed", { error: error.message });
+  }
+}
+
+document.querySelector("#inventory-refresh")?.addEventListener("click", () => loadInventory());
+document.querySelector("#inventory-search")?.addEventListener("input", renderInventory);
+document.querySelector("#inventory-category")?.addEventListener("change", renderInventory);
+document.querySelector("#inventory-stock-filter")?.addEventListener("change", renderInventory);
 document.querySelector("#owner-food-filter").addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
 document.querySelector("#owner-availability-filter")?.addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
 document.querySelector("#hours-form").addEventListener("submit", async event => {
@@ -1432,8 +1574,8 @@ async function initializeRestaurantDashboard() {
   if (restaurantStaffRole) {
     document.querySelector("#subscription-nav").hidden = true;
     const allowedViews = restaurantStaffRole === "secondary_admin"
-      ? ["overview", "menu", "hours", "delivery-areas", "delivery-team", "reviews", "kitchen", "orders", "dine-in", "delivery", "reports", "notifications"]
-      : ["overview", "menu", "reviews", "kitchen", "orders", "dine-in", "delivery", "notifications"];
+      ? ["overview", "menu", "inventory", "hours", "delivery-areas", "delivery-team", "reviews", "kitchen", "orders", "dine-in", "delivery", "reports", "notifications"]
+      : ["overview", "menu", "inventory", "reviews", "kitchen", "orders", "dine-in", "delivery", "notifications"];
     document.querySelectorAll("[data-restaurant-view]").forEach(button => {
       button.hidden = !allowedViews.includes(button.dataset.restaurantView);
     });
@@ -1457,9 +1599,15 @@ async function initializeRestaurantDashboard() {
   }
   showRestaurantView("overview");
   const dashboardLoads = [loadMenu(), loadOrders(), loadReviews(), loadNotifications()];
+  if (!restaurantStaffRole || restaurantStaffRole !== "viewer") dashboardLoads.push(loadInventory());
   if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(loadDeliveryPartners());
   if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(loadReports());
   await Promise.all(dashboardLoads);
 }
-initializeRestaurantDashboard().catch(error => { msg.textContent = `${error.message}. Sign in with an approved restaurant account.`; });
+initializeRestaurantDashboard().catch(error => {
+  msg.textContent = `${error.message}. Sign in with an approved restaurant account.`;
+  const picker = document.querySelector("#dine-in-menu-options");
+  if (picker && !restaurantMenuItems.length) picker.textContent = `Could not load the restaurant dishes: ${error.message}. Refresh the dashboard and try again.`;
+  console.error("[restaurant dashboard] initialization failed", { error: error.message });
+});
 setInterval(() => { if (getToken()) { loadOrders().catch(error => { msg.textContent = error.message; }); loadNotifications().catch(error => { msg.textContent = error.message; }); } }, 20000);

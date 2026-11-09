@@ -429,3 +429,123 @@ body { color: var(--foodway-ink); }
 .admin-page .admin-stat strong,
 .restaurant-page .restaurant-content .active-table-total,
 .restaurant-page .restaurant-content .kitchen-ticket-total { color: #806900; }
+
+/* Inventory workspace and dine-in dish picker: compact on desktop, stacked on phones. */
+.restaurant-page .inventory-panel { display: grid; gap: 1rem; min-width: 0; }
+.restaurant-page .inventory-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.restaurant-page .inventory-heading h2,
+.restaurant-page .inventory-heading p { margin-block: 0 .35rem; }
+.restaurant-page .inventory-summary { padding: .8rem 1rem; border: 1px solid #e8dfbd; border-radius: .8rem; background: #fbf4d4; color: #5d4c00; font-weight: 750; }
+.restaurant-page .inventory-filters { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, .8fr)); gap: .75rem; }
+.restaurant-page .inventory-filters label,
+.restaurant-page .inventory-item-form > label:not(.inventory-track-toggle) { display: grid; min-width: 0; gap: .35rem; font-size: .88rem; font-weight: 650; }
+.restaurant-page .inventory-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 285px), 1fr)); gap: .75rem; align-items: start; }
+.restaurant-page .inventory-item-card { display: grid; min-width: 0; gap: .8rem; padding: .9rem; border: 1px solid #e8dfbd; border-radius: .85rem; background: #fffefa; }
+.restaurant-page .inventory-item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: .6rem; }
+.restaurant-page .inventory-item-top h3,
+.restaurant-page .inventory-item-top p { margin: 0; overflow-wrap: anywhere; }
+.restaurant-page .inventory-status { flex: 0 0 auto; padding: .25rem .55rem; border: 1px solid #e0d49d; border-radius: 999px; background: #f3efdf; color: #625c4b; font-size: .75rem; font-weight: 750; }
+.restaurant-page .inventory-status.is-low { background: #fbf4d4; color: #5d4c00; }
+.restaurant-page .inventory-item-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: .6rem; }
+.restaurant-page .inventory-track-toggle { grid-column: 1 / -1; display: flex; align-items: center; gap: .5rem; }
+.restaurant-page .inventory-track-toggle input { width: 1.1rem; min-height: 1.1rem; accent-color: #b49400; }
+.restaurant-page .inventory-item-form input[type="number"] { width: 100%; min-width: 0; min-height: 40px; }
+.restaurant-page .inventory-item-form button { grid-column: 1 / -1; width: 100%; min-height: 42px; }
+.restaurant-page #dine-in-start-panel { min-width: 0; }
+.restaurant-page #dine-in-order-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.restaurant-page #dine-in-order-form > label { min-width: 0; }
+.restaurant-page #dine-in-order-form > .dine-in-payment-note,
+.restaurant-page #dine-in-order-form > #dine-in-menu-options,
+.restaurant-page #dine-in-order-form > button[type="submit"] { grid-column: 1 / -1; }
+.restaurant-page .dine-in-menu-options { display: grid; min-width: 0; gap: .65rem; margin: .25rem 0; padding: .9rem; border: 1px solid #e8dfbd; border-radius: .9rem; background: #fffefa; }
+.restaurant-page .dine-in-menu-options > strong { font-size: 1rem; }
+.restaurant-page .dine-in-menu-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, .55fr); gap: .7rem; margin: 0; }
+.restaurant-page .dine-in-menu-filters label { display: grid; min-width: 0; gap: .35rem; font-size: .84rem; font-weight: 650; }
+.restaurant-page .dine-in-menu-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 225px), 1fr)); align-items: start; gap: .55rem; max-height: min(48vh, 440px); overflow: auto; padding: .15rem; }
+.restaurant-page .dine-in-menu-choice { display: grid; grid-template-columns: 1.15rem minmax(0, 1fr) 4.4rem; align-items: center; gap: .55rem; min-width: 0; min-height: 3.65rem; padding: .55rem .65rem; border: 1px solid #e8dfbd; border-radius: .7rem; background: #fff; cursor: pointer; }
+.restaurant-page .dine-in-menu-choice:has(input[type="checkbox"]:checked) { border-color: #b49400; background: #fbf4d4; }
+.restaurant-page .dine-in-menu-choice input[type="checkbox"] { width: 1.1rem; min-height: 1.1rem; margin: 0; accent-color: #b49400; }
+.restaurant-page .dine-in-menu-choice input[type="number"] { width: 100%; min-width: 0; min-height: 38px; padding: .4rem; }
+.restaurant-page .dine-in-menu-item-details { display: grid; min-width: 0; gap: .12rem; }
+.restaurant-page .dine-in-menu-item-details strong { overflow-wrap: anywhere; }
+.restaurant-page .dine-in-menu-item-details small { color: #655f52; }
+.restaurant-page .dine-in-selection-summary { margin: 0; font-weight: 700; }
+.restaurant-page .active-table-board { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+@media (max-width: 760px) {
+  .restaurant-page .inventory-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .restaurant-page .inventory-filters label:first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 580px) {
+  .restaurant-page .inventory-heading { align-items: stretch; flex-direction: column; }
+  .restaurant-page .inventory-heading button { width: 100%; }
+  .restaurant-page .inventory-filters,
+  .restaurant-page #dine-in-order-form,
+  .restaurant-page .dine-in-menu-filters { grid-template-columns: minmax(0, 1fr); }
+  .restaurant-page .inventory-filters label:first-child { grid-column: auto; }
+  .restaurant-page .dine-in-menu-list { grid-template-columns: minmax(0, 1fr); max-height: 52vh; }
+  .restaurant-page .dine-in-menu-choice { grid-template-columns: 1.15rem minmax(0, 1fr) 4.2rem; }
+  .restaurant-page .table-board-heading { display: flex; flex-direction: column; }
+}
+
+/* Final brand pass. Keep this sheet after page-specific CSS so old green rules cannot win. */
+.customer-page .hero-banner {
+  border-color: #514718;
+  background: linear-gradient(115deg, #11100d 0%, #1b1912 64%, #29230c 100%);
+  box-shadow: 0 22px 55px #17151124;
+}
+.customer-page .hero-art::after {
+  background: linear-gradient(90deg, #171511 0%, #1715111c 38%, transparent 78%), linear-gradient(0deg, #17151170, transparent 42%);
+}
+.customer-page .budget-tile:hover,
+.customer-page .budget-tile[aria-pressed="true"] { border-color: #d6bc45; box-shadow: inset 0 0 0 1px #d6bc45; }
+.customer-page .budget-tile-featured .budget-tile-price { background: #fbf4d4; color: #5d4c00; }
+.customer-page .cuisine-option[aria-pressed="true"] { background: #fbf4d4; }
+.customer-page .featured-dish-image-missing { background: linear-gradient(145deg, #fbf4d4, #f8f6ef); }
+.customer-page .support-chat-launcher,
+.customer-page .support-chat-header,
+.customer-page .support-chat-form button {
+  border-color: #171511;
+  background: #171511;
+  color: #f0d21b;
+}
+.customer-page .support-chat-header h2 { color: #f0d21b; }
+.customer-page .support-chat-header p { color: #f8f0c8; }
+.customer-page .support-chat-close { color: #f0d21b; }
+.customer-page .support-chat-form button:hover { background: #302a14; }
+.customer-page .support-chat-message.is-user { background: #fbf4d4; color: #302a14; }
+.customer-page .support-chat-mic.is-listening { background: #e2c000; color: #171511; }
+.customer-page .cart-submit,
+.customer-page .payment-summary .cart-submit,
+.customer-page .hero-cta { border-color: #b49400; background: #e2c000; color: #171511; }
+.customer-page .cart-submit:hover,
+.customer-page .payment-summary .cart-submit:hover,
+.customer-page .hero-cta:hover { background: #f0d21b; color: #11100d; }
+.customer-page .payment-option-selected,
+.customer-page .payment-option input { accent-color: #b49400; }
+.customer-page .payment-option-selected { border-color: #d6bc45; background: #fbf4d4; }
+.admin-page .admin-content,
+.restaurant-page .restaurant-content,
+.delivery-page .delivery-main { color: var(--foodway-ink); }
+.delivery-page .delivery-sidebar button { color: #f6f1db; }
+.delivery-page .delivery-sidebar button span { color: #f0d21b; }
+.delivery-page .delivery-sidebar button[aria-current="page"] { background: #302a14; color: #fff9dc; box-shadow: inset 3px 0 #e8c900; }
+.admin-page .admin-stat,
+.admin-page .admin-shortcuts,
+.admin-page .admin-form-panel,
+.restaurant-page .restaurant-content .panel,
+.delivery-page .delivery-order-card,
+.delivery-page .delivery-location-bar,
+.delivery-page .live-tracking-panel { border-color: var(--foodway-line); background: #fffefa; }
+.restaurant-page .dine-in-menu-choice:has(input[type="checkbox"]:checked) { border-color: #b49400; background: #fbf4d4; }
+.restaurant-page .inventory-summary,
+.restaurant-page .inventory-status.is-low { border-color: #d6bc45; background: #fbf4d4; color: #5d4c00; }
+.restaurant-page .inventory-track-toggle input,
+.restaurant-page .dine-in-menu-choice input[type="checkbox"] { accent-color: #b49400; }
+.restaurant-page .dine-in-menu-item-details small,
+.restaurant-page .inventory-item-top .muted { color: #655f52; }
+.restaurant-page .restaurant-brand .brand-logo { width: 166px; height: 60px; }
+.admin-page .admin-access-badge,
+.restaurant-page .restaurant-role-badge { border-color: #d6bc45; background: #fbf4d4; color: #5d4c00; }
+.admin-page :is(a, button, input, select, textarea):focus-visible,
+.restaurant-page :is(a, button, input, select, textarea):focus-visible,
+.delivery-page :is(a, button, input, select, textarea):focus-visible { outline-color: #d2ae00aa; }
