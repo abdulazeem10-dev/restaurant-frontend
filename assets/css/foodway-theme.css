@@ -610,3 +610,67 @@ body { color: var(--foodway-ink); }
   .restaurant-page .restaurant-brand .brand-logo,
   .site-footer .brand-logo { width: 48px; height: 48px; }
 }
+/* Responsive Al Madina logo sizing; overrides older small-icon dimensions above. */
+.brand-logo {
+  flex: 0 0 auto;
+  width: clamp(96px, 11vw, 136px);
+  height: clamp(82px, 9vw, 108px);
+  object-fit: contain;
+  object-position: center;
+  border-radius: 10px;
+}
+.brand-logo-workspace,
+.admin-brand .brand-logo,
+.restaurant-brand .brand-logo,
+.delivery-brand .brand-logo {
+  width: clamp(104px, 12vw, 144px);
+  height: clamp(82px, 9vw, 104px);
+}
+.site-footer .brand-logo { width: 84px; height: 84px; }
+@media (max-width: 700px) {
+  .brand-logo { width: clamp(88px, 20vw, 112px); height: clamp(76px, 17vw, 96px); }
+  .brand-logo-workspace,
+  .admin-brand .brand-logo,
+  .restaurant-brand .brand-logo,
+  .delivery-brand .brand-logo { width: clamp(92px, 22vw, 120px); height: clamp(76px, 17vw, 92px); }
+  .site-footer .brand-logo { width: 72px; height: 72px; }
+}
+@media (max-width: 360px) {
+  .brand-logo,
+  .brand-logo-workspace,
+  .admin-brand .brand-logo,
+  .restaurant-brand .brand-logo,
+  .delivery-brand .brand-logo { width: 100px; height: 88px; }
+}
+/* Larger responsive brand mark with room for the full square artwork. */
+.brand-logo {
+  flex: 0 0 auto;
+  width: clamp(132px, 14vw, 176px);
+  height: clamp(132px, 14vw, 176px);
+  object-fit: contain;
+  object-position: center;
+  border-radius: 12px;
+}
+.brand-logo-workspace,
+.admin-brand .brand-logo,
+.restaurant-brand .brand-logo,
+.delivery-brand .brand-logo {
+  width: clamp(120px, 12vw, 148px);
+  height: clamp(120px, 12vw, 148px);
+}
+.site-footer .brand-logo { width: 88px; height: 88px; }
+@media (max-width: 700px) {
+  .brand-logo { width: clamp(116px, 34vw, 138px); height: clamp(116px, 34vw, 138px); }
+  .brand-logo-workspace,
+.admin-brand .brand-logo,
+.restaurant-brand .brand-logo,
+.delivery-brand .brand-logo { width: clamp(108px, 32vw, 128px); height: clamp(108px, 32vw, 128px); }
+  .site-footer .brand-logo { width: 76px; height: 76px; }
+}
+@media (max-width: 360px) {
+  .brand-logo { width: 112px; height: 112px; }
+  .brand-logo-workspace,
+.admin-brand .brand-logo,
+.restaurant-brand .brand-logo,
+.delivery-brand .brand-logo { width: 106px; height: 106px; }
+}

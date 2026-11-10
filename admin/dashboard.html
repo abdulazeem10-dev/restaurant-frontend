@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#080807">
   <title>Platform Admin | Al-Madina</title>
   <link rel="stylesheet" href="../assets/css/style.css">
-  <link rel="stylesheet" href="../assets/css/foodway-theme.css?v=20261110-2">
+  <link rel="stylesheet" href="../assets/css/foodway-theme.css?v=20261110-4">
 
 </head>
 <body class="admin-page">
@@ -36,11 +36,11 @@
           <article class="admin-stat"><span>Approved</span><strong id="stat-approved">—</strong><small>Approved to serve customers</small></article>
           <article class="admin-stat"><span>Pending review</span><strong id="stat-pending">—</strong><small>Waiting for an admin decision</small></article>
         </div>
-        <section class="panel admin-shortcuts"><div><p class="eyebrow">QUICK ACTIONS</p><h2>What would you like to do?</h2><p class="muted">Provision restaurant-owner access, manage subscriptions, or maintain restaurant availability.</p></div><div class="admin-shortcut-actions"><button type="button" data-open-admin-view="add-restaurant">Create restaurant account</button><button type="button" class="secondary" data-open-admin-view="restaurants">Manage restaurants</button></div></section>
+        <section class="panel admin-shortcuts"><div><p class="eyebrow">QUICK ACTIONS</p><h2>What would you like to do?</h2><p class="muted">Provision restaurant-owner access and maintain restaurant availability.</p></div><div class="admin-shortcut-actions"><button type="button" data-open-admin-view="add-restaurant">Create restaurant account</button><button type="button" class="secondary" data-open-admin-view="restaurants">Manage restaurants</button></div></section>
       </section>
 
       <section class="admin-view" data-admin-section="add-restaurant" hidden>
-        <section class="panel admin-form-panel"><p class="eyebrow">RESTAURANT ONBOARDING</p><h2>Create a restaurant account</h2><p>Set up the restaurant owner login and contact number. The owner selects and pays for a plan after signing in.</p><form id="restaurant-form" class="form-grid">
+        <section class="panel admin-form-panel"><p class="eyebrow">RESTAURANT ONBOARDING</p><h2>Create a restaurant account</h2><p>Set up the restaurant owner login and contact number. The owner can sign in to manage the restaurant workspace.</p><form id="restaurant-form" class="form-grid">
           <label>Restaurant name<br><input name="restaurantName" required maxlength="150"></label>
           <label>Restaurant address<br><textarea name="address" required minlength="5" maxlength="500" rows="3" placeholder="Full street address, area, city, PIN"></textarea></label>
           <label>Description<br><input name="description" maxlength="2000"></label>
@@ -52,16 +52,16 @@
           <label>Owner phone<br><input name="phone" type="tel" required minlength="8" maxlength="20" autocomplete="tel" placeholder="+91 9876543210"></label>
           <label>Initial password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
           <button type="submit">Create owner account</button>
-        </form><p class="muted admin-form-note">Paste a publicly accessible image link. The image must already be hosted online. After signing in, the owner must buy a subscription. The restaurant still needs approval before accepting customer orders.</p></section>
+        </form><p class="muted admin-form-note">Paste a publicly accessible image link. The image must already be hosted online. The restaurant still needs approval before accepting customer orders.</p></section>
       </section>
 
       <section class="admin-view" data-admin-section="restaurants" hidden>
-        <div class="admin-list-heading"><div><p class="eyebrow">PLATFORM DIRECTORY</p><h2>Restaurant accounts</h2><p class="muted">Manage owner contact details, subscription periods, restaurant profiles, and operational approval.</p></div><button type="button" data-open-admin-view="add-restaurant">+ Create restaurant account</button></div>
+        <div class="admin-list-heading"><div><p class="eyebrow">PLATFORM DIRECTORY</p><h2>Restaurant accounts</h2><p class="muted">Manage owner contact details, restaurant profiles, and operational approval.</p></div><button type="button" data-open-admin-view="add-restaurant">+ Create restaurant account</button></div>
         <p id="restaurants-status" class="muted" role="status" aria-live="polite"></p><div class="admin-shortcut-actions"><button id="refresh-restaurants" type="button" class="secondary">Refresh restaurant list</button></div><div id="restaurants" class="grid admin-restaurant-grid"></div>
       </section>
     </div>
   </main>
   <script src="../assets/js/common.js"></script>
-  <script src="../assets/js/admin.js"></script>
+  <script src="../assets/js/admin.js?v=20261110-1"></script>
 </body>
 </html>

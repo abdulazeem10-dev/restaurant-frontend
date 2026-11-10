@@ -1,9 +1,9 @@
-const CACHE_NAME = "foodway-shell-v20";
+const CACHE_NAME = "foodway-shell-v22";
 const APP_SHELL = [
   "/customer/index.html",
   "/offline.html",
   "/assets/css/style.css",
-  "/assets/css/foodway-theme.css?v=20261110-2",
+  "/assets/css/foodway-theme.css?v=20261110-4",
   "/assets/css/customer-home.css?v=20261109-5",
   "/assets/css/support-chat.css?v=20261109-3",
   "/assets/js/common.js",
