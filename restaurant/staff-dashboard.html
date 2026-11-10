@@ -56,7 +56,7 @@
         <label>Grocery / stock name<input name="name" required maxlength="120" placeholder="Rice, milk, cooking oil…"></label>
         <label>Category<select name="category" required><option>Grains &amp; pulses</option><option>Dairy</option><option>Vegetables &amp; fruit</option><option>Meat &amp; seafood</option><option>Oil &amp; condiments</option><option>Spices</option><option>Beverages</option><option>Packaging</option><option>Cleaning supplies</option><option>Other</option></select></label>
         <label>Quantity<input name="quantity" type="number" min="0" max="10000000" step="0.001" required value="1"></label>
-        <label>Unit<input name="unit" required maxlength="24" value="kg" placeholder="kg, litre, carton…"></label>
+        <label>Unit<select name="unit" required><option value="kg">kg</option><option value="g">g</option><option value="litre">litre</option><option value="ml">ml</option><option value="piece">piece</option><option value="pack">pack</option><option value="dozen">dozen</option><option value="bottle">bottle</option><option value="bag">bag</option><option value="carton">carton</option><option value="box">box</option><option value="case">case</option><option value="bunch">bunch</option><option value="tray">tray</option><option value="packet">packet</option><option value="__custom__">Other (enter unit)</option></select><input name="customUnit" type="text" maxlength="24" placeholder="Enter unit, e.g. jar" aria-label="Custom unit" hidden></label>
         <label>Low-stock alert at<input name="lowStockThreshold" type="number" min="0" max="10000000" step="0.001" required value="1"></label>
         <label>Received on<input name="receivedDate" type="date" required></label>
         <label>Expiry date (if applicable)<input name="expiryDate" type="date"></label>
@@ -82,6 +82,6 @@
   </main>
   <script src="../assets/js/common.js"></script>
   <script src="../assets/js/dish-images.js"></script>
-  <script src="../assets/js/restaurant.js?v=20261110-2"></script>
+  <script src="../assets/js/restaurant.js?v=20261110-3"></script>
 </body>
 </html>

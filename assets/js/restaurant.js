@@ -739,6 +739,55 @@ function inventoryField(labelText, name, type, value, attributes = {}) {
   label.append(input);
   return label;
 }
+function inventoryUnitField(value = "kg") {
+  const label = document.createElement("label");
+  label.append(document.createTextNode("Unit"));
+  const choices = ["kg", "g", "litre", "ml", "piece", "pack", "dozen", "bottle", "bag", "carton", "box", "case", "bunch", "tray", "packet"];
+  const normalized = String(value || "kg").trim().toLocaleLowerCase();
+  const select = document.createElement("select");
+  select.name = "unit";
+  select.required = true;
+  choices.forEach(unit => select.add(new Option(unit, unit)));
+  select.add(new Option("Other (enter unit)", "__custom__"));
+  const custom = document.createElement("input");
+  custom.name = "customUnit";
+  custom.type = "text";
+  custom.maxLength = 24;
+  custom.placeholder = "Enter unit, e.g. jar";
+  const isCustom = !choices.includes(normalized);
+  select.value = isCustom ? "__custom__" : normalized;
+  custom.value = isCustom ? value : "";
+  custom.hidden = !isCustom;
+  custom.required = isCustom;
+  select.addEventListener("change", () => {
+    const showCustom = select.value === "__custom__";
+    custom.hidden = !showCustom;
+    custom.required = showCustom;
+    if (!showCustom) custom.value = "";
+  });
+  label.append(select, custom);
+  return label;
+}
+function groceryStockPayload(values) {
+  const unit = values.unit === "__custom__" ? String(values.customUnit || "").trim() : values.unit;
+  const payload = { ...values, unit, quantity: Number(values.quantity), lowStockThreshold: Number(values.lowStockThreshold), purchaseTotalPaise: Math.round(Number(values.purchaseTotal || 0) * 100), expiryDate: values.expiryDate || null };
+  delete payload.customUnit;
+  delete payload.purchaseTotal;
+  return payload;
+}
+function setupInventoryUnitSelect(form) {
+  const select = form?.querySelector('select[name="unit"]');
+  const custom = form?.querySelector('input[name="customUnit"]');
+  if (!select || !custom) return;
+  const sync = () => {
+    const showCustom = select.value === "__custom__";
+    custom.hidden = !showCustom;
+    custom.required = showCustom;
+    if (!showCustom) custom.value = "";
+  };
+  select.addEventListener("change", sync);
+  sync();
+}
 function renderInventory() {
   const root = document.querySelector("#inventory-items");
   const summary = document.querySelector("#inventory-summary");
@@ -804,11 +853,12 @@ function renderInventory() {
     editSummary.textContent = "Edit stock details";
     const editForm = document.createElement("form");
     editForm.className = "grocery-stock-form inventory-edit-form";
+    setupInventoryUnitSelect(editForm);
     editForm.append(
       inventoryField("Grocery / stock name", "name", "text", item.name, { required: true, maxlength: 120 }),
       inventoryField("Category", "category", "select", item.category || "Other", { choices: categories }),
       inventoryField("Quantity", "quantity", "number", item.quantity, { required: true, min: 0, max: 10000000, step: "0.001" }),
-      inventoryField("Unit", "unit", "text", item.unit, { required: true, maxlength: 24, placeholder: "kg, litre, carton…" }),
+      inventoryUnitField(item.unit),
       inventoryField("Low-stock alert at", "lowStockThreshold", "number", item.lowStockThreshold, { required: true, min: 0, max: 10000000, step: "0.001" }),
       inventoryField("Received on", "receivedDate", "date", item.receivedDate, { required: true }),
       inventoryField("Expiry date", "expiryDate", "date", item.expiryDate || ""),
@@ -825,8 +875,7 @@ function renderInventory() {
       event.preventDefault();
       save.disabled = true;
       const values = Object.fromEntries(new FormData(editForm));
-      const payload = { ...values, quantity: Number(values.quantity), lowStockThreshold: Number(values.lowStockThreshold), purchaseTotalPaise: Math.round(Number(values.purchaseTotal || 0) * 100), expiryDate: values.expiryDate || null };
-      delete payload.purchaseTotal;
+      const payload = groceryStockPayload(values);
       try {
         await api(`/restaurants/owner/inventory/groceries/${encodeURIComponent(item._id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         console.log("[grocery-inventory] PATCH /restaurants/owner/inventory/groceries/:id → 200", { itemId: item._id });
@@ -883,14 +932,14 @@ document.querySelector("#inventory-category")?.addEventListener("change", render
 document.querySelector("#inventory-stock-filter")?.addEventListener("change", renderInventory);
 const groceryStockForm = document.querySelector("#grocery-stock-form");
 if (groceryStockForm) {
+  setupInventoryUnitSelect(groceryStockForm);
   groceryStockForm.elements.receivedDate.value = inventoryToday();
   groceryStockForm.addEventListener("submit", async event => {
     event.preventDefault();
     const button = groceryStockForm.querySelector('button[type="submit"]');
     button.disabled = true;
     const values = Object.fromEntries(new FormData(groceryStockForm));
-    const payload = { ...values, quantity: Number(values.quantity), lowStockThreshold: Number(values.lowStockThreshold), purchaseTotalPaise: Math.round(Number(values.purchaseTotal || 0) * 100), expiryDate: values.expiryDate || null };
-    delete payload.purchaseTotal;
+    const payload = groceryStockPayload(values);
     try {
       const { item } = await api("/restaurants/owner/inventory/groceries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       console.log("[grocery-inventory] POST /restaurants/owner/inventory/groceries → 201", { itemId: item._id, name: item.name, quantity: item.quantity, unit: item.unit });
