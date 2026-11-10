@@ -10,7 +10,7 @@ let restaurantCurrentRestaurant = null;
 const restaurantViewInfo = {
   overview: ["Overview", "A quick look at your restaurant workspace."],
   menu: ["Menu", "Manage dishes, prices, food types, and availability."],
-  inventory: ["Inventory", "Track stock for menu dishes and restock low items."],
+  inventory: ["Inventory", "Track grocery ingredients, expiry dates, and purchase history."],
   hours: ["Hours & cuisine", "Set your service hours and the cuisine customers use to find you."],
   "delivery-areas": ["Delivery areas", "Name the neighbourhoods you serve and assign their PIN codes."],
   "delivery-team": ["Delivery team", "Create and manage this restaurant’s delivery logins."],
@@ -696,123 +696,170 @@ async function loadMenu() {
   else if (!visibleItems.length) root.textContent = `No ${foodFilter === "veg" ? "Veg" : "Non-Veg"} dishes. Choose another filter.`;
 }
 
+function inventoryToday() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+}
+function inventoryDaysUntil(dateValue) {
+  if (!dateValue) return null;
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const date = Date.UTC(year, month - 1, day);
+  const [todayYear, todayMonth, todayDay] = inventoryToday().split("-").map(Number);
+  return Math.round((date - Date.UTC(todayYear, todayMonth - 1, todayDay)) / 86400000);
+}
+function inventoryDisplayDate(dateValue) {
+  if (!dateValue) return "Not set";
+  const [year, month, day] = dateValue.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+function inventoryPaymentLabel(value) {
+  return ({ cash: "Cash", upi: "UPI", card: "Card", bank_transfer: "Bank transfer", credit: "Credit / pay later", other: "Other" })[value] || "Other";
+}
+function inventoryIsLow(item) { return Number(item.quantity) <= Number(item.lowStockThreshold ?? 0); }
+function inventoryIsExpired(item) { const days = inventoryDaysUntil(item.expiryDate); return days !== null && days < 0; }
+function inventoryIsExpiring(item) { const days = inventoryDaysUntil(item.expiryDate); return days !== null && days >= 0 && days <= 7; }
+function inventoryField(labelText, name, type, value, attributes = {}) {
+  const label = document.createElement("label");
+  label.append(document.createTextNode(labelText));
+  const input = type === "select" ? document.createElement("select") : document.createElement("input");
+  input.name = name;
+  if (type !== "select") input.type = type;
+  if (type === "select") {
+    const choices = attributes.choices || [];
+    choices.forEach(([choiceValue, choiceLabel]) => input.add(new Option(choiceLabel, choiceValue)));
+    input.value = value || choices[0]?.[0] || "";
+  } else {
+    input.value = value ?? "";
+    if (attributes.step) input.step = attributes.step;
+    if (attributes.min !== undefined) input.min = String(attributes.min);
+    if (attributes.max !== undefined) input.max = String(attributes.max);
+    if (attributes.required) input.required = true;
+    if (attributes.maxlength) input.maxLength = attributes.maxlength;
+  }
+  label.append(input);
+  return label;
+}
 function renderInventory() {
   const root = document.querySelector("#inventory-items");
   const summary = document.querySelector("#inventory-summary");
   if (!root || !summary) return;
-  const tracked = restaurantInventoryItems.filter(item => item.stockTracked);
-  const lowStock = tracked.filter(item => Number(item.stockQuantity) <= Number(item.lowStockThreshold ?? 5));
-  summary.textContent = `${restaurantInventoryItems.length} menu dishes · ${tracked.length} tracked · ${lowStock.length} low stock`;
+  const lowCount = restaurantInventoryItems.filter(inventoryIsLow).length;
+  const expiringCount = restaurantInventoryItems.filter(inventoryIsExpiring).length;
+  const expiredCount = restaurantInventoryItems.filter(inventoryIsExpired).length;
+  summary.textContent = `${restaurantInventoryItems.length} stock batches · ${lowCount} low stock · ${expiringCount} expiring within 7 days · ${expiredCount} expired`;
   const categoryFilter = document.querySelector("#inventory-category");
   const selectedCategory = categoryFilter?.value || "all";
   const search = document.querySelector("#inventory-search")?.value.trim().toLocaleLowerCase() || "";
   const statusFilter = document.querySelector("#inventory-stock-filter")?.value || "all";
   const visible = restaurantInventoryItems.filter(item => {
-    const text = `${item.name} ${item.category || ""}`.toLocaleLowerCase();
-    const low = item.stockTracked && Number(item.stockQuantity) <= Number(item.lowStockThreshold ?? 5);
-    return (!search || text.includes(search))
-      && (selectedCategory === "all" || item.category === selectedCategory)
-      && (statusFilter === "all" || (statusFilter === "tracked" && item.stockTracked) || (statusFilter === "untracked" && !item.stockTracked) || (statusFilter === "low" && low));
+    const matchesText = `${item.name} ${item.category || ""} ${item.supplier || ""}`.toLocaleLowerCase().includes(search);
+    const matchesStatus = statusFilter === "all" || (statusFilter === "low" && inventoryIsLow(item)) || (statusFilter === "expiring" && inventoryIsExpiring(item)) || (statusFilter === "expired" && inventoryIsExpired(item));
+    return matchesText && (selectedCategory === "all" || item.category === selectedCategory) && matchesStatus;
   });
   root.replaceChildren();
-  if (!restaurantInventoryItems.length) {
+  if (!restaurantInventoryItems.length || !visible.length) {
     const empty = document.createElement("p");
     empty.className = "muted";
-    empty.textContent = "Add dishes in Menu first, then turn on stock tracking here.";
+    empty.textContent = restaurantInventoryItems.length ? "No grocery stock matches these filters." : "No grocery stock recorded yet. Add rice, milk, oil, or another supply above.";
     root.append(empty);
     return;
   }
-  if (!visible.length) {
-    const empty = document.createElement("p");
-    empty.className = "muted";
-    empty.textContent = "No dishes match these inventory filters.";
-    root.append(empty);
-    return;
-  }
+  const categories = ["Grains & pulses", "Dairy", "Vegetables & fruit", "Meat & seafood", "Oil & condiments", "Spices", "Beverages", "Packaging", "Cleaning supplies", "Other"].map(value => [value, value]);
+  const payments = [["cash", "Cash"], ["upi", "UPI"], ["card", "Card"], ["bank_transfer", "Bank transfer"], ["credit", "Credit / pay later"], ["other", "Other"]];
   for (const item of visible) {
     const card = document.createElement("article");
     card.className = "inventory-item-card";
     const top = document.createElement("div");
     top.className = "inventory-item-top";
-    const nameGroup = document.createElement("div");
+    const heading = document.createElement("div");
     const title = document.createElement("h3");
     title.textContent = item.name;
-    const meta = document.createElement("p");
-    meta.className = "muted";
-    meta.textContent = `${item.category || "Uncategorized"} · ${item.available ? "Available" : "Sold out"}`;
-    nameGroup.append(title, meta);
-    const badge = document.createElement("span");
-    const isLow = item.stockTracked && Number(item.stockQuantity) <= Number(item.lowStockThreshold ?? 5);
-    badge.className = `inventory-status${isLow ? " is-low" : ""}`;
-    badge.textContent = !item.stockTracked ? "Not tracked" : isLow ? "Low stock" : "In stock";
-    top.append(nameGroup, badge);
-    const form = document.createElement("form");
-    form.className = "inventory-item-form";
-    const trackingLabel = document.createElement("label");
-    trackingLabel.className = "inventory-track-toggle";
-    const tracking = document.createElement("input");
-    tracking.type = "checkbox";
-    tracking.checked = Boolean(item.stockTracked);
-    trackingLabel.append(tracking, document.createTextNode("Track stock"));
-    const stockLabel = document.createElement("label");
-    stockLabel.textContent = "Portions available";
-    const stock = document.createElement("input");
-    stock.type = "number";
-    stock.min = "0";
-    stock.max = "1000000";
-    stock.step = "1";
-    stock.value = String(item.stockQuantity ?? 0);
-    stock.required = true;
-    stock.disabled = !tracking.checked;
-    stockLabel.append(stock);
-    const thresholdLabel = document.createElement("label");
-    thresholdLabel.textContent = "Low-stock alert at";
-    const threshold = document.createElement("input");
-    threshold.type = "number";
-    threshold.min = "0";
-    threshold.max = "1000000";
-    threshold.step = "1";
-    threshold.value = String(item.lowStockThreshold ?? 5);
-    threshold.required = true;
-    threshold.disabled = !tracking.checked;
-    thresholdLabel.append(threshold);
+    const category = document.createElement("p");
+    category.className = "muted";
+    category.textContent = item.category || "Other";
+    heading.append(title, category);
+    const badges = document.createElement("div");
+    badges.className = "inventory-badges";
+    const addBadge = (text, warning = false) => { const badge = document.createElement("span"); badge.className = `inventory-status${warning ? " is-low" : ""}`; badge.textContent = text; badges.append(badge); };
+    if (inventoryIsLow(item)) addBadge("Low stock", true); else addBadge("In stock");
+    if (inventoryIsExpired(item)) addBadge("Expired", true);
+    else if (inventoryIsExpiring(item)) { const days = inventoryDaysUntil(item.expiryDate); addBadge(`Expires in ${days} day${days === 1 ? "" : "s"}`, true); }
+    top.append(heading, badges);
+    const details = document.createElement("dl");
+    details.className = "inventory-stock-details";
+    const addDetail = (labelText, value) => { const wrapper = document.createElement("div"); const term = document.createElement("dt"); term.textContent = labelText; const detail = document.createElement("dd"); detail.textContent = value; wrapper.append(term, detail); details.append(wrapper); };
+    addDetail("Quantity available", `${Number(item.quantity).toLocaleString("en-IN")} ${item.unit}`);
+    addDetail("Received on", inventoryDisplayDate(item.receivedDate));
+    addDetail("Expiry date", item.expiryDate ? inventoryDisplayDate(item.expiryDate) : "Not applicable");
+    addDetail("Supplier", item.supplier || "Not recorded");
+    addDetail("Purchase total", formatRupees(Number(item.purchaseTotalPaise || 0)));
+    addDetail("Payment method", inventoryPaymentLabel(item.paymentMethod));
+    if (item.updatedAt) addDetail("Last updated", new Date(item.updatedAt).toLocaleString("en-IN"));
+    if (item.notes) addDetail("Notes / invoice", item.notes);
+    const actions = document.createElement("div");
+    actions.className = "inventory-item-actions";
+    const editDetails = document.createElement("details");
+    editDetails.className = "inventory-edit-details";
+    const editSummary = document.createElement("summary");
+    editSummary.textContent = "Edit stock details";
+    const editForm = document.createElement("form");
+    editForm.className = "grocery-stock-form inventory-edit-form";
+    editForm.append(
+      inventoryField("Grocery / stock name", "name", "text", item.name, { required: true, maxlength: 120 }),
+      inventoryField("Category", "category", "select", item.category || "Other", { choices: categories }),
+      inventoryField("Quantity", "quantity", "number", item.quantity, { required: true, min: 0, max: 10000000, step: "0.001" }),
+      inventoryField("Unit", "unit", "text", item.unit, { required: true, maxlength: 24, placeholder: "kg, litre, carton…" }),
+      inventoryField("Low-stock alert at", "lowStockThreshold", "number", item.lowStockThreshold, { required: true, min: 0, max: 10000000, step: "0.001" }),
+      inventoryField("Received on", "receivedDate", "date", item.receivedDate, { required: true }),
+      inventoryField("Expiry date", "expiryDate", "date", item.expiryDate || ""),
+      inventoryField("Supplier / shop", "supplier", "text", item.supplier || "", { maxlength: 120 }),
+      inventoryField("Purchase total (₹)", "purchaseTotal", "number", (Number(item.purchaseTotalPaise || 0) / 100).toFixed(2), { min: 0, max: 10000000, step: "0.01" }),
+      inventoryField("Payment method", "paymentMethod", "select", item.paymentMethod || "cash", { choices: payments }),
+      inventoryField("Notes / invoice", "notes", "text", item.notes || "", { maxlength: 500 })
+    );
     const save = document.createElement("button");
     save.type = "submit";
-    save.textContent = "Save stock";
-    tracking.addEventListener("change", () => {
-      stock.disabled = !tracking.checked;
-      threshold.disabled = !tracking.checked;
-    });
-    form.append(trackingLabel, stockLabel, thresholdLabel, save);
-    form.addEventListener("submit", async event => {
+    save.textContent = "Save changes";
+    editForm.append(save);
+    editForm.addEventListener("submit", async event => {
       event.preventDefault();
       save.disabled = true;
-      const stockQuantity = Number(stock.value);
-      const lowStockThreshold = Number(threshold.value);
+      const values = Object.fromEntries(new FormData(editForm));
+      const payload = { ...values, quantity: Number(values.quantity), lowStockThreshold: Number(values.lowStockThreshold), purchaseTotalPaise: Math.round(Number(values.purchaseTotal || 0) * 100), expiryDate: values.expiryDate || null };
+      delete payload.purchaseTotal;
       try {
-        const result = await api(`/restaurants/owner/inventory/${encodeURIComponent(item._id)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ stockTracked: tracking.checked, stockQuantity, lowStockThreshold })
-        });
-        console.log("[inventory] stock saved", { itemId: item._id, tracked: result.item.stockTracked, stockQuantity: result.item.stockQuantity, status: 200 });
-        msg.textContent = `${item.name} inventory saved.`;
+        await api(`/restaurants/owner/inventory/groceries/${encodeURIComponent(item._id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        console.log("[grocery-inventory] PATCH /restaurants/owner/inventory/groceries/:id → 200", { itemId: item._id });
+        msg.textContent = `${item.name} stock details updated.`;
         await loadInventory();
-      } catch (error) {
-        msg.textContent = error.message;
-        console.error("[inventory] save failed", { itemId: item._id, error: error.message });
-        save.disabled = false;
-      }
+      } catch (error) { msg.textContent = error.message; console.error("[grocery-inventory] update failed", { itemId: item._id, error: error.message }); }
+      finally { save.disabled = false; }
     });
-    card.append(top, form);
+    editDetails.append(editSummary, editForm);
+    actions.append(editDetails);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "secondary inventory-delete-button";
+    remove.textContent = "Delete batch";
+    remove.addEventListener("click", async () => {
+      if (!confirm(`Delete this ${item.name} stock batch?`)) return;
+      remove.disabled = true;
+      try {
+        await api(`/restaurants/owner/inventory/groceries/${encodeURIComponent(item._id)}`, { method: "DELETE" });
+        console.log("[grocery-inventory] DELETE /restaurants/owner/inventory/groceries/:id → 204", { itemId: item._id });
+        msg.textContent = `${item.name} stock batch deleted.`;
+        await loadInventory();
+      } catch (error) { msg.textContent = error.message; remove.disabled = false; }
+    });
+    actions.append(remove);
+    card.append(top, details, actions);
     root.append(card);
   }
 }
-
 async function loadInventory() {
   const root = document.querySelector("#inventory-items");
   try {
-    const { items = [] } = await api("/restaurants/owner/inventory");
+    const { items = [] } = await api("/restaurants/owner/inventory/groceries");
     restaurantInventoryItems = items;
     const categoryFilter = document.querySelector("#inventory-category");
     const previous = categoryFilter?.value || "all";
@@ -821,20 +868,40 @@ async function loadInventory() {
       categoryFilter.replaceChildren(new Option("All categories", "all"), ...categories.map(category => new Option(category, category)));
       categoryFilter.value = categories.includes(previous) ? previous : "all";
     }
-    console.log("[inventory] GET /restaurants/owner/inventory → 200", { dishes: items.length });
+    console.log("[grocery-inventory] GET /restaurants/owner/inventory/groceries → 200", { stockBatches: items.length });
     renderInventory();
   } catch (error) {
-    if (root) root.textContent = `Could not load inventory: ${error.message}`;
+    if (root) root.textContent = `Could not load grocery inventory: ${error.message}`;
     const summary = document.querySelector("#inventory-summary");
-    if (summary) summary.textContent = "Inventory service unavailable";
-    console.error("[inventory] load failed", { error: error.message });
+    if (summary) summary.textContent = "Grocery inventory service unavailable";
+    console.error("[grocery-inventory] load failed", { error: error.message });
   }
 }
-
 document.querySelector("#inventory-refresh")?.addEventListener("click", () => loadInventory());
 document.querySelector("#inventory-search")?.addEventListener("input", renderInventory);
 document.querySelector("#inventory-category")?.addEventListener("change", renderInventory);
 document.querySelector("#inventory-stock-filter")?.addEventListener("change", renderInventory);
+const groceryStockForm = document.querySelector("#grocery-stock-form");
+if (groceryStockForm) {
+  groceryStockForm.elements.receivedDate.value = inventoryToday();
+  groceryStockForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = groceryStockForm.querySelector('button[type="submit"]');
+    button.disabled = true;
+    const values = Object.fromEntries(new FormData(groceryStockForm));
+    const payload = { ...values, quantity: Number(values.quantity), lowStockThreshold: Number(values.lowStockThreshold), purchaseTotalPaise: Math.round(Number(values.purchaseTotal || 0) * 100), expiryDate: values.expiryDate || null };
+    delete payload.purchaseTotal;
+    try {
+      const { item } = await api("/restaurants/owner/inventory/groceries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      console.log("[grocery-inventory] POST /restaurants/owner/inventory/groceries → 201", { itemId: item._id, name: item.name, quantity: item.quantity, unit: item.unit });
+      msg.textContent = `${item.name} stock batch added.`;
+      groceryStockForm.reset();
+      groceryStockForm.elements.receivedDate.value = inventoryToday();
+      await loadInventory();
+    } catch (error) { msg.textContent = error.message; console.error("[grocery-inventory] add failed", { error: error.message }); }
+    finally { button.disabled = false; }
+  });
+}
 document.querySelector("#owner-food-filter").addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
 document.querySelector("#owner-availability-filter")?.addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
 document.querySelector("#hours-form").addEventListener("submit", async event => {

@@ -563,3 +563,35 @@ body { color: var(--foodway-ink); }
 .admin-page :is(a, button, input, select, textarea):focus-visible,
 .restaurant-page :is(a, button, input, select, textarea):focus-visible,
 .delivery-page :is(a, button, input, select, textarea):focus-visible { outline-color: #d2ae00aa; }
+
+/* Grocery stock: batch tracking, expiry alerts, and purchase details. */
+.restaurant-page .inventory-add-panel { display: grid; gap: .7rem; min-width: 0; padding: 1rem; border: 1px solid var(--foodway-line); border-radius: .9rem; background: #fbfaf5; }
+.restaurant-page .inventory-add-panel h3,
+.restaurant-page .inventory-add-panel p { margin: 0; }
+.restaurant-page .grocery-stock-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; gap: .7rem; min-width: 0; }
+.restaurant-page .grocery-stock-form > label { display: grid; min-width: 0; gap: .35rem; font-size: .84rem; font-weight: 650; }
+.restaurant-page .grocery-stock-form input,
+.restaurant-page .grocery-stock-form select { width: 100%; min-width: 0; min-height: 42px; }
+.restaurant-page .grocery-notes-field { grid-column: span 3; }
+.restaurant-page .grocery-stock-form > button { min-height: 42px; }
+.restaurant-page .inventory-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; }
+.restaurant-page .inventory-stock-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem .8rem; margin: 0; }
+.restaurant-page .inventory-stock-details > div { min-width: 0; padding: .55rem .65rem; border-radius: .65rem; background: #f7f5ed; }
+.restaurant-page .inventory-stock-details dt { color: var(--foodway-muted); font-size: .75rem; font-weight: 650; }
+.restaurant-page .inventory-stock-details dd { margin: .12rem 0 0; overflow-wrap: anywhere; font-weight: 700; }
+.restaurant-page .inventory-item-actions { display: flex; flex-wrap: wrap; align-items: start; gap: .5rem; }
+.restaurant-page .inventory-edit-details { flex: 1 1 100%; min-width: 0; }
+.restaurant-page .inventory-edit-details > summary { width: fit-content; color: var(--foodway-green); cursor: pointer; font-weight: 700; }
+.restaurant-page .inventory-edit-form { margin-top: .7rem; padding: .75rem; border: 1px solid var(--foodway-line); border-radius: .7rem; background: #fbfaf5; }
+.restaurant-page .inventory-edit-form > button { grid-column: 1 / -1; }
+.restaurant-page .inventory-delete-button { min-height: 40px; }
+@media (max-width: 900px) {
+  .restaurant-page .grocery-stock-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .restaurant-page .grocery-notes-field { grid-column: auto; }
+}
+@media (max-width: 580px) {
+  .restaurant-page .inventory-stock-details,
+  .restaurant-page .grocery-stock-form { grid-template-columns: minmax(0, 1fr); }
+  .restaurant-page .inventory-badges { justify-content: flex-start; }
+  .restaurant-page .inventory-item-actions > button { width: 100%; }
+}
