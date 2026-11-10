@@ -1,4 +1,4 @@
-const CACHE_NAME = "foodway-shell-v19";
+const CACHE_NAME = "foodway-shell-v20";
 const APP_SHELL = [
   "/customer/index.html",
   "/offline.html",
