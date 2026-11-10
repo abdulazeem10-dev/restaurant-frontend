@@ -1,10 +1,10 @@
 const installButton = document.querySelector("#install-app");
 const installHelp = document.querySelector("#install-app-help");
-const isFoodwayAndroidApp = /FoodwayAndroidApp/i.test(navigator.userAgent);
+const isAlMadinaAndroidApp = /AlMadinaAndroidApp/i.test(navigator.userAgent);
 let pendingInstallPrompt = null;
 
-if (!isFoodwayAndroidApp && "serviceWorker" in navigator && location.protocol === "https:") {
-  navigator.serviceWorker.register("/service-worker.js", { scope: "/" }).catch(error => console.error("Foodway app setup failed:", error));
+if (!isAlMadinaAndroidApp && "serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("/service-worker.js", { scope: "/" }).catch(error => console.error("Al-Madina app setup failed:", error));
 }
 
 window.addEventListener("beforeinstallprompt", event => {
@@ -28,4 +28,4 @@ window.addEventListener("appinstalled", () => {
   if (installHelp) installHelp.hidden = true;
 });
 
-if (/Android/i.test(navigator.userAgent) && !isFoodwayAndroidApp && installHelp && !window.matchMedia("(display-mode: standalone)").matches) installHelp.hidden = false;
+if (/Android/i.test(navigator.userAgent) && !isAlMadinaAndroidApp && installHelp && !window.matchMedia("(display-mode: standalone)").matches) installHelp.hidden = false;
