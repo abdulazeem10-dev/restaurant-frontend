@@ -674,3 +674,36 @@ body { color: var(--foodway-ink); }
 .restaurant-brand .brand-logo,
 .delivery-brand .brand-logo { width: 106px; height: 106px; }
 }
+/* Fit the Al Madina artwork inside the header bar instead of showing its full square canvas. */
+.site-header .brand-logo,
+.auth-header .brand-logo,
+.admin-header .brand-logo,
+.restaurant-header .brand-logo,
+.delivery-header .brand-logo {
+  width: clamp(120px, 11vw, 152px);
+  height: clamp(76px, 7vw, 88px);
+  object-fit: cover;
+  object-position: center 38%;
+  border-radius: 10px;
+}
+@media (max-width: 700px) {
+  .site-header .brand-logo,
+  .auth-header .brand-logo,
+  .admin-header .brand-logo,
+  .restaurant-header .brand-logo,
+  .delivery-header .brand-logo {
+    width: clamp(104px, 31vw, 126px);
+    height: 68px;
+  }
+  .customer-page .site-header { align-items: center; }
+}
+@media (max-width: 360px) {
+  .site-header .brand-logo,
+  .auth-header .brand-logo,
+  .admin-header .brand-logo,
+  .restaurant-header .brand-logo,
+  .delivery-header .brand-logo {
+    width: 104px;
+    height: 66px;
+  }
+}
