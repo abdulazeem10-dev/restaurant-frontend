@@ -1,0 +1,38 @@
+.customer-page .contact-us-section {
+  width: min(100% - 3rem, 1550px);
+  margin: 3rem auto 0;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  border: 1px solid #443a16;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #11100d, #211d10);
+  color: #f8f4e5;
+  box-shadow: 0 16px 38px #17151118;
+}
+.customer-page .contact-us-heading { max-width: 700px; margin-bottom: 1.25rem; }
+.customer-page .contact-us-heading .eyebrow { margin-bottom: .35rem; color: #e4c929; }
+.customer-page .contact-us-heading h2 { margin: 0 0 .4rem; color: #fff; font-size: clamp(1.65rem, 3vw, 2.25rem); }
+.customer-page .contact-us-heading > p:last-child { margin: 0; color: #d6d2c4; line-height: 1.6; }
+.customer-page .contact-us-card { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(220px, .8fr); gap: 1.5rem; padding: clamp(1rem, 2.5vw, 1.6rem); border: 1px solid #ffffff20; border-radius: 16px; background: #08080775; }
+.customer-page .contact-us-details h3 { margin: 0 0 .45rem; color: #f1d632; font-size: 1.2rem; }
+.customer-page .contact-us-address { margin: 0 0 1rem; color: #e0ddcf; font-size: .94rem; line-height: 1.55; }
+.customer-page .contact-phone-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; margin: 0; padding: 0; list-style: none; }
+.customer-page .contact-phone-list li { display: grid; align-content: start; gap: .25rem; }
+.customer-page .contact-phone-list a { width: fit-content; color: #ffe66a; font-size: 1rem; font-weight: 800; text-decoration: none; }
+.customer-page .contact-phone-list a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.customer-page .contact-phone-list span { color: #bcb9ad; font-size: .78rem; line-height: 1.4; }
+.customer-page .contact-us-actions { display: flex; flex-direction: column; justify-content: center; gap: 1.1rem; }
+.customer-page .contact-whatsapp-link { display: flex; min-height: 50px; align-items: center; justify-content: center; gap: .5rem; padding: .75rem 1rem; border: 1px solid #f0d21b; border-radius: 12px; background: #f0d21b; color: #171511; font-weight: 850; text-align: center; text-decoration: none; }
+.customer-page .contact-whatsapp-link:hover { border-color: #ffe76b; background: #ffe76b; }
+.customer-page .contact-social-links { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.customer-page .contact-social-label { flex-basis: 100%; color: #d6d2c4; font-size: .8rem; font-weight: 750; }
+.customer-page .contact-social-link { display: inline-flex; min-height: 34px; align-items: center; padding: .4rem .7rem; border: 1px solid #d4c77c55; border-radius: 999px; color: #e9dfae; font-size: .8rem; }
+.customer-page a.contact-social-link[href] { color: #ffe66a; text-decoration: none; }
+.customer-page a.contact-social-link[href]:hover { border-color: #f0d21b; background: #f0d21b16; }
+@media (max-width: 760px) {
+  .customer-page .contact-us-section { width: min(100% - 2rem, 1550px); margin-top: 2rem; padding: 1rem; border-radius: 18px; }
+  .customer-page .contact-us-card { grid-template-columns: 1fr; gap: 1.2rem; }
+  .customer-page .contact-phone-list { grid-template-columns: 1fr; gap: .6rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .customer-page .contact-us-section *, .customer-page .contact-us-section *::before, .customer-page .contact-us-section *::after { scroll-behavior: auto !important; }
+}
