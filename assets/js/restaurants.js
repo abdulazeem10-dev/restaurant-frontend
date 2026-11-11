@@ -1,4 +1,5 @@
 const brandName = "Al-Madina";
+const alMadinaRestaurantName = /^al[\s-]?madina(?:\s+family\s+restaurant)?$/i;
 const searchForm = document.querySelector("#restaurant-search");
 const searchInput = document.querySelector("#search-input");
 const quickFoodFilters = [...document.querySelectorAll("[data-quick-food]")];
@@ -177,9 +178,9 @@ async function loadRestaurants() {
     const response = await fetch(`${API_BASE}/restaurants`); console.info(`[Al-Madina menu] GET /restaurants → ${response.status}`);
     if (!response.ok) throw new Error("Unable to load Al-Madina");
     const data = await response.json(), approved = data.restaurants || [];
-    currentRestaurant = approved.find(restaurant => /^al-madina$/i.test(String(restaurant.name || "").trim())) || null;
+    currentRestaurant = approved.find(restaurant => alMadinaRestaurantName.test(String(restaurant.name || "").trim())) || null;
     if (!currentRestaurant) {
-      throw new Error("No approved Al-Madina account was found. In Platform Admin → Restaurants, set the existing restaurant name to “Al-Madina” and make sure its status is Approved. This customer site shows Al-Madina only.");
+      throw new Error("No approved Al-Madina restaurant was returned by the public restaurant API.");
     }
     const menuResponse = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`);
     console.info(`[Al-Madina menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
@@ -190,9 +191,9 @@ async function loadRestaurants() {
     renderMenuPreview(); await loadRecentOrders();
   } catch (error) {
     console.error("[Al-Madina menu] load failed", error);
-    if (errorMessage) errorMessage.textContent = error.message || "The Al-Madina menu could not be loaded.";
+    if (errorMessage) errorMessage.textContent = "Please try again in a moment. If the problem continues, contact Al Madina directly.";
     if (viewFullMenu) viewFullMenu.hidden = true;
-    featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: "The Al-Madina menu is not available yet." }));
+    featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: "We’re having trouble loading the menu right now." }));
   }
 }
 searchForm?.addEventListener("submit", event => { event.preventDefault(); renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
