@@ -14,6 +14,7 @@
 .customer-page .contact-us-heading > p:last-child { margin: 0; color: #d6d2c4; line-height: 1.6; }
 .customer-page .contact-us-card { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(220px, .8fr); gap: 1.5rem; padding: clamp(1rem, 2.5vw, 1.6rem); border: 1px solid #ffffff20; border-radius: 16px; background: #08080775; }
 .customer-page .contact-us-details h3 { margin: 0 0 .45rem; color: #f1d632; font-size: 1.2rem; }
+.customer-page .contact-owner-name { margin: 0 0 .6rem; color: #f4e7a1; font-size: .92rem; }
 .customer-page .contact-us-address { margin: 0 0 1rem; color: #e0ddcf; font-size: .94rem; line-height: 1.55; }
 .customer-page .contact-phone-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; margin: 0; padding: 0; list-style: none; }
 .customer-page .contact-phone-list li { display: grid; align-content: start; gap: .25rem; }
