@@ -23,6 +23,7 @@
       <button type="button" data-admin-view="add-restaurant"><span aria-hidden="true">＋</span> Create restaurant account</button>
 
       <button type="button" data-admin-view="restaurants"><span aria-hidden="true">▤</span> Restaurants</button>
+      <button type="button" data-admin-view="backups"><span aria-hidden="true">⇩</span> Data backups</button>
       <div class="admin-sidebar-help"><strong>Need the customer view?</strong><a href="../customer/index.html?view=customer">Open customer site →</a></div>
     </aside>
 
@@ -59,9 +60,14 @@
         <div class="admin-list-heading"><div><p class="eyebrow">PLATFORM DIRECTORY</p><h2>Restaurant accounts</h2><p class="muted">Manage owner contact details, restaurant profiles, and operational approval.</p></div><button type="button" data-open-admin-view="add-restaurant">+ Create restaurant account</button></div>
         <p id="restaurants-status" class="muted" role="status" aria-live="polite"></p><div class="admin-shortcut-actions"><button id="refresh-restaurants" type="button" class="secondary">Refresh restaurant list</button></div><div id="restaurants" class="grid admin-restaurant-grid"></div>
       </section>
+
+      <section class="admin-view" data-admin-section="backups" hidden>
+        <section class="panel admin-form-panel"><p class="eyebrow">DATA PROTECTION</p><h2>Platform backup</h2><p>Download a JSON snapshot of platform restaurants, accounts, menus, stock, orders, reviews, sales, and operational records.</p><p class="muted">The file includes sensitive business and customer information. Keep it in a secure location. This is a manual export; it does not replace automatic database backups.</p><button type="button" id="download-platform-backup">Download platform backup</button><p id="platform-backup-status" class="muted" role="status" aria-live="polite"></p></section>
+      </section>
     </div>
   </main>
   <script src="../assets/js/common.js"></script>
   <script src="../assets/js/admin.js?v=20261110-1"></script>
+  <script src="../assets/js/admin-backup.js?v=20261111-1"></script>
 </body>
 </html>

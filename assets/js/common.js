@@ -73,6 +73,7 @@ function completeAuthentication(data) {
 }
 function clearLocalSession() {
   sessionStorage.removeItem(TOKEN_KEY);
+  clearAccountOwnedCart();
   if (!FOODWAY_NATIVE_APP && !FOODWAY_LOCAL_DEV) {
     const csrfCookieName = location.protocol === "https:" ? "__Host-foodway_csrf" : "foodway_csrf";
     document.cookie = `${csrfCookieName}=; Max-Age=0; Path=/; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
@@ -91,7 +92,94 @@ function setStatusMessage(element, message, state = "info") {
 }
 function formatRupees(paise) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(paise / 100); }
 function readCart() { try { return JSON.parse(localStorage.getItem("food-platform-cart") || "null"); } catch { return null; } }
-function writeCart(cart) { localStorage.setItem("food-platform-cart", JSON.stringify(cart)); updateCartCount(); }
+const CART_KEY = "food-platform-cart";
+const CART_OWNER_KEY = "foodway-cart-owner";
+const CART_PENDING_KEY = "foodway-cart-pending-sync";
+let syncedCustomerId = "";
+let cartSyncTimer = 0;
+let cartSyncRevision = 0;
+function clearAccountOwnedCart() {
+  if (!localStorage.getItem(CART_OWNER_KEY)) return;
+  localStorage.removeItem(CART_KEY);
+  localStorage.removeItem(CART_OWNER_KEY);
+  localStorage.removeItem(CART_PENDING_KEY);
+  syncedCustomerId = "";
+  updateCartCount();
+  window.dispatchEvent(new CustomEvent("foodway:cart-updated"));
+}
+function writeCart(cart) {
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  updateCartCount();
+  cartSyncRevision += 1;
+  if (syncedCustomerId) {
+    localStorage.setItem(CART_PENDING_KEY, "1");
+    clearTimeout(cartSyncTimer);
+    cartSyncTimer = setTimeout(syncCartToAccount, 450);
+  }
+  window.dispatchEvent(new CustomEvent("foodway:cart-updated"));
+}
+function cartPayload(cart) {
+  return { restaurantId: cart.restaurantId, items: (cart.items || []).map(item => ({ menuItemId: item.menuItemId, quantity: item.quantity })) };
+}
+async function syncCartToAccount() {
+  if (!syncedCustomerId) return;
+  const cart = readCart();
+  const revisionAtRequest = cartSyncRevision;
+  try {
+    const response = await fetch(`${API_BASE}/customer/cart`, {
+      method: cart?.items?.length ? "PUT" : "DELETE",
+      headers: authHeaders({ ...(cart?.items?.length ? { "Content-Type": "application/json" } : {}) }),
+      ...(cart?.items?.length ? { body: JSON.stringify(cartPayload(cart)) } : {})
+    });
+    if (!response.ok) throw new Error(`Cart sync failed (${response.status})`);
+    if (cartSyncRevision === revisionAtRequest) localStorage.removeItem(CART_PENDING_KEY);
+  } catch (error) { console.warn("[cart] account sync is temporarily unavailable", error); }
+}
+async function syncCustomerCart() {
+  if (!getToken()) return;
+  try {
+    const profileResponse = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() });
+    if (profileResponse.status === 401) { clearLocalSession(); return; }
+    if (!profileResponse.ok) return;
+    const { user } = await profileResponse.json();
+    if (user?.role !== "customer") { clearAccountOwnedCart(); return; }
+    if (!user?._id && !user?.id) return;
+    const customerId = String(user._id || user.id);
+    const previousOwner = localStorage.getItem(CART_OWNER_KEY) || "";
+    let localCart = readCart();
+    if (previousOwner && previousOwner !== customerId) {
+      localStorage.removeItem(CART_KEY);
+      localStorage.removeItem(CART_PENDING_KEY);
+      localCart = null;
+    }
+    syncedCustomerId = customerId;
+    const response = await fetch(`${API_BASE}/customer/cart`, { headers: authHeaders() });
+    if (!response.ok) throw new Error(`Could not restore account cart (${response.status})`);
+    const { cart: savedCart } = await response.json();
+    const sameAccount = previousOwner === customerId;
+    const hasPendingLocalChanges = sameAccount && localStorage.getItem(CART_PENDING_KEY) === "1";
+    let restored = savedCart;
+    if (hasPendingLocalChanges && localCart?.items?.length) restored = localCart;
+    else if (!sameAccount && localCart?.items?.length && (!savedCart || savedCart.restaurantId === localCart.restaurantId)) {
+      const merged = new Map((savedCart.items || []).map(item => [String(item.menuItemId), { ...item }]));
+      for (const item of localCart.items) {
+        const id = String(item.menuItemId);
+        const existing = merged.get(id);
+        merged.set(id, existing ? { ...existing, quantity: Math.min(20, existing.quantity + item.quantity) } : item);
+      }
+      restored = savedCart ? { ...savedCart, items: [...merged.values()] } : { ...localCart, items: [...merged.values()] };
+    }
+    localStorage.setItem(CART_OWNER_KEY, customerId);
+    if (restored?.items?.length) localStorage.setItem(CART_KEY, JSON.stringify(restored));
+    else localStorage.removeItem(CART_KEY);
+    updateCartCount();
+    window.dispatchEvent(new CustomEvent("foodway:cart-updated"));
+    if (hasPendingLocalChanges || (!sameAccount && localCart?.items?.length && (!savedCart || savedCart.restaurantId === localCart.restaurantId))) {
+      localStorage.setItem(CART_PENDING_KEY, "1");
+      await syncCartToAccount();
+    } else localStorage.removeItem(CART_PENDING_KEY);
+  } catch (error) { console.warn("[cart] could not restore account cart", error); }
+}
 function updateCartCount() { const count = (readCart()?.items || []).reduce((sum, item) => sum + item.quantity, 0); document.querySelectorAll("[data-cart-count]").forEach(el => { el.textContent = count; }); }
 function escapeHtml(value) {
   const replacements = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -134,3 +222,4 @@ function createLiveTrackingMap(element, deliveryLocation, customerLocation) {
   return map;
 }
 updateCartCount();
+syncCustomerCart();

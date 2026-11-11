@@ -45,6 +45,7 @@ function updateStoreCart() {
   const total = cart.items.reduce((sum, item) => sum + item.pricePaise * item.quantity, 0);
   summary.textContent = `${quantity} ${quantity === 1 ? "item" : "items"} · ${formatRupees(total)}`;
 }
+window.addEventListener("foodway:cart-updated", updateStoreCart);
 
 function renderReviews(data) {
   const summary = document.querySelector("#review-summary");

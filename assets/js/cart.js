@@ -253,10 +253,11 @@ function updateCartQuantity(cart, item, quantity) {
 
 function removeCartItem(cart, item) {
   cart.items = cart.items.filter(value => value.menuItemId !== item.menuItemId);
-  if (!cart.items.length) localStorage.removeItem("food-platform-cart");
-  else writeCart(cart);
+  writeCart(cart.items.length ? cart : null);
   renderCart();
 }
+
+window.addEventListener("foodway:cart-updated", renderCart);
 
 checkoutForm.addEventListener("submit", async event => {
   event.preventDefault();
