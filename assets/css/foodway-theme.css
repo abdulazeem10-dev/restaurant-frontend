@@ -707,3 +707,22 @@ body { color: var(--foodway-ink); }
     height: 66px;
   }
 }
+/* Keep restaurant and dish detail pages aligned with the Al-Madina black-and-gold identity. */
+.customer-page .storefront-hero {
+  border-color: #8c7414;
+  background: radial-gradient(ellipse at 78% 10%, #d0ad0024 0, transparent 38%), linear-gradient(115deg, #11100d, #241f12);
+  box-shadow: 0 20px 50px #17151124;
+}
+.customer-page .storefront-info .eyebrow { color: #f0d21b; }
+.customer-page .storefront-info h1 { color: #fff; }
+.customer-page .storefront-info > p:not(.eyebrow) { color: #eee7d2; }
+.customer-page .storefront-info .open-badge {
+  border-color: #d0ad00;
+  background: #f0d21b;
+  color: #171511;
+}
+.customer-page .menu-header .eyebrow { color: #806900; }
+.customer-page .menu-item-card.is-selected-dish {
+  border-color: #d6bc45;
+  box-shadow: 0 0 0 3px #fbf4d4, 0 8px 22px #20252110;
+}
