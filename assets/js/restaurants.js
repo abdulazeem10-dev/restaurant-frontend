@@ -208,3 +208,69 @@ document.querySelector("#food-scroll-right")?.addEventListener("click", () => fe
 renderFoodPassport();
 loadRestaurants();
 setupHomeAccountNav();
+
+const promoSlides = [...document.querySelectorAll("[data-promo-slide]")];
+const promoDots = [...document.querySelectorAll("[data-promo-dot]")];
+let activePromoIndex = 0;
+function showPromo(index) {
+  if (!promoSlides.length) return;
+  activePromoIndex = (index + promoSlides.length) % promoSlides.length;
+  promoSlides.forEach((slide, slideIndex) => {
+    const active = slideIndex === activePromoIndex;
+    slide.hidden = !active;
+    slide.classList.toggle("is-active", active);
+    slide.setAttribute("aria-hidden", String(!active));
+  });
+  promoDots.forEach((dot, dotIndex) => dot.setAttribute("aria-current", String(dotIndex === activePromoIndex)));
+}
+document.querySelector("#promo-previous")?.addEventListener("click", () => showPromo(activePromoIndex - 1));
+document.querySelector("#promo-next")?.addEventListener("click", () => showPromo(activePromoIndex + 1));
+promoDots.forEach(dot => dot.addEventListener("click", () => showPromo(Number(dot.dataset.promoDot))));
+let promoTouchStart = null;
+document.querySelector("#promo-slides")?.addEventListener("pointerdown", event => { promoTouchStart = event.clientX; });
+document.querySelector("#promo-slides")?.addEventListener("pointerup", event => {
+  if (promoTouchStart === null) return;
+  const distance = event.clientX - promoTouchStart;
+  promoTouchStart = null;
+  if (Math.abs(distance) > 45) showPromo(activePromoIndex + (distance < 0 ? 1 : -1));
+});
+document.querySelector("#promo-slides")?.addEventListener("pointercancel", () => { promoTouchStart = null; });
+document.querySelector("#promo-slides")?.addEventListener("click", event => {
+  const button = event.target.closest("[data-promo-category]");
+  if (!button) return;
+  const target = button.dataset.promoCategory;
+  selectedCuisineFilter = target === "all" ? "all" : allMenuItems.map(item => window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim()).find(category => category.toLocaleLowerCase().includes(target)) || "all";
+  renderMenuPreview();
+  document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+const voiceSearchButton = document.querySelector("#voice-search-button");
+const voiceSearchStatus = document.querySelector("#voice-search-status");
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (voiceSearchButton && SpeechRecognition) {
+  voiceSearchButton.hidden = false;
+  const speechRecognition = new SpeechRecognition();
+  speechRecognition.lang = "en-IN";
+  speechRecognition.interimResults = false;
+  speechRecognition.maxAlternatives = 1;
+  speechRecognition.onstart = () => {
+    voiceSearchButton.setAttribute("aria-pressed", "true");
+    voiceSearchStatus.textContent = "Listening. Say a dish or category.";
+  };
+  speechRecognition.onresult = event => {
+    const spokenQuery = event.results?.[0]?.[0]?.transcript?.trim();
+    if (!spokenQuery) return;
+    searchInput.value = spokenQuery;
+    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+    voiceSearchStatus.textContent = `Searching for ${spokenQuery}.`;
+    document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  speechRecognition.onerror = event => {
+    voiceSearchStatus.textContent = event.error === "not-allowed" ? "Allow microphone access to search by voice." : "Voice search could not start. Type your search instead.";
+  };
+  speechRecognition.onend = () => voiceSearchButton.setAttribute("aria-pressed", "false");
+  voiceSearchButton.addEventListener("click", () => {
+    try { speechRecognition.start(); }
+    catch { voiceSearchStatus.textContent = "Voice search is already listening."; }
+  });
+}
