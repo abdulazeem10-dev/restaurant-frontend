@@ -20,3 +20,5 @@ The customer homepage uses optimized local crops of these food photographs. Orig
 | Momo | `1563245372-f21724e3856d` |
 | Salads | `1512621776951-a57141f2eefd` |
 | Other | `1547592180-85f173990554` |
+
+| Biryani feature banner | `1631515243349-e0cb75fb8d3a` (1600 × 1000 crop) |

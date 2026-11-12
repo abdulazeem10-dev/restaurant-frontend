@@ -534,3 +534,57 @@ body.customer-page::-webkit-scrollbar { display: none !important; width: 0 !impo
 @media (prefers-reduced-motion:reduce) {
   .customer-page .promo-carousel *, .customer-page .promo-carousel *::before,.customer-page .promo-carousel *::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; }
 }
+
+/* Keep the discovery layout inside desktop and tablet viewports, including browser zoom. */
+@media (min-width:681px) and (max-width:1920px) {
+  .customer-page .site-header {
+    display:grid;
+    grid-template-columns:minmax(110px,auto) minmax(220px,min(34vw,420px)) minmax(0,1fr);
+    align-items:center;
+    gap:clamp(.65rem,1.5vw,1.35rem);
+    padding-inline:clamp(1rem,3vw,2.75rem);
+  }
+  .customer-page .wordmark { min-width:0; }
+  .customer-page .top-search { width:100%; min-width:0; }
+  .customer-page .site-nav { min-width:0; justify-content:flex-end; flex-wrap:wrap; gap:clamp(.35rem,.75vw,.7rem); font-size:clamp(.76rem,.88vw,.92rem); white-space:normal; }
+  .customer-page .discovery-main { width:calc(100% - clamp(2rem,8vw,5rem)); max-width:1280px; min-width:0; }
+  .customer-page .store-location-bar,
+  .customer-page .promo-carousel,
+  .customer-page .home-food-filters,
+  .customer-page .budget-discovery,
+  .customer-page .cuisine-section,
+  .customer-page .featured-dishes-section { width:100%; max-width:100%; min-width:0; box-sizing:border-box; }
+  .customer-page .promo-slides,.customer-page .promo-slide,.customer-page .promo-copy { width:100%; min-width:0; box-sizing:border-box; }
+  .customer-page .budget-discovery { grid-template-columns:minmax(0,.82fr) minmax(0,1.5fr); gap:.85rem; padding:1rem; }
+  .customer-page .budget-discovery-options { grid-template-columns:repeat(2,minmax(0,1fr)); min-width:0; }
+  .customer-page .budget-reset { grid-column:1 / -1; justify-self:end; }
+  .customer-page .cuisine-track,.customer-page .featured-dishes-track { min-width:0; max-width:100%; }
+}
+
+
+/* Keep the microphone target square: the general search-button padding otherwise clips its SVG. */
+.customer-page .top-search .voice-search-button {
+  display:grid;
+  width:42px;
+  min-width:42px;
+  height:42px;
+  min-height:42px;
+  flex:0 0 42px;
+  padding:0;
+  overflow:hidden;
+  border:1px solid #5c4b00;
+  border-radius:50%;
+  background:#171511;
+  color:#f0d21b;
+}
+.customer-page .top-search .voice-search-button svg {
+  display:block;
+  width:21px;
+  height:21px;
+  flex:0 0 21px;
+  overflow:visible;
+}
+.customer-page .top-search .voice-search-button[aria-pressed="true"] {
+  background:#5a4b00;
+  color:#fff3a0;
+}

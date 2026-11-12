@@ -1,10 +1,10 @@
-const CACHE_NAME = "foodway-shell-v31";
+const CACHE_NAME = "foodway-shell-v34";
 const APP_SHELL = [
   "/customer/index.html",
   "/offline.html",
   "/assets/css/style.css",
   "/assets/css/foodway-theme.css?v=20261113-1",
-  "/assets/css/customer-home.css?v=20261113-3",
+  "/assets/css/customer-home.css?v=20261113-6",
   "/assets/css/support-chat.css?v=20261109-3",
   "/assets/css/contact-us.css?v=20261110-2",
   "/assets/js/common.js",
@@ -15,7 +15,8 @@ const APP_SHELL = [
   "/assets/js/contact-us.js",
   "/assets/icons/icon-192.png",
   "/assets/icons/icon-512.png",
-  "/assets/images/al-madina-family-restaurant.png"
+  "/assets/images/al-madina-family-restaurant.png",
+  "/assets/images/cuisines/biryani-hero.jpg"
 ];
 
 self.addEventListener("install", event => {
