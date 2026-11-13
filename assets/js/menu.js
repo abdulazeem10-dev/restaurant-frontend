@@ -26,13 +26,15 @@ function renderFilteredMenu() {
   menuFoodButtons.forEach(button => {
     button.setAttribute("aria-pressed", String(button.dataset.menuFood === selectedMenuFood));
   });
-  const filtered = allMenuItems.filter(item => {
-    const foodMatches = selectedMenuFood === "all" || item.foodType === selectedMenuFood;
+  const foodFiltered = window.foodwayFilterMenuItemsByFoodType?.(allMenuItems, selectedMenuFood)
+    || allMenuItems.filter(item => selectedMenuFood === "all"
+      || (window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType) === selectedMenuFood);
+  const filtered = foodFiltered.filter(item => {
     const category = window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim();
     const categoryMatches = categoryFilter === "all" || category === categoryFilter;
     const baseName = window.foodwayBaseDishName?.(item.name) || String(item.name || "").replace(/\s+\((?:half|full)\)$/i, "").trim();
     const dishMatches = !requestedDishName || baseName.toLocaleLowerCase() === requestedDishName.toLocaleLowerCase();
-    return foodMatches && categoryMatches && dishMatches;
+    return categoryMatches && dishMatches;
   });
   renderMenu(filtered, currentRestaurant, selectedMenuFood, categoryFilter);
 }
@@ -186,15 +188,16 @@ function renderMenu(items, restaurant, filter = "all", categoryFilter = "all") {
         row.classList.add("is-selected-dish");
       }
       const typeBadge = document.createElement("span");
-      typeBadge.className = `dish-type-badge ${selectedItem.foodType === "veg" ? "dish-type-veg" : "dish-type-nonveg"}`;
-      typeBadge.textContent = selectedItem.foodType === "veg" ? "Veg" : "Non-Veg";
+      const selectedFoodType = window.foodwayNormalizeFoodType?.(selectedItem.foodType) || selectedItem.foodType;
+      typeBadge.className = `dish-type-badge ${selectedFoodType === "veg" ? "dish-type-veg" : "dish-type-nonveg"}`;
+      typeBadge.textContent = selectedFoodType === "veg" ? "Veg" : "Non-Veg";
       const price = document.createElement("strong");
       price.textContent = formatRupees(selectedItem.pricePaise);
       const description = document.createElement("p");
       description.className = "muted";
       description.textContent = dish.variants.length > 1 ? "Choose a portion size." : selectedItem.description || "Prepared fresh at Al-Madina.";
       info.append(title);
-      if (selectedItem.foodType === "veg" || selectedItem.foodType === "nonVeg") info.append(typeBadge);
+      if (selectedFoodType === "veg" || selectedFoodType === "nonVeg") info.append(typeBadge);
       info.append(price);
       if (dish.variants.length > 1) {
         const sizeLabel = document.createElement("label");
@@ -212,7 +215,7 @@ function renderMenu(items, restaurant, filter = "all", categoryFilter = "all") {
         sizeSelect.addEventListener("change", () => {
           selectedItem = dish.variants.find(variant => String(variant._id) === sizeSelect.value) || dish.variants[0];
           price.textContent = formatRupees(selectedItem.pricePaise);
-          typeBadge.textContent = selectedItem.foodType === "veg" ? "Veg" : "Non-Veg";
+          typeBadge.textContent = selectedFoodType === "veg" ? "Veg" : "Non-Veg";
           if (image) {
             const nextImage = window.foodwayDishImage?.(selectedItem);
             if (nextImage) image.src = nextImage.src;
@@ -239,7 +242,14 @@ function renderMenu(items, restaurant, filter = "all", categoryFilter = "all") {
     const hasFilter = filter !== "all" || categoryFilter !== "all";
     const emptyTitle = requestedDishName ? `${requestedDishName} is not available right now` : hasFilter ? "No dishes match these filters" : "Menu coming soon";
     const emptyMessage = requestedDishName ? "Browse the full Al-Madina menu to see other available dishes." : hasFilter ? "Try another food filter or check back later." : "Al-Madina has no available dishes listed yet.";
-    menuRoot.innerHTML = `<div class="empty-state"><h3>${emptyTitle}</h3><p>${emptyMessage}</p></div>`;
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    const heading = document.createElement("h3");
+    heading.textContent = emptyTitle;
+    const message = document.createElement("p");
+    message.textContent = emptyMessage;
+    empty.append(heading, message);
+    menuRoot.replaceChildren(empty);
   }
 }
 

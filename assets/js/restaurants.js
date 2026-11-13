@@ -18,12 +18,14 @@ let selectedCuisineFilter = "all";
 function getVisibleDishes() {
   const term = searchInput.value.trim().toLocaleLowerCase();
   const maxPricePaise = selectedBudgetFilter === "all" ? Infinity : Number(selectedBudgetFilter) * 100;
-  return allMenuItems.filter(item => {
+  const foodFiltered = window.foodwayFilterMenuItemsByFoodType?.(allMenuItems, selectedFoodFilter)
+    || allMenuItems.filter(item => selectedFoodFilter === "all"
+      || (window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType) === selectedFoodFilter);
+  return foodFiltered.filter(item => {
     const text = [item.name, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
     const category = window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim();
     const matchesCuisine = selectedCuisineFilter === "all" || category === selectedCuisineFilter;
     return (!term || text.includes(term))
-      && (selectedFoodFilter === "all" || item.foodType === selectedFoodFilter)
       && Number(item.pricePaise) <= maxPricePaise
       && matchesCuisine;
   });
@@ -102,8 +104,9 @@ function renderMenuPreview() {
     const dishPrices = dish.variants.map(variant => Number(variant.pricePaise)).sort((a, b) => a - b);
     price.textContent = dishPrices.length > 1 ? `${formatRupees(dishPrices[0])} – ${formatRupees(dishPrices[dishPrices.length - 1])}` : formatRupees(dishPrices[0]);
     const restaurant = document.createElement("span"); restaurant.textContent = brandName;
-    const type = document.createElement("small"); type.className = item.foodType === "veg" ? "dish-food-type dish-food-type-veg" : "dish-food-type dish-food-type-nonveg";
-    type.textContent = item.foodType === "veg" ? "Veg" : item.foodType === "nonVeg" ? "Non-Veg" : item.category || "Food";
+    const foodType = window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType;
+    const type = document.createElement("small"); type.className = foodType === "veg" ? "dish-food-type dish-food-type-veg" : "dish-food-type dish-food-type-nonveg";
+    type.textContent = foodType === "veg" ? "Veg" : foodType === "nonVeg" ? "Non-Veg" : item.category || "Food";
     details.append(name, price);
     if (dish.variants.length > 1) {
       const portions = document.createElement("span");
@@ -185,7 +188,10 @@ async function loadRestaurants() {
     const menuResponse = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`);
     console.info(`[Al-Madina menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
     if (!menuResponse.ok) throw new Error("Could not load Al-Madina dishes");
-    allMenuItems = (await menuResponse.json()).items || [];
+    allMenuItems = ((await menuResponse.json()).items || []).map(item => ({
+      ...item,
+      foodType: window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType || ""
+    }));
     if (selectedCuisineFilter !== "all" && !allMenuItems.some(item => (window.foodwayMenuCategoryFor?.(item) || item.category) === selectedCuisineFilter)) selectedCuisineFilter = "all";
     renderCategoryCarousel();
     renderMenuPreview(); await loadRecentOrders();

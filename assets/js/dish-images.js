@@ -27,6 +27,18 @@
     return String(name).replace(/\s+\((?:half|full)\)$/i, "").trim();
   }
 
+  function normalizeFoodType(value) {
+    const normalized = String(value || "").trim().toLocaleLowerCase().replace(/[\s_‐‑‒–—-]+/g, "");
+    if (["veg", "vegetarian", "vegetarianfood"].includes(normalized)) return "veg";
+    if (["nonveg", "nonvegetarian", "nonvegetarianfood", "nv"].includes(normalized)) return "nonVeg";
+    return "";
+  }
+
+  function filterMenuItemsByFoodType(items = [], selected = "all") {
+    if (selected === "all") return [...items];
+    return items.filter(item => normalizeFoodType(item.foodType) === selected);
+  }
+
   function menuCategoryFor(item = {}) {
     const sourceCategory = String(item.category || "Menu").trim();
     const category = sourceCategory.toLocaleLowerCase();
@@ -60,6 +72,8 @@
 
   window.foodwayDishImage = dishImage;
   window.foodwayBaseDishName = baseDishName;
+  window.foodwayNormalizeFoodType = normalizeFoodType;
+  window.foodwayFilterMenuItemsByFoodType = filterMenuItemsByFoodType;
   window.foodwayMenuCategoryFor = menuCategoryFor;
   window.foodwayGroupMenuItems = groupMenuItems;
   console.info("[dish images] Local representative food photos ready");

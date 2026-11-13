@@ -15,7 +15,7 @@ const restaurantViewInfo = {
   "delivery-areas": ["Delivery areas", "Name the neighbourhoods you serve and assign their PIN codes."],
   "delivery-team": ["Delivery team", "Create and manage this restaurant’s delivery logins."],
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
-  subscription: ["Subscription", "Choose a paid plan and manage account limits."],
+  // subscription: ["Subscription", "Choose a paid plan and manage account limits."], // Temporarily paused; retained for later.
   reviews: ["Customer reviews", "Read feedback from your customers."],
   kitchen: ["Kitchen queue", "Prepare dine-in and delivery tickets in one live kitchen board."],
   orders: ["Incoming orders", "Manage all restaurant orders."],
@@ -70,6 +70,7 @@ async function api(path, options = {}) {
   const data = response.status === 204 ? {} : await response.json();
   if (!response.ok) throw new Error(data.error || "Request failed"); return data;
 }
+/* Subscription display and payment handlers are paused; preserve this block for future activation.
 async function loadOwnSubscription() {
   const { subscription, quota } = await api("/restaurants/owner/subscription");
   const summary = document.querySelector("#subscription-summary");
@@ -173,12 +174,16 @@ document.querySelector("#subscription-payment-form")?.addEventListener("submit",
     button.disabled = false;
   }
 });
+*/
 async function loadNotifications() {
   const { notifications, unreadCount } = await api("/notifications/mine");
   const list = document.querySelector("#restaurant-notifications");
   const count = document.querySelector("#restaurant-notification-count");
-  count.hidden = unreadCount < 1;
-  count.textContent = String(unreadCount);
+  if (!list) return;
+  if (count) {
+    count.hidden = unreadCount < 1;
+    count.textContent = String(unreadCount);
+  }
   list.replaceChildren();
   if (!notifications.length) {
     const empty = document.createElement("li");
@@ -230,7 +235,7 @@ async function loadDeliveryPartners() {
  const { deliveryPartners, quota } = await api("/restaurants/owner/delivery-partners");
  const usage = document.querySelector("#delivery-seat-usage");
  const createForm = document.querySelector("#delivery-partner-form");
- if (usage && quota) usage.textContent = `${String(quota.planTier || "").toUpperCase()} plan · ${quota.totalAccounts}/${quota.maxAccounts} total accounts used (${quota.remainingAccounts} available; owner included).`;
+ if (usage && quota) usage.textContent = `${quota.totalAccounts}/${quota.maxAccounts} total accounts used (${quota.remainingAccounts} available).`;
  const createButton = createForm?.querySelector('button[type="submit"]');
  if (createButton) createButton.disabled = !quota?.active || quota.remainingAccounts <= 0;
  if (createForm) createForm.querySelectorAll("input").forEach(input => input.disabled = !quota?.active || quota.remainingAccounts <= 0);
@@ -292,7 +297,7 @@ async function loadStaffAccounts() {
   const assignedRoles = new Set(accounts.map(account => account.restaurantStaffRole));
   const availableRoles = restaurantStaffRoles.filter(([key]) => !assignedRoles.has(key));
   const usage = document.querySelector("#staff-seat-usage");
-  if (usage && quota) usage.textContent = `${String(quota.planTier || "").toUpperCase()} plan · ${quota.totalAccounts}/${quota.maxAccounts} total accounts used (${quota.remainingAccounts} available; owner included).`;
+  if (usage && quota) usage.textContent = `${quota.totalAccounts}/${quota.maxAccounts} total accounts used (${quota.remainingAccounts} available).`;
   list.replaceChildren();
   for (const account of accounts) {
     const item = document.createElement("li");
@@ -318,7 +323,10 @@ async function loadStaffAccounts() {
     item.append(details, remove);
     list.append(item);
   }
-  roleSelect.replaceChildren(...availableRoles.map(([key, label]) => {
+  const rolePlaceholder = new Option("Choose an account role", "");
+  rolePlaceholder.disabled = true;
+  rolePlaceholder.selected = true;
+  roleSelect.replaceChildren(rolePlaceholder, ...availableRoles.map(([key, label]) => {
     const option = document.createElement("option");
     option.value = key;
     option.textContent = label;
@@ -332,8 +340,8 @@ async function loadStaffAccounts() {
   notice.textContent = availableRoles.length === 0
     ? "All three staff roles have accounts."
     : quota?.active
-      ? "Your plan has reached its total account limit. Upgrade your plan or deactivate an account to create another login."
-      : "Choose and pay for a subscription plan to create staff and delivery logins.";
+      ? "Your total account limit has been reached. Deactivate an account to add another login."
+      : "Restaurant account access is currently unavailable for staff and delivery management.";
 }
 
 const restaurantProfileForm = document.querySelector("#restaurant-profile-form");
@@ -399,6 +407,7 @@ document.querySelector("#owner-staff-form").addEventListener("submit", async eve
 });
 function renderOpeningHours(schedule = {}) {
   const root = document.querySelector("#opening-hours-fields");
+  if (!root) return;
   root.replaceChildren();
   for (const day of openingDays) {
     const hours = schedule[day] || { closed: true, opensAt: "09:00", closesAt: "22:00" };
@@ -572,10 +581,27 @@ async function importPrintedAlMadinaMenu() {
 }
 ensureMenuManagementControls();
 async function loadMenu() {
-  const { restaurant, items } = await api("/restaurants/owner/menu"); restaurantMenuItems = items || []; const tableCount = restaurant.dineInTableCount || 10; const tableCountForm = document.querySelector("#dine-in-table-count-form"); if (tableCountForm) { tableCountForm.elements.dineInTableCount.value = tableCount; tableCountForm.hidden = Boolean(restaurantStaffRole && restaurantStaffRole !== "secondary_admin"); } populateDineInTableOptions(tableCount); renderDineInMenuPicker(document.querySelector("#dine-in-menu-options")); const root = document.querySelector("#menu-items"); root.replaceChildren();
+  const { restaurant, items = [] } = await api("/restaurants/owner/menu");
+  restaurantCurrentRestaurant = restaurant;
+  restaurantMenuItems = items.map(item => ({
+    ...item,
+    foodType: window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType || "",
+    available: item.available !== false
+  }));
+  const tableCount = restaurant.dineInTableCount || 10;
+  const tableCountForm = document.querySelector("#dine-in-table-count-form");
+  if (tableCountForm?.elements.dineInTableCount) {
+    tableCountForm.elements.dineInTableCount.value = tableCount;
+    tableCountForm.hidden = Boolean(restaurantStaffRole && restaurantStaffRole !== "secondary_admin");
+  }
+  populateDineInTableOptions(tableCount);
+  renderDineInMenuPicker(document.querySelector("#dine-in-menu-options"));
+  const root = document.querySelector("#menu-items");
+  root?.replaceChildren();
   const importButton = document.querySelector("#import-almadina-menu");
   if (importButton) importButton.hidden = restaurantCurrentUser?.role !== "restaurant";
-  document.querySelector("#restaurant-title").textContent = restaurant.name;
+  const restaurantTitle = document.querySelector("#restaurant-title");
+  if (restaurantTitle) restaurantTitle.textContent = restaurant.name || "Your restaurant";
   if (restaurantProfileForm) {
     restaurantProfileForm.elements.restaurantName.value = restaurant.name || "";
     restaurantProfileForm.elements.address.value = restaurant.address || "";
@@ -583,21 +609,25 @@ async function loadMenu() {
     restaurantProfileForm.elements.email.value = restaurantCurrentUser?.email || "";
     restaurantProfileForm.elements.phone.value = restaurantCurrentUser?.phone || "";
   }
-  document.querySelector("#restaurant-state").textContent = `Status: ${restaurant.status} · ${restaurant.isOpenNow ? "Open for orders" : "Closed"}`;
+  const restaurantState = document.querySelector("#restaurant-state");
+  if (restaurantState) restaurantState.textContent = `Status: ${restaurant.status} · ${restaurant.isOpenNow ? "Open for orders" : "Closed"}`;
   renderOpeningHours(restaurant.openingHours);
-  document.querySelector('#delivery-times-form [name="prepTimeMinutes"]').value = restaurant.prepTimeMinutes || 30;
-  document.querySelector('#delivery-times-form [name="deliveryTimeMinutes"]').value = restaurant.deliveryTimeMinutes || 30;
+  const prepTime = document.querySelector('#delivery-times-form [name="prepTimeMinutes"]');
+  const deliveryTime = document.querySelector('#delivery-times-form [name="deliveryTimeMinutes"]');
+  if (prepTime) prepTime.value = restaurant.prepTimeMinutes || 30;
+  if (deliveryTime) deliveryTime.value = restaurant.deliveryTimeMinutes || 30;
   renderDeliveryAreas(restaurant.deliveryAreas || [], restaurant.deliveryPincodes || []);
-  document.querySelector('#cuisine-form [name="cuisine"]').value = restaurant.cuisine || "other";
+  const cuisine = document.querySelector('#cuisine-form [name="cuisine"]');
+  if (cuisine) cuisine.value = restaurant.cuisine || "other";
   const toggle = document.querySelector("#open-toggle");
-  if (restaurant.status === "approved" && (!restaurantStaffRole || restaurantStaffRole === "secondary_admin")) { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
-  else { toggle.hidden = true; }
-  const foodFilter = document.querySelector("#owner-food-filter").value;
+  if (toggle && restaurant.status === "approved" && (!restaurantStaffRole || restaurantStaffRole === "secondary_admin")) { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
+  else if (toggle) { toggle.hidden = true; }
+  const foodFilter = document.querySelector("#owner-food-filter")?.value || "all";
   const availabilityFilter = document.querySelector("#owner-availability-filter")?.value || "all";
-  const availableCount = items.filter(item => item.available).length;
+  const availableCount = restaurantMenuItems.filter(item => item.available !== false).length;
   const availabilitySummary = document.querySelector("#menu-availability-summary");
   if (availabilitySummary) availabilitySummary.textContent = `${availableCount} available · ${items.length - availableCount} sold out`;
-  const categories = [...new Set([...printedMenuCategories, ...items.map(item => item.category).filter(Boolean)])].sort((a, b) => a.localeCompare(b, "en"));
+  const categories = [...new Set([...printedMenuCategories, ...restaurantMenuItems.map(item => item.category).filter(Boolean)])].sort((a, b) => a.localeCompare(b, "en"));
   const categoryFilter = document.querySelector("#owner-category-filter");
   if (categoryFilter) {
     const previousCategory = categoryFilter.value || "all";
@@ -606,10 +636,11 @@ async function loadMenu() {
   }
   const categorySuggestions = document.querySelector("#menu-category-suggestions");
   categorySuggestions?.replaceChildren(...categories.map(category => new Option(category, category)));
-  const visibleItems = items.filter(item => (foodFilter === "all" || item.foodType === foodFilter)
+  const visibleItems = restaurantMenuItems.filter(item => (foodFilter === "all" || item.foodType === foodFilter)
     && (availabilityFilter === "all" || (availabilityFilter === "available" ? item.available : !item.available))
     && (!categoryFilter || categoryFilter.value === "all" || item.category === categoryFilter.value));
   const menuCategories = categories;
+  if (!root) return;
   for (const item of visibleItems) {
     const card = document.createElement("article");
     const currentCategory = item.category || "Other";
@@ -673,7 +704,7 @@ async function loadMenu() {
       card.prepend(image);
     }
     const availability = card.querySelector(".menu-availability");
-    availability.addEventListener("change", async () => {
+    availability?.addEventListener("change", async () => {
       const nextAvailability = availability.checked;
       availability.disabled = true;
       msg.textContent = "";
@@ -692,7 +723,7 @@ async function loadMenu() {
     if (canEditMenu) card.querySelector(".menu-delete").addEventListener("click", async () => { if (!confirm(`Delete ${item.name}?`)) return; try { await api(`/restaurants/owner/menu/${item._id}`, { method: "DELETE" }); await loadMenu(); } catch (error) { msg.textContent = error.message; } });
     root.append(card);
   }
-  if (!items.length) root.textContent = "Add your first menu item above.";
+  if (!restaurantMenuItems.length) root.textContent = "Add your first menu item above.";
   else if (!visibleItems.length) root.textContent = `No ${foodFilter === "veg" ? "Veg" : "Non-Veg"} dishes. Choose another filter.`;
 }
 
@@ -1455,7 +1486,7 @@ async function loadOrders(fetchLatest = true) {
     const data = await api("/orders/restaurant");
     restaurantOrdersCache = data.orders || []; populateDineInTableOptions(document.querySelector("#dine-in-table-count-form")?.elements.dineInTableCount.value || 10);
   }
-  const orders = restaurantOrdersCache; const root = document.querySelector("#orders"); root.replaceChildren();
+  const orders = restaurantOrdersCache; const root = document.querySelector("#orders"); if (!root) return; root.replaceChildren();
   renderActiveTableBoard(orders);
   if (restaurantOrderMode === "kitchen") {
     const activeCount = orders.filter(order => ["placed", "confirmed", "preparing", "ready"].includes(order.status) && !(order.orderType === "dine_in" && order.paymentStatus === "paid")).length;
@@ -1601,6 +1632,7 @@ document.querySelector("#order-status-filter")?.addEventListener("change", () =>
 document.querySelector("#kitchen-refresh")?.addEventListener("click", () => loadOrders().catch(error => { msg.textContent = error.message; }));
 async function loadReviews() {
   const root = document.querySelector("#owner-reviews");
+  if (!root) return;
   const { reviews } = await api("/reviews/restaurant/mine");
   root.replaceChildren();
   if (!reviews.length) {
@@ -1682,13 +1714,16 @@ async function initializeRestaurantDashboard() {
   if (isStaffDashboard && user.role !== "restaurant_staff") { location.replace("../customer/login.html"); return; }
   restaurantStaffRole = user.role === "restaurant_staff" ? user.restaurantStaffRole : null;
   const roleNames = { secondary_admin: "Secondary admin", biller_modifier: "Biller / modifier", viewer: "Viewer" };
-  document.querySelector("#restaurant-role-badge").textContent = roleNames[restaurantStaffRole] || "Restaurant owner";
+  const roleBadge = document.querySelector("#restaurant-role-badge");
+  if (roleBadge) roleBadge.textContent = roleNames[restaurantStaffRole] || "Restaurant owner";
   if (restaurantStaffRole) {
-    document.querySelector(".restaurant-brand-copy small").textContent = `${roleNames[restaurantStaffRole]} workspace`;
-    document.querySelector(".restaurant-page-heading .eyebrow").textContent = "RESTAURANT STAFF WORKSPACE";
+    const workspaceLabel = document.querySelector(".restaurant-brand-copy small, .restaurant-workspace-label");
+    if (workspaceLabel) workspaceLabel.textContent = `${roleNames[restaurantStaffRole]} workspace`;
+    const pageEyebrow = document.querySelector(".restaurant-page-heading .eyebrow");
+    if (pageEyebrow) pageEyebrow.textContent = "RESTAURANT STAFF WORKSPACE";
   }
   if (restaurantStaffRole) {
-    document.querySelector("#subscription-nav").hidden = true;
+    // Subscription navigation is commented out in the dashboard markup.
     const allowedViews = restaurantStaffRole === "secondary_admin"
       ? ["overview", "menu", "inventory", "hours", "delivery-areas", "delivery-team", "reviews", "kitchen", "orders", "dine-in", "delivery", "reports", "notifications"]
       : ["overview", "menu", "inventory", "reviews", "kitchen", "orders", "dine-in", "delivery", "notifications"];
@@ -1703,25 +1738,30 @@ async function initializeRestaurantDashboard() {
     document.querySelector("#staff-management-panel").hidden = false;
     document.querySelector("#staff-management-panel-list").hidden = false;
   }
-  if (!restaurantStaffRole) {
-    const expired = await loadOwnSubscription();
-    if (expired) {
-      document.querySelectorAll("[data-restaurant-view]").forEach(button => { button.hidden = button.dataset.restaurantView !== "subscription"; });
-      showRestaurantView("subscription");
-      msg.textContent = "Choose a plan and complete payment to activate restaurant access.";
-      return;
-    }
-    await loadStaffAccounts();
-  }
   showRestaurantView("overview");
-  const dashboardLoads = [loadMenu(), loadOrders(), loadReviews(), loadNotifications()];
-  if (!restaurantStaffRole || restaurantStaffRole !== "viewer") dashboardLoads.push(loadInventory());
-  if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(loadDeliveryPartners());
-  if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(loadReports());
-  await Promise.all(dashboardLoads);
+  const dashboardLoads = [["menu", loadMenu()], ["orders", loadOrders()], ["reviews", loadReviews()], ["notifications", loadNotifications()]];
+  if (!restaurantStaffRole) dashboardLoads.push(["staff accounts", loadStaffAccounts()]);
+  if (!restaurantStaffRole || restaurantStaffRole !== "viewer") dashboardLoads.push(["inventory", loadInventory()]);
+  if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(["delivery team", loadDeliveryPartners()]);
+  if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(["sales reports", loadReports()]);
+  // Keep one optional panel failure from preventing menu and dine-in controls from loading.
+  const results = await Promise.allSettled(dashboardLoads.map(([, promise]) => promise));
+  const failures = results.flatMap((result, index) => result.status === "rejected"
+    ? [{ panel: dashboardLoads[index][0], error: result.reason?.message || "Request failed" }]
+    : []);
+  if (failures.length) {
+    console.error("[restaurant dashboard] some panels failed to load", failures);
+    const message = document.querySelector("#message");
+    if (message) message.textContent = `Some dashboard data could not load (${failures.map(failure => failure.panel).join(", ")}). Refresh or try again.`;
+    const menuFailure = failures.find(failure => failure.panel === "menu");
+    const picker = document.querySelector("#dine-in-menu-options");
+    if (menuFailure && picker && !restaurantMenuItems.length) {
+      picker.textContent = `Could not load the restaurant dishes: ${menuFailure.error}. Refresh the dashboard and try again.`;
+    }
+  }
 }
 initializeRestaurantDashboard().catch(error => {
-  msg.textContent = `${error.message}. Sign in with an approved restaurant account.`;
+  if (msg) msg.textContent = `${error.message}. Sign in with an approved restaurant account.`;
   const picker = document.querySelector("#dine-in-menu-options");
   if (picker && !restaurantMenuItems.length) picker.textContent = `Could not load the restaurant dishes: ${error.message}. Refresh the dashboard and try again.`;
   console.error("[restaurant dashboard] initialization failed", { error: error.message });
