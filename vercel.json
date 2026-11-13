@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://restaurant-backend-gray.vercel.app/api/:path*"
+      "destination": "https://restaurant-backend-bc52.onrender.com/api/:path*"
     }
   ],
   "headers": [

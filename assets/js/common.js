@@ -3,7 +3,7 @@ const FOODWAY_LOCAL_DEV = ["localhost", "127.0.0.1"].includes(location.hostname)
 // Browser calls go through Vercel's same-origin rewrite, so session cookies
 // remain first-party. Android uses the deployed API directly with bearer auth.
 const API_BASE = FOODWAY_NATIVE_APP
-  ? "https://restaurant-backend-gray.vercel.app/api"
+  ? "https://restaurant-backend-bc52.onrender.com/api"
   : (window.FOODWAY_API_BASE || (FOODWAY_LOCAL_DEV ? "http://127.0.0.1:5100/api" : "/api"));
 const RAW_FETCH = window.fetch.bind(window);
 window.fetch = async function(input, init = {}) {
