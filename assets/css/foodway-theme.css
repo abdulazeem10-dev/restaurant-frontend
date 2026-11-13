@@ -1113,6 +1113,35 @@ html[data-theme="dark"] .restaurant-page .restaurant-overview-card {
   color: #fff !important;
   border-color: #315b42 !important;
 }
+/* Explicit dashboard IDs/classes for legacy sections not using card classes. */
+html[data-theme="dark"] .restaurant-page .report-metric,
+html[data-theme="dark"] .admin-page .report-metric,
+html[data-theme="dark"] .restaurant-page .dine-in-table-settings,
+html[data-theme="dark"] .restaurant-page #dine-in-menu-options,
+html[data-theme="dark"] .restaurant-page .dine-in-menu-list,
+html[data-theme="dark"] .restaurant-page .restaurant-content #orders.grid > article,
+html[data-theme="dark"] .restaurant-page .table-board-empty,
+html[data-theme="dark"] .restaurant-page .kitchen-queue-empty {
+  background: #24231f !important;
+  color: #f5f0df !important;
+  border-color: #51482c !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-content #orders.grid > article :is(h2, h3, h4, p, span, strong, small, label) {
+  color: #f5f0df !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-content #orders.grid > article .muted,
+html[data-theme="dark"] .restaurant-page .dine-in-table-settings > p,
+html[data-theme="dark"] .restaurant-page .dine-in-payment-note {
+  color: #c3baa5 !important;
+}
+html[data-theme="dark"] .restaurant-page .report-metric :is(span, strong, small),
+html[data-theme="dark"] .admin-page .report-metric :is(span, strong, small) {
+  color: #f5f0df !important;
+}
+html[data-theme="dark"] .restaurant-page .dine-in-menu-choice:has(input[type="checkbox"]:checked) {
+  background: #3a3219 !important;
+  border-color: #a88d25 !important;
+}
 
 /* Override legacy component text colors inside any dark page surface. */
 html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(.card, .panel, [class$="-card"], [class*="-panel"], .empty-state, .form-section, .table-wrap) :is(h1, h2, h3, h4, h5, h6, p, small, span, strong, label, dt, dd, td, th) {
