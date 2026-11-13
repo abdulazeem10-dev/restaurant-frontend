@@ -996,6 +996,123 @@ html[data-theme="dark"] .restaurant-page :is(.inventory-status, .inventory-statu
   border-color: #786622 !important;
 }
 html[data-theme="dark"] .restaurant-page :is(.inventory-item-top .muted, .dine-in-menu-item-details small, .inventory-stock-details dt) { color: #c3baa5 !important; }
+html[data-theme="dark"] .customer-page .payment-option-status {
+  background: #45391a !important;
+  color: #ffe783 !important;
+  border: 1px solid #786622;
+}
+html[data-theme="dark"] .customer-page :is(.order-eta-breakdown, .order-timing-dropdown, .order-help-status) {
+  background: #24231f !important;
+  color: #f5f0df !important;
+  border-color: #51482c !important;
+}
+html[data-theme="dark"] .customer-page :is(.order-eta-breakdown, .order-timing-dropdown, .order-help-status) :is(strong, p, span, dt, dd) {
+  color: #f5f0df !important;
+}
+html[data-theme="dark"] .customer-page .order-eta-breakdown :is(p, small) { color: #c3baa5 !important; }
+html[data-theme="dark"] .customer-page .order-action-dropdown { border-color: #51482c !important; }
+html[data-theme="dark"] .customer-page .order-action-dropdown summary { color: #f0d21b !important; }
+
+/* Admin workspaces have their own high-specificity light card styles. */
+html[data-theme="dark"] .admin-page :is(
+  .admin-stat,
+  .admin-shortcuts,
+  .admin-form-panel,
+  .admin-restaurant-card,
+  .report-metric,
+  .admin-inline-note,
+  .admin-profile-description,
+  .admin-content .panel,
+  .admin-content .card,
+  .admin-content [class$="-card"],
+  .admin-content [class$="-panel"],
+  .admin-content .table-wrap
+),
+html[data-theme="dark"] .restaurant-page :is(
+  .restaurant-content .panel,
+  .restaurant-content .card,
+  .restaurant-content [class$="-card"],
+  .restaurant-content [class$="-panel"],
+  .restaurant-content .table-wrap,
+  .restaurant-quick-links button,
+  .report-metric,
+  .report-status-list,
+  .report-table,
+  .report-top-list,
+  .opening-hours-row,
+  .delivery-area-row,
+  .menu-import-panel,
+  .menu-item-card,
+  .inventory-item-card,
+  .inventory-add-panel,
+  .inventory-stock-details > div,
+  .inventory-edit-form,
+  .inventory-summary,
+  .dine-in-menu-options,
+  .dine-in-menu-choice,
+  .kitchen-ticket,
+  .active-table-card,
+  .review-card,
+  .order-admin-request,
+  .restaurant-deactivate-profile,
+  .subscription-plan-options,
+  .restaurant-team-list li
+) {
+  background-color: #24231f !important;
+  color: #f5f0df !important;
+  border-color: #51482c !important;
+  box-shadow: 0 8px 24px #0003;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-quick-links button:hover {
+  background-color: #302e27 !important;
+  border-color: #786622 !important;
+}
+html[data-theme="dark"] :is(.admin-page, .restaurant-page) :is(
+  .admin-stat strong,
+  .admin-stat small,
+  .admin-shortcuts :is(h2, h3, p, span, strong, small),
+  .admin-form-panel :is(h2, h3, p, span, strong, small, label),
+  .admin-restaurant-card :is(h2, h3, p, span, strong, small),
+  .admin-inline-note,
+  .report-metric :is(span, strong, small),
+  .restaurant-quick-links button,
+  .restaurant-quick-links button span,
+  .restaurant-content .panel :is(h2, h3, h4, p, span, strong, small, label, dt, dd, th, td),
+  .restaurant-content [class$="-card"] :is(h2, h3, h4, p, span, strong, small, label, dt, dd, th, td),
+  .restaurant-content [class$="-panel"] :is(h2, h3, h4, p, span, strong, small, label, dt, dd, th, td),
+  .restaurant-deactivate-profile :is(strong, p),
+  .subscription-plan-options :is(strong, p),
+  .restaurant-team-list li :is(strong, p, span, small)
+) { color: #f5f0df !important; }
+html[data-theme="dark"] :is(.admin-page, .restaurant-page) :is(
+  .admin-stat small,
+  .admin-form-panel .muted,
+  .admin-restaurant-card .muted,
+  .admin-profile-description,
+  .admin-inline-note,
+  .report-metric small,
+  .restaurant-content .muted,
+  .restaurant-content [class$="-card"] .muted,
+  .restaurant-content [class$="-panel"] .muted,
+  .inventory-item-top .muted,
+  .inventory-stock-details dt,
+  .dine-in-menu-item-details small
+) { color: #c3baa5 !important; }
+html[data-theme="dark"] :is(.admin-page, .restaurant-page) :is(.admin-access-badge, .restaurant-role-badge) {
+  background: #343126 !important;
+  color: #f5df63 !important;
+  border-color: #786622 !important;
+}
+html[data-theme="dark"] .restaurant-page :is(.menu-availability-badge.is-available, .inventory-status, .inventory-status.is-low) {
+  background: #343126 !important;
+  color: #f5df63 !important;
+  border-color: #786622 !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-overview-card {
+  background: linear-gradient(120deg, #173d32, #28533d) !important;
+  color: #fff !important;
+  border-color: #315b42 !important;
+}
 
 /* Override legacy component text colors inside any dark page surface. */
 html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(.card, .panel, [class$="-card"], [class*="-panel"], .empty-state, .form-section, .table-wrap) :is(h1, h2, h3, h4, h5, h6, p, small, span, strong, label, dt, dd, td, th) {
