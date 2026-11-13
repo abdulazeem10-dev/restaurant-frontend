@@ -803,9 +803,42 @@ html[data-theme="dark"] .foodway-theme-toggle {
   color: #f0d21b;
   border-color: #62583a;
 }
+html[data-theme="dark"] .customer-page .top-search,
+html[data-theme="dark"] .customer-page .top-search input,
+html[data-theme="dark"] .customer-page .voice-search-button,
+html[data-theme="dark"] .customer-page .featured-dishes-section,
+html[data-theme="dark"] .customer-page .featured-dish-card,
+html[data-theme="dark"] .customer-page .cuisine-section,
+html[data-theme="dark"] .customer-page .cuisine-option,
+html[data-theme="dark"] .customer-page .home-food-filters,
+html[data-theme="dark"] .customer-page .budget-discovery {
+  background: #24231f;
+  color: #f5f0df;
+  border-color: #51482c;
+}
+html[data-theme="dark"] .customer-page .cuisine-section-heading h2,
+html[data-theme="dark"] .customer-page .featured-dishes-heading h2,
+html[data-theme="dark"] .customer-page .featured-dish-details h3,
+html[data-theme="dark"] .customer-page .featured-dish-details strong,
+html[data-theme="dark"] .customer-page .home-food-filters .quick-food-filters button,
+html[data-theme="dark"] .customer-page .home-food-filters .home-filter-group > span { color: #f5f0df; }
+html[data-theme="dark"] .customer-page .cuisine-option[aria-pressed="true"],
+html[data-theme="dark"] .customer-page .home-food-filters .quick-food-filters button[aria-pressed="true"] {
+  background: #3a3219;
+  color: #f5df63;
+  border-color: #d0ad00;
+}
+html[data-theme="dark"] .customer-page .featured-dish-image-wrap { background: #191815; }
+html[data-theme="dark"] .customer-page .featured-dish-details > span { color: #c3baa5; }
+html[data-theme="dark"] .customer-page .featured-dishes-controls button,
+html[data-theme="dark"] .customer-page .restaurant-carousel-controls button { background: #302e27; color: #f5f0df; border-color: #62583a; }
 html[data-theme="dark"] .site-footer { background: #0f0e0c; }
 html[data-theme="dark"] .auth-page { background-image: radial-gradient(ellipse at 12% 18%, #76621830 0, transparent 34%), radial-gradient(ellipse at 90% 82%, #58451a24 0, transparent 30%); }
 
 @media (max-width: 700px) {
   .foodway-theme-toggle { width: 38px; height: 38px; flex-basis: 38px; margin-inline-start: 7px; font-size: 21px; }
+}
+@media (max-width: 480px) {
+  .foodway-theme-toggle { width: 34px; height: 34px; flex-basis: 34px; margin-inline-start: 4px; font-size: 19px; }
+  .customer-page .site-nav { gap: .28rem; }
 }
