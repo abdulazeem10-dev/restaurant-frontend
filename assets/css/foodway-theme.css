@@ -1199,3 +1199,44 @@ html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .
   .restaurant-page .dine-in-dish-search { grid-column: auto; }
   .restaurant-page .dine-in-menu-list { max-height: 55vh; }
 }
+
+/* Restaurant menu cards are generated dynamically; keep their dark-mode
+   surface and all interactive labels readable on every dashboard theme. */
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card {
+  background: #24231f !important;
+  color: #f5f0df !important;
+  border-color: #51482c !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card :is(h3, p, label, .menu-item-summary) {
+  color: #f5f0df !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-item-summary {
+  color: #c3baa5 !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card :is(.menu-edit-toggle, .menu-edit-actions .secondary, .menu-delete) {
+  background: #302e27 !important;
+  color: #f5f0df !important;
+  border-color: #62583a !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-availability-badge.is-available {
+  background: #343126 !important;
+  color: #f5df63 !important;
+  border-color: #786622 !important;
+}
+
+/* Notification rows have their own light backgrounds in the base stylesheet. */
+html[data-theme="dark"] .restaurant-page .notification-item {
+  background: #24231f !important;
+  color: #f5f0df !important;
+  border-color: #51482c !important;
+}
+html[data-theme="dark"] .restaurant-page .notification-item.is-unread {
+  background: #302a1b !important;
+  border-color: #786622 !important;
+}
+html[data-theme="dark"] .restaurant-page .notification-item :is(strong, p, small) {
+  color: #f5f0df !important;
+}
+html[data-theme="dark"] .restaurant-page .notification-item small {
+  color: #c3baa5 !important;
+}
