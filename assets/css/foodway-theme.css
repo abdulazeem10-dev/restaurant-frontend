@@ -771,6 +771,12 @@ html[data-theme="dark"] .customer-page,
 html[data-theme="dark"] .admin-page,
 html[data-theme="dark"] .restaurant-page,
 html[data-theme="dark"] .delivery-page { background-color: #191815; color: #f5f0df; }
+html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(h1, h2, h3, h4, h5, h6) {
+  color: #f5f0df !important;
+}
+html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(.wordmark, .admin-brand, .restaurant-brand, .delivery-brand, .restaurant-brand-copy) {
+  color: #f5f0df !important;
+}
 html[data-theme="dark"] :is(.site-header, .auth-header, .admin-header, .restaurant-header, .delivery-header) {
   background: #201f1b;
   border-color: #51482c;
@@ -874,19 +880,27 @@ html[data-theme="dark"] .customer-page .recent-order-card > span:not(.recent-ord
 html[data-theme="dark"] .customer-page .food-passport-track { background: #454237; }
 html[data-theme="dark"] .customer-page .value-strip > div + div { border-color: #51482c; }
 html[data-theme="dark"] .customer-page .value-strip > div > span { background: #3a3219; color: #f5df63; }
-html[data-theme="dark"] body :is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
   background: #191815 !important;
   color: #f5f0df !important;
   border-color: #62583a !important;
   color-scheme: dark;
 }
-html[data-theme="dark"] body :is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(input, textarea)::placeholder { color: #bfb59c !important; opacity: 1; }
-html[data-theme="dark"] body :is(.customer-page, .admin-page, .restaurant-page, .delivery-page) input:-webkit-autofill,
-html[data-theme="dark"] body :is(.customer-page, .admin-page, .restaurant-page, .delivery-page) input:-webkit-autofill:hover,
-html[data-theme="dark"] body :is(.customer-page, .admin-page, .restaurant-page, .delivery-page) input:-webkit-autofill:focus {
+html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(input, textarea)::placeholder { color: #d0c6af !important; opacity: 1; }
+html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) input:-webkit-autofill,
+html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) input:-webkit-autofill:hover,
+html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) input:-webkit-autofill:focus {
   -webkit-text-fill-color: #f5f0df !important;
   -webkit-box-shadow: 0 0 0 1000px #191815 inset !important;
   caret-color: #f5f0df;
+}
+html[data-theme="dark"] .customer-page #address-recipient-label { display: block; margin-bottom: .15rem; }
+html[data-theme="dark"] .customer-page #address-recipient-label + span {
+  display: block;
+  color: #d0c6af;
+  font-size: .88rem;
+  font-weight: 600;
+  line-height: 1.45;
 }
 html[data-theme="dark"] .customer-page .quantity-control { background: #24231f; border-color: #62583a; }
 html[data-theme="dark"] .customer-page .quantity-button { background: transparent; color: #f5f0df; }
