@@ -749,6 +749,9 @@ body { color: var(--foodway-ink); }
 .foodway-theme-toggle:hover { transform: rotate(-10deg); border-color: #d0ad00; }
 .foodway-theme-toggle:focus-visible { outline: 3px solid #d2ae00aa; outline-offset: 3px; }
 
+/* Keep checkout progress labels while removing the numbered badges. */
+.checkout-progress-number { display: none !important; }
+
 html[data-theme="dark"] {
   color-scheme: dark;
   --ink: #f5f0df;
@@ -811,11 +814,21 @@ html[data-theme="dark"] .customer-page .featured-dish-card,
 html[data-theme="dark"] .customer-page .cuisine-section,
 html[data-theme="dark"] .customer-page .cuisine-option,
 html[data-theme="dark"] .customer-page .home-food-filters,
-html[data-theme="dark"] .customer-page .budget-discovery {
+html[data-theme="dark"] .customer-page .budget-discovery,
+html[data-theme="dark"] .customer-page .budget-tile,
+html[data-theme="dark"] .customer-page .store-location-bar,
+html[data-theme="dark"] .customer-page .home-food-filters .quick-food-filters button {
   background: #24231f;
   color: #f5f0df;
   border-color: #51482c;
 }
+html[data-theme="dark"] .customer-page .store-location-bar small,
+html[data-theme="dark"] .customer-page .store-location-bar > a,
+html[data-theme="dark"] .customer-page .budget-tile-arrow { color: #f0d21b; }
+html[data-theme="dark"] .customer-page .budget-tile-price,
+html[data-theme="dark"] .customer-page .budget-tile-featured .budget-tile-price { background: #3a3219; color: #f5df63; }
+html[data-theme="dark"] .customer-page .home-food-filters [data-quick-food="veg"] span { color: #78d99a; }
+html[data-theme="dark"] .customer-page .home-food-filters [data-quick-food="nonVeg"] span { color: #ff9185; }
 html[data-theme="dark"] .customer-page .cuisine-section-heading h2,
 html[data-theme="dark"] .customer-page .featured-dishes-heading h2,
 html[data-theme="dark"] .customer-page .featured-dish-details h3,
@@ -828,6 +841,9 @@ html[data-theme="dark"] .customer-page .home-food-filters .quick-food-filters bu
   color: #f5df63;
   border-color: #d0ad00;
 }
+html[data-theme="dark"] .customer-page .home-food-filters .quick-food-filters button:hover,
+html[data-theme="dark"] .customer-page .budget-tile:hover,
+html[data-theme="dark"] .customer-page .budget-tile[aria-pressed="true"] { border-color: #d0ad00; }
 html[data-theme="dark"] .customer-page .featured-dish-image-wrap { background: #191815; }
 html[data-theme="dark"] .customer-page .featured-dish-details > span { color: #c3baa5; }
 html[data-theme="dark"] .customer-page .featured-dishes-controls button,
