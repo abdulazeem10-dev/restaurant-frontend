@@ -1300,7 +1300,13 @@ function renderDineInMenuPicker(root) {
     category.append(option);
   }
   categoryLabel.append(category);
-  filters.append(search, categoryLabel);
+  const portionLabel = document.createElement("label");
+  portionLabel.textContent = "Portion size";
+  const portion = document.createElement("select");
+  portion.setAttribute("aria-label", "Filter dishes by portion size");
+  portion.innerHTML = '<option value="all">All portions</option><option value="full">Full</option><option value="half">Half</option>';
+  portionLabel.append(portion);
+  filters.append(search, categoryLabel, portionLabel);
   root.append(filters);
 
   const list = document.createElement("div");
@@ -1319,10 +1325,13 @@ function renderDineInMenuPicker(root) {
   const renderItems = () => {
     const query = search.value.trim().toLocaleLowerCase();
     const selectedCategory = category.value;
+    const selectedPortion = portion.value;
     const items = available.filter(item => {
       const matchesSearch = !query || [item.name, item.category, item.description].filter(Boolean).join(" ").toLocaleLowerCase().includes(query);
       const matchesCategory = selectedCategory === "all" || normalizeDineInCategory(item.category) === normalizeDineInCategory(selectedCategory);
-      return matchesSearch && matchesCategory;
+      const portionMatch = String(item.name || "").match(/\((half|full)\)\s*$/i)?.[1]?.toLowerCase() || "other";
+      const matchesPortion = selectedPortion === "all" || portionMatch === selectedPortion;
+      return matchesSearch && matchesCategory && matchesPortion;
     });
     list.replaceChildren();
     if (!restaurantMenuItems.length) {
@@ -1375,6 +1384,7 @@ function renderDineInMenuPicker(root) {
   };
   search.addEventListener("input", renderItems);
   category.addEventListener("change", () => { renderItems(); console.log("[dine-in] category filter", category.value, list.querySelectorAll(".dine-in-menu-choice").length, "matching dishes"); });
+  portion.addEventListener("change", renderItems);
   renderItems();
   updateSummary();
 }
