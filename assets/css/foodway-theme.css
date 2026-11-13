@@ -726,3 +726,86 @@ body { color: var(--foodway-ink); }
   border-color: #d6bc45;
   box-shadow: 0 0 0 3px #fbf4d4, 0 8px 22px #20252110;
 }
+
+/* Site-wide appearance switch. Gold remains the accent in both themes. */
+.foodway-theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  margin-inline-start: 12px;
+  padding: 0;
+  border: 1px solid var(--foodway-line);
+  border-radius: 50%;
+  background: var(--surface-white);
+  color: var(--foodway-ink);
+  font: inherit;
+  font-size: 23px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+.foodway-theme-toggle:hover { transform: rotate(-10deg); border-color: #d0ad00; }
+.foodway-theme-toggle:focus-visible { outline: 3px solid #d2ae00aa; outline-offset: 3px; }
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f5f0df;
+  --muted-ink: #c3baa5;
+  --line: #51482c;
+  --surface-warm: #191815;
+  --surface-white: #24231f;
+  --foodway-ink: #f5f0df;
+  --foodway-muted: #c3baa5;
+  --foodway-paper: #191815;
+  --foodway-line: #51482c;
+  --surface-shadow: 0 14px 36px #0008;
+  background: #191815;
+}
+html[data-theme="dark"] body,
+html[data-theme="dark"] .customer-page,
+html[data-theme="dark"] .admin-page,
+html[data-theme="dark"] .restaurant-page,
+html[data-theme="dark"] .delivery-page { background-color: #191815; color: #f5f0df; }
+html[data-theme="dark"] :is(.site-header, .auth-header, .admin-header, .restaurant-header, .delivery-header) {
+  background: #201f1b;
+  border-color: #51482c;
+  color: #f5f0df;
+}
+html[data-theme="dark"] :is(.site-nav a, .wordmark, .auth-header > a, .delivery-header nav a) { color: #f5f0df; }
+html[data-theme="dark"] :is(.auth-page > main, .auth-page section, .restaurant-card, .storefront-hero, .cart-line-card, .cart-checkout, .payment-method-panel, .payment-summary, .customer-order-card, .notification-panel, .admin-stat, .admin-shortcuts, .admin-form-panel, .restaurant-content .panel, .delivery-order-card, .delivery-location-bar, .live-tracking-panel, .order-summary, .menu-item-card, .cuisine-section, .quick-food-filters, .category-nav, .cart-items, .orders-main > section) {
+  background-color: #24231f;
+  color: #f5f0df;
+  border-color: #51482c;
+}
+html[data-theme="dark"] :is(.panel, .card, [class$="-card"], [class*="-panel"], .form-section, .table-wrap, .empty-state) {
+  background-color: #24231f;
+  color: #f5f0df;
+  border-color: #51482c;
+}
+html[data-theme="dark"] :is(h1, h2, h3, h4, strong, label, legend, th, td) { color: #f5f0df; }
+html[data-theme="dark"] :is(small, .muted, .eyebrow, .description, .help-text) { color: #c3baa5; }
+html[data-theme="dark"] :is(.auth-page label, .muted, .description, .site-footer span, .filter-group-label) { color: #c3baa5; }
+html[data-theme="dark"] :is(input, select, textarea) {
+  background-color: #191815;
+  color: #f5f0df;
+  border-color: #62583a;
+  color-scheme: dark;
+}
+html[data-theme="dark"] :is(button.secondary, .category-nav a, .filter-reset, .card-action, .payment-option, .order-step-dot) {
+  background-color: #302e27;
+  color: #f5f0df;
+  border-color: #62583a;
+}
+html[data-theme="dark"] .foodway-theme-toggle {
+  background: #302e27;
+  color: #f0d21b;
+  border-color: #62583a;
+}
+html[data-theme="dark"] .site-footer { background: #0f0e0c; }
+html[data-theme="dark"] .auth-page { background-image: radial-gradient(ellipse at 12% 18%, #76621830 0, transparent 34%), radial-gradient(ellipse at 90% 82%, #58451a24 0, transparent 30%); }
+
+@media (max-width: 700px) {
+  .foodway-theme-toggle { width: 38px; height: 38px; flex-basis: 38px; margin-inline-start: 7px; font-size: 21px; }
+}

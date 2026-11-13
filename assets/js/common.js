@@ -1,5 +1,38 @@
 const FOODWAY_NATIVE_APP = /AlMadinaAndroidApp/i.test(navigator.userAgent);
 const FOODWAY_LOCAL_DEV = ["localhost", "127.0.0.1"].includes(location.hostname);
+// Apply the saved appearance before initializing page features. The toggle
+// stays icon-only; its accessible name explains the action to assistive tech.
+(() => {
+  const key = "foodway-theme";
+  const root = document.documentElement;
+  const setTheme = theme => {
+    root.dataset.theme = theme;
+    try { localStorage.setItem(key, theme); } catch {}
+    const toggle = document.getElementById("foodway-theme-toggle");
+    if (toggle) {
+      const dark = theme === "dark";
+      toggle.textContent = dark ? "☾" : "☀";
+      toggle.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+      toggle.title = dark ? "Switch to light mode" : "Switch to dark mode";
+    }
+  };
+  let saved = "light";
+  try { saved = localStorage.getItem(key) === "dark" ? "dark" : "light"; } catch {}
+  setTheme(saved);
+
+  const header = document.querySelector(".site-header, .auth-header, .admin-header, .restaurant-header, .delivery-header");
+  if (!header || document.getElementById("foodway-theme-toggle")) return;
+  const button = document.createElement("button");
+  button.id = "foodway-theme-toggle";
+  button.className = "foodway-theme-toggle";
+  button.type = "button";
+  button.addEventListener("click", () => setTheme(root.dataset.theme === "dark" ? "light" : "dark"));
+  const nav = header.querySelector("nav");
+  if (nav) nav.append(button);
+  else if (header.classList.contains("auth-header") && header.lastElementChild) header.insertBefore(button, header.lastElementChild);
+  else header.append(button);
+  setTheme(saved);
+})();
 // Browser calls go through Vercel's same-origin rewrite, so session cookies
 // remain first-party. Android uses the deployed API directly with bearer auth.
 const API_BASE = FOODWAY_NATIVE_APP
