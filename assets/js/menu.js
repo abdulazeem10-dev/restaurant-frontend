@@ -229,9 +229,9 @@ function renderMenu(items, restaurant, filter = "all", categoryFilter = "all") {
       const action = document.createElement("button");
       action.type = "button";
       action.className = "add-item-button";
-      action.textContent = restaurant.isOpen ? "+ Add" : "Closed";
+      action.textContent = restaurant.isOpen ? "+ Add" : "Orders closed";
       action.disabled = !restaurant.isOpen;
-      action.setAttribute("aria-label", `${restaurant.isOpen ? "Add" : "Unavailable"} ${dish.name}`);
+      action.setAttribute("aria-label", restaurant.isOpen ? `Add ${dish.name}` : `${dish.name} cannot be ordered because the restaurant is closed`);
       action.addEventListener("click", () => addMenuItem(selectedItem, action));
       row.append(info, action);
       section.append(row);

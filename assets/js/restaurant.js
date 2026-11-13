@@ -1,6 +1,8 @@
 const msg = document.querySelector("#message");
 const openingDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 let restaurantStaffRole = null;
+let restaurantIsReadOnly = false;
+let restaurantCanManageAccounts = true;
 let restaurantOrdersCache = [];
 let restaurantOrderMode = "all";
 let restaurantMenuItems = [];
@@ -69,6 +71,15 @@ async function api(path, options = {}) {
   catch (error) { console.error("[restaurant API] network error", options.method || "GET", path, error); throw error; }
   const data = response.status === 204 ? {} : await response.json();
   if (!response.ok) throw new Error(data.error || "Request failed"); return data;
+}
+function applyRestaurantReadOnlyForms() {
+  if (!restaurantIsReadOnly) return;
+  ["#hours-form", "#delivery-times-form", "#delivery-area-form", "#dine-in-table-count-form", "#restaurant-details-form"].forEach(selector => {
+    const form = document.querySelector(selector);
+    if (!form) return;
+    form.querySelectorAll("input, select, textarea").forEach(field => { field.disabled = true; });
+    form.querySelectorAll('button[type="submit"], button:not([type])').forEach(button => { button.hidden = true; });
+  });
 }
 /* Subscription display and payment handlers are paused; preserve this block for future activation.
 async function loadOwnSubscription() {
@@ -204,7 +215,7 @@ async function loadNotifications() {
     time.textContent = new Date(notification.createdAt).toLocaleString("en-IN");
     content.append(title, message, time);
     item.append(content);
-    if (!notification.readAt) {
+    if (!notification.readAt && !restaurantIsReadOnly) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "secondary";
@@ -225,7 +236,7 @@ async function loadNotifications() {
   }
 }
 const restaurantStaffRoles = [
-  ["secondary_admin", "Secondary admin"],
+  ["secondary_admin", "Admin (secondary admin)"],
   ["biller_modifier", "Biller / modifier"],
   ["viewer", "Viewer"]
 ];
@@ -242,7 +253,7 @@ async function loadDeliveryPartners() {
  root.replaceChildren();
  if (!deliveryPartners.length) {
   const empty = document.createElement("p"); empty.className = "muted";
-  empty.textContent = "No delivery accounts yet. Add your first delivery person above."; root.append(empty); return;
+  empty.textContent = restaurantCanManageAccounts ? "No delivery accounts yet. Add your first delivery person above." : "No delivery accounts have been added yet."; root.append(empty); return;
  }
  for (const partner of deliveryPartners) {
   const card = document.createElement("section"); card.className = "panel";
@@ -256,6 +267,7 @@ async function loadDeliveryPartners() {
    wrapper.append(input); form.append(wrapper);
   }
   const save = document.createElement("button"); save.type = "submit"; save.textContent = "Save details"; form.append(save);
+  form.hidden = !restaurantCanManageAccounts;
   form.addEventListener("submit", async event => {
    event.preventDefault(); save.disabled = true;
    try {
@@ -268,6 +280,7 @@ async function loadDeliveryPartners() {
   state.textContent = partner.profileDeactivatedAt ? "Deactivated" : partner.status === "active" ? "Active" : partner.status;
   const toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "secondary";
   toggle.textContent = partner.profileDeactivatedAt ? "Reactivate account" : "Deactivate account";
+  toggle.hidden = !restaurantCanManageAccounts;
   toggle.addEventListener("click", async () => {
    toggle.disabled = true;
    try {
@@ -293,9 +306,8 @@ async function loadStaffAccounts() {
   const { accounts, quota } = await api("/restaurants/owner/staff");
   const list = document.querySelector("#owner-staff-list");
   const form = document.querySelector("#owner-staff-form");
-  const roleSelect = form.elements.staffRole;
-  const assignedRoles = new Set(accounts.map(account => account.restaurantStaffRole));
-  const availableRoles = restaurantStaffRoles.filter(([key]) => !assignedRoles.has(key));
+  if (!list) return;
+  const roleSelect = form?.elements.staffRole;
   const usage = document.querySelector("#staff-seat-usage");
   if (usage && quota) usage.textContent = `${quota.totalAccounts}/${quota.maxAccounts} total accounts used (${quota.remainingAccounts} available).`;
   list.replaceChildren();
@@ -308,6 +320,7 @@ async function loadStaffAccounts() {
     remove.type = "button";
     remove.className = "secondary";
     remove.textContent = "Remove";
+    remove.hidden = !restaurantCanManageAccounts;
     remove.addEventListener("click", async () => {
       if (!confirm(`Remove ${label} account for ${account.name}?`)) return;
       remove.disabled = true;
@@ -323,28 +336,55 @@ async function loadStaffAccounts() {
     item.append(details, remove);
     list.append(item);
   }
+  if (!form || !roleSelect) return;
   const rolePlaceholder = new Option("Choose an account role", "");
   rolePlaceholder.disabled = true;
   rolePlaceholder.selected = true;
-  roleSelect.replaceChildren(rolePlaceholder, ...availableRoles.map(([key, label]) => {
+  roleSelect.replaceChildren(rolePlaceholder, ...restaurantStaffRoles.map(([key, label]) => {
     const option = document.createElement("option");
     option.value = key;
     option.textContent = label;
     return option;
   }));
-  form.hidden = availableRoles.length === 0;
+  const canCreateAccount = Boolean(quota?.active && quota.remainingAccounts > 0);
+  form.hidden = !restaurantCanManageAccounts || !canCreateAccount;
   const createButton = form.querySelector('button[type="submit"]');
   if (createButton) createButton.disabled = !quota?.active || quota.remainingAccounts <= 0;
   const notice = document.querySelector("#staff-roles-complete");
-  notice.hidden = availableRoles.length > 0 && quota?.active && quota.remainingAccounts > 0;
-  notice.textContent = availableRoles.length === 0
-    ? "All three staff roles have accounts."
+  if (notice) notice.hidden = restaurantCanManageAccounts && canCreateAccount;
+  if (notice) notice.textContent = !restaurantCanManageAccounts
+    ? "You can view restaurant accounts, but only a secondary admin can create or remove them."
+    : quota?.active && quota.remainingAccounts <= 0
+    ? "Your total account limit has been reached. Deactivate an account to add another login."
     : quota?.active
-      ? "Your total account limit has been reached. Deactivate an account to add another login."
+      ? "Create an admin, biller, viewer, or delivery login while account seats remain."
       : "Restaurant account access is currently unavailable for staff and delivery management.";
 }
 
 const restaurantProfileForm = document.querySelector("#restaurant-profile-form");
+const restaurantDetailsForm = document.querySelector("#restaurant-details-form");
+if (restaurantDetailsForm) restaurantDetailsForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const values = new FormData(form);
+  button.disabled = true;
+  try {
+    const { restaurant } = await api("/restaurants/owner/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantName: values.get("restaurantName"), address: values.get("address") })
+    });
+    restaurantCurrentRestaurant = { ...restaurantCurrentRestaurant, ...restaurant };
+    const title = document.querySelector("#restaurant-title");
+    if (title) title.textContent = restaurant.name;
+    msg.textContent = "Restaurant details updated.";
+  } catch (error) {
+    msg.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
 if (restaurantProfileForm) restaurantProfileForm.addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -580,6 +620,29 @@ async function importPrintedAlMadinaMenu() {
   }
 }
 ensureMenuManagementControls();
+function isWithinConfiguredOpeningHours(openingHours, date = new Date()) {
+  if (!openingHours) return true;
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const hours = openingHours[values.weekday?.toLowerCase()];
+  if (!hours || hours.closed) return false;
+  const now = Number(values.hour) * 60 + Number(values.minute);
+  const toMinutes = value => {
+    if (typeof value !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
+    const [hour, minute] = value.split(":").map(Number);
+    return hour * 60 + minute;
+  };
+  const opens = toMinutes(hours.opensAt);
+  const closes = toMinutes(hours.closesAt);
+  return opens !== null && closes !== null && closes > opens && now >= opens && now < closes;
+}
+
 async function loadMenu() {
   const { restaurant, items = [] } = await api("/restaurants/owner/menu");
   restaurantCurrentRestaurant = restaurant;
@@ -592,7 +655,6 @@ async function loadMenu() {
   const tableCountForm = document.querySelector("#dine-in-table-count-form");
   if (tableCountForm?.elements.dineInTableCount) {
     tableCountForm.elements.dineInTableCount.value = tableCount;
-    tableCountForm.hidden = Boolean(restaurantStaffRole && restaurantStaffRole !== "secondary_admin");
   }
   populateDineInTableOptions(tableCount);
   renderDineInMenuPicker(document.querySelector("#dine-in-menu-options"));
@@ -609,18 +671,34 @@ async function loadMenu() {
     restaurantProfileForm.elements.email.value = restaurantCurrentUser?.email || "";
     restaurantProfileForm.elements.phone.value = restaurantCurrentUser?.phone || "";
   }
+  if (restaurantDetailsForm) {
+    restaurantDetailsForm.elements.restaurantName.value = restaurant.name || "";
+    restaurantDetailsForm.elements.address.value = restaurant.address || "";
+  }
   const restaurantState = document.querySelector("#restaurant-state");
-  if (restaurantState) restaurantState.textContent = `Status: ${restaurant.status} · ${restaurant.isOpenNow ? "Open for orders" : "Closed"}`;
+  if (restaurantState) {
+    if (restaurant.status !== "approved") {
+      restaurantState.textContent = `Status: ${restaurant.status} · Orders are unavailable until the platform approves this restaurant.`;
+    } else if (restaurant.isOpenNow) {
+      restaurantState.textContent = "Open for orders · Restaurant switch is on and current time is within today's hours.";
+    } else {
+      const reasons = [];
+      if (!restaurant.isOpen) reasons.push("the restaurant switch is off");
+      if (!isWithinConfiguredOpeningHours(restaurant.openingHours)) reasons.push("outside today's listed hours");
+      restaurantState.textContent = `Not accepting orders: ${reasons.join(" and ") || "check the restaurant status"}.`;
+    }
+  }
   renderOpeningHours(restaurant.openingHours);
   const prepTime = document.querySelector('#delivery-times-form [name="prepTimeMinutes"]');
   const deliveryTime = document.querySelector('#delivery-times-form [name="deliveryTimeMinutes"]');
   if (prepTime) prepTime.value = restaurant.prepTimeMinutes || 30;
   if (deliveryTime) deliveryTime.value = restaurant.deliveryTimeMinutes || 30;
   renderDeliveryAreas(restaurant.deliveryAreas || [], restaurant.deliveryPincodes || []);
+  applyRestaurantReadOnlyForms();
   const cuisine = document.querySelector('#cuisine-form [name="cuisine"]');
   if (cuisine) cuisine.value = restaurant.cuisine || "other";
   const toggle = document.querySelector("#open-toggle");
-  if (toggle && restaurant.status === "approved" && (!restaurantStaffRole || restaurantStaffRole === "secondary_admin")) { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
+  if (toggle && restaurant.status === "approved" && !restaurantIsReadOnly) { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.setAttribute("aria-label", restaurant.isOpen ? "Manually close the restaurant" : "Open the restaurant for orders during its listed hours"); toggle.onclick = async () => { toggle.disabled = true; try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } finally { toggle.disabled = false; } }; }
   else if (toggle) { toggle.hidden = true; }
   const foodFilter = document.querySelector("#owner-food-filter")?.value || "all";
   const availabilityFilter = document.querySelector("#owner-availability-filter")?.value || "all";
@@ -682,7 +760,7 @@ async function loadMenu() {
         saveButton.disabled = false;
       }
     });
-    const canEditMenu = restaurantStaffRole !== "viewer";
+    const canEditMenu = !restaurantIsReadOnly;
     if (!canEditMenu) {
       editToggle.remove();
       editForm.remove();
@@ -878,6 +956,11 @@ function renderInventory() {
     if (item.notes) addDetail("Notes / invoice", item.notes);
     const actions = document.createElement("div");
     actions.className = "inventory-item-actions";
+    if (restaurantIsReadOnly) {
+      card.append(top, details);
+      root.append(card);
+      continue;
+    }
     const editDetails = document.createElement("details");
     editDetails.className = "inventory-edit-details";
     const editSummary = document.createElement("summary");
@@ -1358,7 +1441,7 @@ function renderActiveTableBoard(orders) {
       window.setTimeout(() => target?.classList.remove("table-order-highlight"), 1600);
     });
     table.append(heading, dishes, total);
-    if (restaurantStaffRole !== "viewer") table.append(manage);
+    if (!restaurantIsReadOnly) table.append(manage);
     board.append(table);
   }
 }
@@ -1420,7 +1503,7 @@ function renderKitchenQueue(orders) {
       total.className = "kitchen-ticket-total";
       total.textContent = formatRupees(order.totalPaise);
       card.append(heading, details, items, total);
-      if (restaurantStaffRole !== "viewer" && ["placed", "confirmed", "preparing"].includes(order.status)) {
+      if (!restaurantIsReadOnly && ["placed", "confirmed", "preparing"].includes(order.status)) {
         const nextStatus = order.status === "preparing" ? "ready" : "preparing";
         const action = document.createElement("button");
         action.type = "button";
@@ -1442,7 +1525,7 @@ function renderKitchenQueue(orders) {
           }
         });
         card.append(action);
-      } else if (lane.status === "ready" && order.orderType === "delivery" && order.deliveryAssignmentStatus === "accepted" && restaurantStaffRole !== "viewer") {
+      } else if (lane.status === "ready" && order.orderType === "delivery" && order.deliveryAssignmentStatus === "accepted" && !restaurantIsReadOnly) {
         const handoff = document.createElement("button");
         handoff.type = "button";
         handoff.textContent = "Hand off to delivery";
@@ -1525,12 +1608,12 @@ async function loadOrders(fetchLatest = true) {
     const deliveryLabel = dineIn ? "" : `<p>${escapeHtml(deliveryPartnerText)}</p>`;
     const dineInStatus = dineIn && order.paymentStatus === "paid" ? "Paid · table closed" : statusLabels[order.status] || order.status.replace("_", " ");
     card.innerHTML = `<h3>${escapeHtml(orderLabel)}</h3><p>${escapeHtml(customerLabel)} · ${escapeHtml(order.customerPhone || recipient?.phone || order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<p>${escapeHtml(itemText)}</p>${addressLabel}${order.deliveryDetails?.deliveryAreaName ? `<p>Delivery area: ${escapeHtml(order.deliveryDetails.deliveryAreaName)}</p>` : ""}${deliveryLabel}<p><strong>${escapeHtml(dineInStatus)}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${!dineIn && ["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
-    if (order.deliveryAssignmentStatus === "accepted" || (order.orderType === "dine_in" && restaurantStaffRole !== "viewer")) {
+    if (order.deliveryAssignmentStatus === "accepted" || (order.orderType === "dine_in" && !restaurantIsReadOnly)) {
       const printButton = document.createElement("button"); printButton.type = "button";
       printButton.className = "secondary order-print-bill"; printButton.textContent = "Print bill";
       printButton.addEventListener("click", () => printRestaurantOrderBill(order)); card.append(printButton);
     }
-    if (order.orderType === "dine_in" && order.paymentStatus === "paid" && !order.queueClearedAt && restaurantStaffRole !== "viewer") {
+    if (order.orderType === "dine_in" && order.paymentStatus === "paid" && !order.queueClearedAt && !restaurantIsReadOnly) {
       const doneButton = document.createElement("button");
       doneButton.type = "button";
       doneButton.className = "secondary order-done-button";
@@ -1548,7 +1631,7 @@ async function loadOrders(fetchLatest = true) {
       });
       card.append(doneButton);
     }
-    if (order.orderType === "dine_in" && restaurantStaffRole !== "viewer" && order.paymentStatus !== "paid" && order.status !== "cancelled") {
+    if (order.orderType === "dine_in" && !restaurantIsReadOnly && order.paymentStatus !== "paid" && order.status !== "cancelled") {
       const addForm = document.createElement("form"); addForm.className = "dine-in-add-items";
       const picker = document.createElement("div"); picker.className = "dine-in-menu-options"; renderDineInMenuPicker(picker);
       const addButton = document.createElement("button"); addButton.type = "submit"; addButton.textContent = "Add selected dishes"; addForm.append(picker, addButton);
@@ -1563,7 +1646,7 @@ async function loadOrders(fetchLatest = true) {
       note.textContent = "Waiting for the delivery person to accept. The order cannot go out for delivery until accepted.";
       card.append(note);
     }
-    if (order.deliveryAssignmentStatus === "unassigned" && restaurantStaffRole !== "viewer") {
+    if (order.deliveryAssignmentStatus === "unassigned" && !restaurantIsReadOnly) {
       const retry = document.createElement("button");
       retry.type = "button";
       retry.textContent = "Assign another delivery person";
@@ -1582,7 +1665,7 @@ async function loadOrders(fetchLatest = true) {
       const section = document.createElement("section"); section.className = "order-admin-request";
       const summary = document.createElement("p"); summary.textContent = `Cancellation request · ${request.status}: ${request.reason}${request.details ? ` — ${request.details}` : ""}`; section.append(summary);
       if (request.response) { const response = document.createElement("p"); response.textContent = `Response: ${request.response}`; section.append(response); }
-      if (request.status === "pending" && restaurantStaffRole !== "viewer") {
+      if (request.status === "pending" && !restaurantIsReadOnly) {
         const form = document.createElement("form"); form.className = "order-admin-request-form";
         form.innerHTML = `<label>Response to customer <textarea name="response" rows="2" maxlength="500" placeholder="Optional explanation"></textarea></label><button type="submit" name="decision" value="approved">Approve cancellation</button><button type="submit" name="decision" value="declined" class="secondary">Decline</button>`;
         form.addEventListener("submit", async event => {
@@ -1598,7 +1681,7 @@ async function loadOrders(fetchLatest = true) {
       const section = document.createElement("section"); section.className = "order-admin-request";
       const summary = document.createElement("p"); summary.textContent = `${request.category.replaceAll("_", " ")} · ${request.status}: ${request.message}`; section.append(summary);
       if (request.response) { const response = document.createElement("p"); response.textContent = `Response sent: ${request.response}`; section.append(response); }
-      if (request.status === "open" && restaurantStaffRole !== "viewer") {
+      if (request.status === "open" && !restaurantIsReadOnly) {
         const form = document.createElement("form"); form.className = "order-admin-request-form";
         form.innerHTML = `<label>Reply to customer <textarea name="response" rows="2" maxlength="1000" required placeholder="Explain how this was resolved"></textarea></label><button type="submit">Reply and resolve</button>`;
         form.addEventListener("submit", async event => {
@@ -1617,7 +1700,7 @@ async function loadOrders(fetchLatest = true) {
     }
     if (order.paymentStatus === "paid") { const cancelIndex = next.indexOf("cancelled"); if (cancelIndex >= 0) next.splice(cancelIndex, 1); }
     const statusActionLabels = { preparing: "Start preparing", ready: "Ready for pickup", out_for_delivery: "Mark out for delivery", cancelled: "Cancel" };
-    if (restaurantStaffRole !== "viewer") for (const status of next) { const button = document.createElement("button"); button.textContent = statusActionLabels[status] || `Mark ${status}`; if (status === "cancelled") button.className = "secondary"; button.addEventListener("click", async () => { try { await api(`/orders/restaurant/${order._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); await loadOrders(); } catch (error) { msg.textContent = error.message; } }); card.append(button); }
+    if (!restaurantIsReadOnly) for (const status of next) { const button = document.createElement("button"); button.textContent = statusActionLabels[status] || `Mark ${status}`; if (status === "cancelled") button.className = "secondary"; button.addEventListener("click", async () => { try { await api(`/orders/restaurant/${order._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); await loadOrders(); } catch (error) { msg.textContent = error.message; } }); card.append(button); }
     root.append(card);
   }
   if (!visibleOrders.length) {
@@ -1713,7 +1796,9 @@ async function initializeRestaurantDashboard() {
   if (!isStaffDashboard && user.role !== "restaurant") { location.replace("../customer/login.html"); return; }
   if (isStaffDashboard && user.role !== "restaurant_staff") { location.replace("../customer/login.html"); return; }
   restaurantStaffRole = user.role === "restaurant_staff" ? user.restaurantStaffRole : null;
-  const roleNames = { secondary_admin: "Secondary admin", biller_modifier: "Biller / modifier", viewer: "Viewer" };
+  restaurantIsReadOnly = restaurantStaffRole === "viewer";
+  restaurantCanManageAccounts = !restaurantStaffRole || restaurantStaffRole === "secondary_admin";
+  const roleNames = { secondary_admin: "Admin", biller_modifier: "Biller", viewer: "Viewer" };
   const roleBadge = document.querySelector("#restaurant-role-badge");
   if (roleBadge) roleBadge.textContent = roleNames[restaurantStaffRole] || "Restaurant owner";
   if (restaurantStaffRole) {
@@ -1723,27 +1808,48 @@ async function initializeRestaurantDashboard() {
     if (pageEyebrow) pageEyebrow.textContent = "RESTAURANT STAFF WORKSPACE";
   }
   if (restaurantStaffRole) {
-    // Subscription navigation is commented out in the dashboard markup.
-    const allowedViews = restaurantStaffRole === "secondary_admin"
-      ? ["overview", "menu", "inventory", "hours", "delivery-areas", "delivery-team", "reviews", "kitchen", "orders", "dine-in", "delivery", "reports", "notifications"]
-      : ["overview", "menu", "inventory", "reviews", "kitchen", "orders", "dine-in", "delivery", "notifications"];
+    const allowedViews = ["overview", "menu", "inventory", "hours", "delivery-areas", "delivery-team", "accounts", "reviews", "kitchen", "orders", "dine-in", "delivery", "reports", "notifications"];
+    if (restaurantStaffRole !== "viewer") allowedViews.push("backup");
     document.querySelectorAll("[data-restaurant-view]").forEach(button => {
       button.hidden = !allowedViews.includes(button.dataset.restaurantView);
     });
     document.querySelectorAll("[data-restaurant-section]").forEach(section => {
       if (!allowedViews.includes(section.dataset.restaurantSection)) section.hidden = true;
     });
-    if (restaurantStaffRole === "viewer") { document.querySelector("#menu-form").hidden = true; document.querySelector("#dine-in-order-form").hidden = true; }
+    const staffAccountPanel = document.querySelector("#staff-management-panel");
+    if (staffAccountPanel) staffAccountPanel.hidden = false;
+    const staffAccountForm = document.querySelector("#owner-staff-form");
+    if (staffAccountForm) staffAccountForm.hidden = !restaurantCanManageAccounts;
+    ["#menu-form", "#dine-in-order-form", "#grocery-stock-form", "#aggregator-import-form"]
+      .forEach(selector => { const form = document.querySelector(selector); if (form) form.hidden = restaurantIsReadOnly; });
+    if (restaurantIsReadOnly) {
+      ["#hours-form", "#delivery-times-form", "#delivery-area-form", "#dine-in-table-count-form"].forEach(selector => {
+        const form = document.querySelector(selector);
+        if (!form) return;
+        form.querySelectorAll("input, select, textarea").forEach(field => { field.disabled = true; });
+        form.querySelectorAll('button[type="submit"], button:not([type])').forEach(button => { button.hidden = true; });
+      });
+    }
+    const deliveryAccountForm = document.querySelector("#delivery-partner-form");
+    if (deliveryAccountForm) deliveryAccountForm.hidden = !restaurantCanManageAccounts;
+    const addDeliveryArea = document.querySelector("#add-delivery-area");
+    if (addDeliveryArea) addDeliveryArea.hidden = restaurantIsReadOnly;
+    const staffBackupSection = document.querySelector('[data-restaurant-section="backup"]');
+    if (staffBackupSection && restaurantStaffRole === "viewer") staffBackupSection.hidden = true;
+    if (restaurantIsReadOnly) {
+      const openToggle = document.querySelector("#open-toggle");
+      if (openToggle) openToggle.hidden = true;
+    }
   } else if (user.role === "restaurant") {
     document.querySelector("#staff-management-panel").hidden = false;
     document.querySelector("#staff-management-panel-list").hidden = false;
   }
   showRestaurantView("overview");
   const dashboardLoads = [["menu", loadMenu()], ["orders", loadOrders()], ["reviews", loadReviews()], ["notifications", loadNotifications()]];
-  if (!restaurantStaffRole) dashboardLoads.push(["staff accounts", loadStaffAccounts()]);
-  if (!restaurantStaffRole || restaurantStaffRole !== "viewer") dashboardLoads.push(["inventory", loadInventory()]);
-  if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(["delivery team", loadDeliveryPartners()]);
-  if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(["sales reports", loadReports()]);
+  if (!restaurantStaffRole || document.querySelector("#owner-staff-list")) dashboardLoads.push(["staff accounts", loadStaffAccounts()]);
+  dashboardLoads.push(["inventory", loadInventory()]);
+  if (!restaurantStaffRole || document.querySelector("#delivery-partners")) dashboardLoads.push(["delivery team", loadDeliveryPartners()]);
+  dashboardLoads.push(["sales reports", loadReports()]);
   // Keep one optional panel failure from preventing menu and dine-in controls from loading.
   const results = await Promise.allSettled(dashboardLoads.map(([, promise]) => promise));
   const failures = results.flatMap((result, index) => result.status === "rejected"
