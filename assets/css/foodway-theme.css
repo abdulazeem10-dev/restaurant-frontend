@@ -910,6 +910,104 @@ html[data-theme="dark"] .customer-page :is(.cart-remove-button, .add-item-button
 html[data-theme="dark"] .site-footer { background: #0f0e0c; }
 html[data-theme="dark"] .auth-page { background-image: radial-gradient(ellipse at 12% 18%, #76621830 0, transparent 34%), radial-gradient(ellipse at 90% 82%, #58451a24 0, transparent 30%); }
 
+/* Keep page-specific panels readable in dark mode, including nested surfaces. */
+html[data-theme="dark"] .customer-page :is(
+  .order-summary > div,
+  .orders-signin-state,
+  .orders-empty-state,
+  .orders-loading-card,
+  .cart-empty-state,
+  .discovery-controls,
+  .store-location-bar,
+  .contact-us-card,
+  .contact-us-details,
+  .contact-us-form,
+  .customer-order-details,
+  .order-status-panel
+) {
+  background: #24231f !important;
+  color: #f5f0df !important;
+  border-color: #51482c !important;
+}
+html[data-theme="dark"] .customer-page :is(
+  .order-summary strong,
+  .order-summary small,
+  .orders-signin-state h2,
+  .orders-signin-state p,
+  .orders-empty-state h2,
+  .orders-empty-state p,
+  .orders-loading-card,
+  .cart-empty-state h2,
+  .cart-empty-state p,
+  .discovery-controls,
+  .contact-us-card,
+  .contact-us-card :is(h2, h3, p, a, strong, span),
+  .customer-order-details :is(h2, h3, p, span, strong),
+  .order-status-panel :is(h2, h3, p, span, strong)
+) { color: #f5f0df !important; }
+html[data-theme="dark"] .customer-page :is(.orders-signin-icon, .orders-empty-icon) {
+  background: #343126 !important;
+  color: #f0d21b !important;
+}
+html[data-theme="dark"] .customer-page :is(.orders-browse-link, .text-link, .order-summary a) { color: #f0d21b !important; }
+html[data-theme="dark"] .customer-page .orders-loading-line {
+  background: linear-gradient(100deg, #343126 28%, #46402d 48%, #343126 68%);
+  background-size: 220% 100%;
+}
+
+html[data-theme="dark"] .delivery-page :is(
+  .delivery-card-heading,
+  .delivery-stop,
+  .delivery-payment-summary,
+  .delivery-order-details,
+  .delivery-order-card,
+  .delivery-location-bar,
+  .live-tracking-panel
+) {
+  background: #24231f !important;
+  color: #f5f0df !important;
+  border-color: #51482c !important;
+}
+html[data-theme="dark"] .delivery-page :is(.delivery-stop-number, .delivery-stop-number--drop) {
+  background: #343126 !important;
+  color: #f5df63 !important;
+}
+html[data-theme="dark"] .delivery-page :is(.delivery-stop, .delivery-payment-summary, .delivery-order-details) :is(p, span, strong, small, dt, dd) {
+  color: #f5f0df;
+}
+
+html[data-theme="dark"] .restaurant-page :is(
+  .inventory-item-card,
+  .inventory-add-panel,
+  .inventory-stock-details > div,
+  .inventory-edit-form,
+  .inventory-summary,
+  .dine-in-menu-options,
+  .dine-in-menu-choice,
+  .dine-in-menu-choice:has(input[type="checkbox"]:checked)
+) {
+  background: #24231f !important;
+  color: #f5f0df !important;
+  border-color: #51482c !important;
+}
+html[data-theme="dark"] .restaurant-page :is(.inventory-status, .inventory-status.is-low) {
+  background: #3a3219 !important;
+  color: #f5df63 !important;
+  border-color: #786622 !important;
+}
+html[data-theme="dark"] .restaurant-page :is(.inventory-item-top .muted, .dine-in-menu-item-details small, .inventory-stock-details dt) { color: #c3baa5 !important; }
+
+/* Override legacy component text colors inside any dark page surface. */
+html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(.card, .panel, [class$="-card"], [class*="-panel"], .empty-state, .form-section, .table-wrap) :is(h1, h2, h3, h4, h5, h6, p, small, span, strong, label, dt, dd, td, th) {
+  color: inherit;
+}
+html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(.card, .panel, [class$="-card"], [class*="-panel"], .empty-state, .form-section, .table-wrap) :is(h1, h2, h3, h4, h5, h6, strong, label, dt, dd, td, th) {
+  color: #f5f0df;
+}
+html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(.card, .panel, [class$="-card"], [class*="-panel"], .empty-state, .form-section, .table-wrap) :is(p, small, .muted, .help-text) {
+  color: #c3baa5;
+}
+
 @media (max-width: 700px) {
   .foodway-theme-toggle { width: 38px; height: 38px; flex-basis: 38px; margin-inline-start: 7px; font-size: 21px; }
 }
