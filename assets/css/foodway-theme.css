@@ -749,8 +749,8 @@ body { color: var(--foodway-ink); }
 .foodway-theme-toggle:hover { transform: rotate(-10deg); border-color: #d0ad00; }
 .foodway-theme-toggle:focus-visible { outline: 3px solid #d2ae00aa; outline-offset: 3px; }
 
-/* Keep checkout progress labels while removing the numbered badges. */
-.checkout-progress-number { display: none !important; }
+/* Hide checkout step labels and badges as requested. */
+.checkout-progress { display: none !important; }
 
 html[data-theme="dark"] {
   color-scheme: dark;
@@ -848,6 +848,51 @@ html[data-theme="dark"] .customer-page .featured-dish-image-wrap { background: #
 html[data-theme="dark"] .customer-page .featured-dish-details > span { color: #c3baa5; }
 html[data-theme="dark"] .customer-page .featured-dishes-controls button,
 html[data-theme="dark"] .customer-page .restaurant-carousel-controls button { background: #302e27; color: #f5f0df; border-color: #62583a; }
+html[data-theme="dark"] .customer-page .food-passport,
+html[data-theme="dark"] .customer-page .value-strip,
+html[data-theme="dark"] .customer-page .value-strip > div,
+html[data-theme="dark"] .customer-page .recent-order-card {
+  background: #24231f;
+  color: #f5f0df;
+  border-color: #51482c;
+}
+html[data-theme="dark"] .customer-page .food-passport-heading h2,
+html[data-theme="dark"] .customer-page .food-passport-progress strong,
+html[data-theme="dark"] .customer-page .food-passport-stamp-card strong,
+html[data-theme="dark"] .customer-page .recent-orders-heading h2,
+html[data-theme="dark"] .customer-page .recent-order-card strong,
+html[data-theme="dark"] .customer-page .value-strip strong { color: #f5f0df; }
+html[data-theme="dark"] .customer-page .food-passport .eyebrow,
+html[data-theme="dark"] .customer-page .text-link,
+html[data-theme="dark"] .customer-page .recent-order-action { color: #f0d21b; }
+html[data-theme="dark"] .customer-page .food-passport-stamp-card,
+html[data-theme="dark"] .customer-page .food-passport-stamp-card.is-visited { background: #302e27; border-color: #62583a; }
+html[data-theme="dark"] .customer-page .food-passport-progress small,
+html[data-theme="dark"] .customer-page .food-passport-stamp-card small,
+html[data-theme="dark"] .customer-page .value-strip small,
+html[data-theme="dark"] .customer-page .recent-order-card > span:not(.recent-order-action) { color: #c3baa5; }
+html[data-theme="dark"] .customer-page .food-passport-track { background: #454237; }
+html[data-theme="dark"] .customer-page .value-strip > div + div { border-color: #51482c; }
+html[data-theme="dark"] .customer-page .value-strip > div > span { background: #3a3219; color: #f5df63; }
+html[data-theme="dark"] body :is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: #191815 !important;
+  color: #f5f0df !important;
+  border-color: #62583a !important;
+  color-scheme: dark;
+}
+html[data-theme="dark"] body :is(.customer-page, .admin-page, .restaurant-page, .delivery-page) :is(input, textarea)::placeholder { color: #bfb59c !important; opacity: 1; }
+html[data-theme="dark"] body :is(.customer-page, .admin-page, .restaurant-page, .delivery-page) input:-webkit-autofill,
+html[data-theme="dark"] body :is(.customer-page, .admin-page, .restaurant-page, .delivery-page) input:-webkit-autofill:hover,
+html[data-theme="dark"] body :is(.customer-page, .admin-page, .restaurant-page, .delivery-page) input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f5f0df !important;
+  -webkit-box-shadow: 0 0 0 1000px #191815 inset !important;
+  caret-color: #f5f0df;
+}
+html[data-theme="dark"] .customer-page .quantity-control { background: #24231f; border-color: #62583a; }
+html[data-theme="dark"] .customer-page .quantity-button { background: transparent; color: #f5f0df; }
+html[data-theme="dark"] .customer-page .quantity-button:hover:not(:disabled) { background: #3a3219; color: #f5df63; }
+html[data-theme="dark"] .customer-page :is(.cart-remove-button, .add-item-button) { background: #302e27; color: #ff9185; border-color: #70443d; }
+html[data-theme="dark"] .customer-page :is(.cart-remove-button, .add-item-button):hover { background: #44302b; }
 html[data-theme="dark"] .site-footer { background: #0f0e0c; }
 html[data-theme="dark"] .auth-page { background-image: radial-gradient(ellipse at 12% 18%, #76621830 0, transparent 34%), radial-gradient(ellipse at 90% 82%, #58451a24 0, transparent 30%); }
 
