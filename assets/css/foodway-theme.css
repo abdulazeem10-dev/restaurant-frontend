@@ -1240,3 +1240,32 @@ html[data-theme="dark"] .restaurant-page .notification-item :is(strong, p, small
 html[data-theme="dark"] .restaurant-page .notification-item small {
   color: #c3baa5 !important;
 }
+
+/* Keep AI support chat legible and visually consistent in dark mode. */
+html[data-theme="dark"] .customer-page .support-chat-panel,
+html[data-theme="dark"] .customer-page .support-chat-messages,
+html[data-theme="dark"] .customer-page .support-chat-form,
+html[data-theme="dark"] .customer-page .support-chat-note {
+  background: #201f1b !important;
+  color: #f5f0df !important;
+  border-color: #51482c !important;
+}
+html[data-theme="dark"] .customer-page .support-chat-message.is-assistant {
+  background: #302e27 !important;
+  color: #f5f0df !important;
+  border-color: #62583a !important;
+}
+html[data-theme="dark"] .customer-page .support-chat-message.is-user {
+  background: #3a3219 !important;
+  color: #fff3bd !important;
+  border-color: #806900 !important;
+}
+html[data-theme="dark"] .customer-page .support-chat-note,
+html[data-theme="dark"] .customer-page .support-chat-voice-status {
+  color: #c3baa5 !important;
+}
+html[data-theme="dark"] .customer-page .support-chat-actions .support-chat-mic {
+  background: #302e27 !important;
+  color: #f0d21b !important;
+  border-color: #806900 !important;
+}
