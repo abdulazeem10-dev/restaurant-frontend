@@ -630,8 +630,10 @@ function isWithinConfiguredOpeningHours(openingHours, date = new Date()) {
     hourCycle: "h23"
   }).formatToParts(date);
   const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
-  const hours = openingHours[values.weekday?.toLowerCase()];
-  if (!hours || hours.closed) return false;
+  const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const dayIndex = weekdays.indexOf(values.weekday?.toLowerCase());
+  const hours = openingHours[weekdays[dayIndex]];
+  const previousHours = openingHours[weekdays[(dayIndex + weekdays.length - 1) % weekdays.length]];
   const now = Number(values.hour) * 60 + Number(values.minute);
   const toMinutes = value => {
     if (typeof value !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
@@ -640,7 +642,16 @@ function isWithinConfiguredOpeningHours(openingHours, date = new Date()) {
   };
   const opens = toMinutes(hours.opensAt);
   const closes = toMinutes(hours.closesAt);
-  return opens !== null && closes !== null && closes > opens && now >= opens && now < closes;
+  if (hours && !hours.closed && opens !== null && closes !== null && opens !== closes) {
+    if (closes > opens && now >= opens && now < closes) return true;
+    if (closes < opens && now >= opens) return true;
+  }
+  if (previousHours && !previousHours.closed) {
+    const previousOpens = toMinutes(previousHours.opensAt);
+    const previousCloses = toMinutes(previousHours.closesAt);
+    if (previousOpens !== null && previousCloses !== null && previousOpens > previousCloses && now < previousCloses) return true;
+  }
+  return false;
 }
 
 async function loadMenu() {
@@ -1078,6 +1089,11 @@ document.querySelector("#hours-form").addEventListener("submit", async event => 
       closesAt: form.elements[`${day}-closes`].value || "22:00"
     }];
   }));
+  const sameTimeDays = openingDays.filter(day => !openingHours[day].closed && openingHours[day].opensAt === openingHours[day].closesAt);
+  if (sameTimeDays.length) {
+    msg.textContent = `Choose different opening and closing times for ${sameTimeDays.map(day => day[0].toUpperCase() + day.slice(1)).join(", ")}.`;
+    return;
+  }
   const button = form.querySelector('button[type="submit"]');
   button.disabled = true;
   msg.textContent = "";
