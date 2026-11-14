@@ -1269,3 +1269,106 @@ html[data-theme="dark"] .customer-page .support-chat-actions .support-chat-mic {
   color: #f0d21b !important;
   border-color: #806900 !important;
 }
+
+/* Responsive safety net for every customer and operator page. These rules sit
+   last so older page styles cannot force columns wider than the viewport. */
+html,
+body {
+  min-width: 320px;
+  max-width: 100%;
+}
+
+body { overflow-x: clip; }
+
+img,
+video,
+canvas,
+svg { max-width: 100%; }
+
+@media (max-width: 760px) {
+  .customer-page .site-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem .75rem;
+    padding: .6rem max(.75rem, env(safe-area-inset-left));
+  }
+
+  .customer-page .site-header > .wordmark { flex: 0 0 auto; }
+  .customer-page .site-nav { min-width: 0; max-width: 100%; margin-left: auto; flex-wrap: wrap; }
+  .customer-page .top-search {
+    order: 3;
+    flex: 1 0 100%;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .customer-page :is(.discovery-main, .storefront-main, .orders-main, .cart-main, .payment-main) {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding-inline: .85rem;
+  }
+
+  .customer-page :is(.menu-layout, .cart-layout, .payment-layout) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customer-page :is(.cart-checkout, .payment-summary, .menu-cart-card) {
+    position: static;
+    min-width: 0;
+  }
+
+  .restaurant-page :is(.restaurant-content, .restaurant-content > section),
+  .admin-page :is(.admin-content, .admin-content > section),
+  .delivery-page :is(main, .delivery-content) {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .restaurant-page :is(.form-grid, .inventory-filters, .grocery-stock-form, #dine-in-order-form) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .restaurant-page :is(.report-metrics, .report-summary, .admin-stat-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .restaurant-page .restaurant-content :is(input, select, textarea),
+  .admin-page .admin-content :is(input, select, textarea),
+  .delivery-page main :is(input, select, textarea) {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .customer-page .support-chat-panel {
+    width: min(420px, calc(100vw - 1.25rem));
+    max-height: min(78vh, 700px);
+    max-height: min(78dvh, 700px);
+    inset-inline-end: max(.625rem, env(safe-area-inset-right));
+  }
+}
+
+@media (max-width: 480px) {
+  .customer-page .site-header { gap: .4rem; }
+  .customer-page .site-nav { gap: .3rem; font-size: .8rem; }
+  .customer-page .site-nav a { padding-inline: .35rem; }
+
+  .customer-page :is(.discovery-main, .storefront-main, .orders-main, .cart-main, .payment-main) {
+    padding-inline: .65rem;
+  }
+
+  .restaurant-page :is(.form-grid, .inventory-filters, .grocery-stock-form, #dine-in-order-form,
+    .report-metrics, .report-summary, .admin-stat-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .restaurant-page .opening-hours-row { grid-template-columns: minmax(0, 1fr); }
+  .customer-page :is(.cart-line-card, .customer-order-card) { min-width: 0; }
+  .customer-page .support-chat-form { grid-template-columns: minmax(0, 1fr) auto; }
+  .customer-page .support-chat-form textarea { min-width: 0; width: 100%; }
+}
