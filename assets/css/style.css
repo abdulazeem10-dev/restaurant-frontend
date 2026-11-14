@@ -105,6 +105,8 @@ article h3 { margin-top: 0; }
 .menu-header-actions { display: flex; align-items: center; gap: 1rem; }
 .menu-food-filter { display: flex; align-items: center; gap: .5rem; color: #776d66; font-size: .9rem; white-space: nowrap; }
 .menu-food-pills { margin: 0; }
+.customer-page .menu-food-pills { max-width: 100%; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }
+.menu-food-pills button { flex: 0 0 auto; }
 .menu-food-pills button { min-height: 42px; }
 .menu-food-pills button span { color: #39925c; font-size: .62rem; }
 .menu-food-pills button[data-menu-food="nonVeg"] span { color: #ce4d3e; }

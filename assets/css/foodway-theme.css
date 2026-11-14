@@ -850,6 +850,19 @@ html[data-theme="dark"] .customer-page .home-food-filters .quick-food-filters bu
 html[data-theme="dark"] .customer-page .home-food-filters .quick-food-filters button:hover,
 html[data-theme="dark"] .customer-page .budget-tile:hover,
 html[data-theme="dark"] .customer-page .budget-tile[aria-pressed="true"] { border-color: #d0ad00; }
+html[data-theme="dark"] .customer-page .menu-food-filter { color: #d5cdb8; }
+html[data-theme="dark"] .customer-page .menu-food-pills button {
+  background: #24231f;
+  color: #f5f0df;
+  border-color: #51482c;
+}
+html[data-theme="dark"] .customer-page .menu-food-pills button[aria-pressed="true"] {
+  background: #3a3219;
+  color: #f5df63;
+  border-color: #d0ad00;
+}
+html[data-theme="dark"] .customer-page .menu-food-pills [data-menu-food="veg"] span { color: #78d99a; }
+html[data-theme="dark"] .customer-page .menu-food-pills [data-menu-food="nonVeg"] span { color: #ff9185; }
 html[data-theme="dark"] .customer-page .featured-dish-image-wrap { background: #191815; }
 html[data-theme="dark"] .customer-page .featured-dish-details > span { color: #c3baa5; }
 html[data-theme="dark"] .customer-page .featured-dishes-controls button,
