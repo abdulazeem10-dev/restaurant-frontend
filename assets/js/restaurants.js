@@ -42,6 +42,7 @@ function renderCategoryCarousel() {
   const configByCategory = new Map(configured.map(item => [String(item.category || "").trim().toLocaleLowerCase(), item]));
   const categoryChoices = categories.map((category, index) => ({ category, index, config: configByCategory.get(category.toLocaleLowerCase()) }))
     .filter(item => item.config?.visible !== false)
+    .filter(item => selectedFoodFilter === "all" || !["veg", "nonVeg"].includes(item.config?.foodType) || item.config.foodType === selectedFoodFilter)
     .sort((a, b) => {
       const orderA = Number.isInteger(a.config?.order) ? a.config.order : 1000 + a.index;
       const orderB = Number.isInteger(b.config?.order) ? b.config.order : 1000 + b.index;

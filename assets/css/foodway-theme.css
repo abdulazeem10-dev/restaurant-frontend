@@ -1446,7 +1446,7 @@ svg { max-width: 100%; }
 .restaurant-page .category-carousel-settings { display: grid; gap: .75rem; }
 .restaurant-page .category-carousel-row {
   display: grid;
-  grid-template-columns: minmax(9rem, .8fr) minmax(10rem, 1fr) minmax(14rem, 1.5fr) minmax(5rem, .4fr) minmax(12rem, .8fr);
+  grid-template-columns: minmax(7rem, .8fr) minmax(9rem, 1fr) minmax(12rem, 1.4fr) minmax(4.5rem, .45fr) minmax(8rem, .75fr) minmax(11rem, 1fr);
   align-items: end;
   gap: .8rem;
   padding: 1rem;
@@ -1457,6 +1457,7 @@ svg { max-width: 100%; }
 .restaurant-page .category-carousel-source { align-self: center; overflow-wrap: anywhere; }
 .restaurant-page .category-carousel-row label { display: grid; gap: .35rem; font-size: .88rem; font-weight: 700; }
 .restaurant-page .category-carousel-row input:not([type="checkbox"]) { width: 100%; min-width: 0; }
+.restaurant-page .category-carousel-row select { width: 100%; min-width: 0; }
 .restaurant-page .category-carousel-image-preview { width: 4rem; height: 4rem; object-fit: cover; border-radius: .65rem; border: 1px solid var(--foodway-border, #e9dba9); }
 .restaurant-page .category-carousel-visible { display: flex !important; align-items: center; gap: .55rem !important; min-height: 3rem; }
 html[data-theme="dark"] .restaurant-page .category-carousel-editor { background: #24231f; border-color: #54492c; }

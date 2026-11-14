@@ -827,7 +827,7 @@ function renderCategoryCarouselSettings(saved = restaurantCurrentRestaurant?.cat
   const savedByCategory = new Map((saved || []).map(item => [menuCategoryKey(item.category), item]));
   carouselSettingsDraft = categories.map((category, index) => {
     const previous = savedByCategory.get(menuCategoryKey(category));
-    return { category, label: previous?.label || category, imageUrl: previous?.imageUrl || "", visible: previous?.visible !== false, order: Number.isInteger(previous?.order) ? previous.order : index };
+    return { category, label: previous?.label || category, imageUrl: previous?.imageUrl || "", foodType: ["veg", "nonVeg"].includes(previous?.foodType) ? previous.foodType : "both", visible: previous?.visible !== false, order: Number.isInteger(previous?.order) ? previous.order : index };
   }).sort((a, b) => a.order - b.order || a.category.localeCompare(b.category, "en"));
   root.replaceChildren();
   if (!carouselSettingsDraft.length) {
@@ -848,10 +848,17 @@ function renderCategoryCarouselSettings(saved = restaurantCurrentRestaurant?.cat
     urlWrap.append(urlInput, preview);
     const orderWrap = document.createElement("label"); orderWrap.textContent = "Order";
     const orderInput = document.createElement("input"); orderInput.type = "number"; orderInput.min = "0"; orderInput.max = "100"; orderInput.step = "1"; orderInput.required = true; orderInput.value = String(index + 1); orderInput.dataset.carouselField = "order"; orderWrap.append(orderInput);
+    const foodTypeWrap = document.createElement("label"); foodTypeWrap.textContent = "Show for";
+    const foodTypeSelect = document.createElement("select"); foodTypeSelect.dataset.carouselField = "foodType";
+    for (const [value, text] of [["both", "All dishes"], ["veg", "Veg only"], ["nonVeg", "Non-Veg only"]]) {
+      const option = document.createElement("option"); option.value = value; option.textContent = text; foodTypeSelect.append(option);
+    }
+    foodTypeSelect.value = item.foodType;
+    foodTypeWrap.append(foodTypeSelect);
     const visibleWrap = document.createElement("label"); visibleWrap.className = "category-carousel-visible";
     const visibleInput = document.createElement("input"); visibleInput.type = "checkbox"; visibleInput.checked = item.visible; visibleInput.dataset.carouselField = "visible";
     visibleWrap.append(visibleInput, document.createTextNode("Show in customer carousel"));
-    row.append(heading, labelWrap, urlWrap, orderWrap, visibleWrap); root.append(row);
+    row.append(heading, labelWrap, urlWrap, orderWrap, foodTypeWrap, visibleWrap); root.append(row);
   }
   const editor = document.querySelector(".category-carousel-editor");
   if (editor) editor.hidden = restaurantIsReadOnly;
@@ -869,6 +876,7 @@ document.querySelector("#save-category-carousel")?.addEventListener("click", asy
       label: value("label").value.trim(),
       imageUrl: value("imageUrl").value.trim(),
       order: Number(value("order").value) - 1,
+      foodType: value("foodType").value,
       visible: value("visible").checked
     };
   });
