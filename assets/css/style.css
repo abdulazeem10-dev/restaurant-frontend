@@ -92,6 +92,22 @@ article h3 { margin-top: 0; }
 .empty-state p { margin: .4rem 0; }
 .empty-icon { color: #e83d55; font-size: 2.6rem; }
 .error-message { color: #b42318; }
+.menu-load-retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  padding: 12px 20px;
+  border: 1px solid var(--line, #d8c777);
+  border-radius: 999px;
+  background: var(--surface, #fffdf7);
+  color: var(--text, #211d14);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.menu-load-retry:hover { border-color: var(--accent, #d6ae00); }
+.menu-load-retry:focus-visible { outline: 3px solid var(--accent, #d6ae00); outline-offset: 3px; }
 .site-footer { display: flex; justify-content: space-between; gap: 1rem; padding: 1.5rem max(5vw, calc((100vw - 1200px) / 2)); border-top: 1px solid #eee9e5; color: #857c74; font-size: .88rem; }
 .storefront-main { max-width: 1120px; margin: 1.5rem auto 4rem; padding: 0 1.25rem; }
 .breadcrumbs { display: flex; gap: .65rem; margin: 0 0 1rem; color: #8a8179; font-size: .9rem; }

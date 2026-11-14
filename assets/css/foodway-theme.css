@@ -1488,6 +1488,12 @@ svg { max-width: 100%; }
 .restaurant-page .category-carousel-visible { display: flex !important; align-items: center; gap: .55rem !important; min-height: 3rem; }
 html[data-theme="dark"] .restaurant-page .category-carousel-editor { background: #24231f; border-color: #54492c; }
 html[data-theme="dark"] .restaurant-page .category-carousel-row { background: #1c1b18; border-color: #54492c; }
+html[data-theme="dark"] .customer-page .menu-load-retry {
+  background: #24231f;
+  color: #f5f0df;
+  border-color: #5a4b22;
+}
+html[data-theme="dark"] .customer-page .menu-load-retry:hover { border-color: #e0bf00; }
 @media (max-width: 900px) {
   .restaurant-page .category-carousel-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .restaurant-page .category-carousel-source, .restaurant-page .category-carousel-visible { grid-column: 1 / -1; }

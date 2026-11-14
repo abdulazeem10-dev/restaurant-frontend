@@ -14,6 +14,32 @@ let allMenuItems = [];
 let selectedFoodFilter = "all";
 let selectedBudgetFilter = "all";
 let selectedCuisineFilter = "all";
+let restaurantsLoading = false;
+
+const waitBeforeMenuRetry = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+async function fetchPublicMenuJson(url, label, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(url);
+      console.info(`[Al-Madina menu] ${label} → ${response.status} (attempt ${attempt}/${attempts})`);
+      if (!response.ok) {
+        const error = new Error(`${label} returned HTTP ${response.status}`);
+        error.status = response.status;
+        if (![500, 502, 503, 504, 522, 524].includes(response.status) || attempt === attempts) throw error;
+        lastError = error;
+      } else {
+        return await response.json();
+      }
+    } catch (error) {
+      lastError = error;
+      const retryable = !Number.isInteger(error.status) || [500, 502, 503, 504, 522, 524].includes(error.status);
+      if (!retryable || attempt === attempts) throw error;
+    }
+    await waitBeforeMenuRetry(800 * attempt);
+  }
+  throw lastError || new Error("Could not load Al-Madina menu data");
+}
 
 function getFoodFilteredMenuItems() {
   return window.foodwayFilterMenuItemsByFoodType?.(allMenuItems, selectedFoodFilter)
@@ -226,22 +252,21 @@ async function setupHomeAccountNav() {
   } catch (error) { console.error("[customer account] could not load account", error); }
 }
 async function loadRestaurants() {
+  if (restaurantsLoading) return;
+  restaurantsLoading = true;
   if (featuredSection) featuredSection.hidden = false;
   if (errorMessage) errorMessage.textContent = "";
   featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "muted", textContent: "Loading the Al-Madina menu…" }));
   try {
-    const response = await fetch(`${API_BASE}/restaurants`); console.info(`[Al-Madina menu] GET /restaurants → ${response.status}`);
-    if (!response.ok) throw new Error("Unable to load Al-Madina");
-    const data = await response.json(), approved = data.restaurants || [];
+    const data = await fetchPublicMenuJson(`${API_BASE}/restaurants`, "GET /restaurants");
+    const approved = data.restaurants || [];
     currentRestaurant = approved.find(restaurant => alMadinaRestaurantName.test(String(restaurant.name || "").trim())) || null;
     if (!currentRestaurant) {
       throw new Error("No approved Al-Madina restaurant was returned by the public restaurant API.");
     }
     renderFoodPassport();
-    const menuResponse = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`);
-    console.info(`[Al-Madina menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
-    if (!menuResponse.ok) throw new Error("Could not load Al-Madina dishes");
-    allMenuItems = ((await menuResponse.json()).items || []).map(item => ({
+    const menuData = await fetchPublicMenuJson(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`, `GET /restaurants/${currentRestaurant._id}/menu`);
+    allMenuItems = (menuData.items || []).map(item => ({
       ...item,
       foodType: window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType || ""
     }));
@@ -250,9 +275,14 @@ async function loadRestaurants() {
     renderMenuPreview(); await loadRecentOrders();
   } catch (error) {
     console.error("[Al-Madina menu] load failed", error);
-    if (errorMessage) errorMessage.textContent = "Please try again in a moment. If the problem continues, contact Al Madina directly.";
+    if (errorMessage) errorMessage.textContent = "We couldn’t connect to the menu right now. Please try again.";
     if (viewFullMenu) viewFullMenu.hidden = true;
-    featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: "We’re having trouble loading the menu right now." }));
+    const empty = Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: "We’re having trouble loading the menu right now." });
+    const retry = Object.assign(document.createElement("button"), { className: "menu-load-retry", type: "button", textContent: "Retry menu" });
+    retry.addEventListener("click", loadRestaurants, { once: true });
+    featuredDishesTrack?.replaceChildren(empty, retry);
+  } finally {
+    restaurantsLoading = false;
   }
 }
 searchForm?.addEventListener("submit", event => { event.preventDefault(); renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
