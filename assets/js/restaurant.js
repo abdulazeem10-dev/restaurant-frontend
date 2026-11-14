@@ -36,6 +36,75 @@ async function syncMenuPortionImages(imageUrl, matchingItems) {
     body: JSON.stringify({ imageUrl })
   })));
 }
+function ensureMenuImageUploadControl(form) {
+  const imageUrlField = form?.elements?.imageUrl;
+  if (!form || !imageUrlField || form.querySelector("[data-menu-image-upload]") || restaurantIsReadOnly) return;
+  const label = document.createElement("label");
+  label.className = "menu-image-upload";
+  label.dataset.menuImageUpload = "true";
+  label.append("Upload a photo directly to Cloudinary");
+  const input = document.createElement("input");
+  input.type = "file";
+  input.name = "imageFile";
+  input.accept = "image/jpeg,image/png,image/webp";
+  input.setAttribute("aria-label", "Choose a JPG, PNG, or WebP dish photo");
+  label.append(input);
+  const hint = document.createElement("small");
+  hint.textContent = "JPG, PNG, or WebP · up to 10 MB. Choose a photo, then save the dish.";
+  label.append(hint);
+  const status = document.createElement("p");
+  status.className = "muted menu-image-upload-status";
+  status.dataset.menuImageUploadStatus = "true";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  input.addEventListener("change", () => {
+    const file = input.files?.[0];
+    status.textContent = file ? `${file.name} selected. It will upload when you save.` : "";
+  });
+  imageUrlField.closest("label")?.after(label, status);
+}
+async function uploadMenuImageToCloudinary(file, container, imageUrlField = container?.elements?.imageUrl) {
+  const status = container?.querySelector("[data-menu-image-upload-status], [data-carousel-image-upload-status]");
+  const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const allowedExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
+  const extension = String(file?.name || "").split(".").pop().toLowerCase();
+  if (!file || !allowedTypes.has(file.type) || !allowedExtensions.has(extension)) {
+    throw new Error("Choose a JPG, PNG, or WebP image.");
+  }
+  if (file.size > 10 * 1024 * 1024) throw new Error("Choose an image smaller than 10 MB.");
+
+  if (status) status.textContent = "Preparing secure Cloudinary upload…";
+  const signedUpload = await api("/restaurants/owner/menu/image-upload-signature", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}"
+  });
+  const uploadForm = new FormData();
+  uploadForm.append("file", file);
+  uploadForm.append("api_key", signedUpload.apiKey);
+  uploadForm.append("timestamp", String(signedUpload.timestamp));
+  uploadForm.append("folder", signedUpload.folder);
+  uploadForm.append("allowed_formats", signedUpload.allowedFormats);
+  uploadForm.append("signature", signedUpload.signature);
+  if (status) status.textContent = "Uploading photo to Cloudinary…";
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(signedUpload.cloudName)}/image/upload`, {
+    method: "POST",
+    body: uploadForm
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error?.message || "Cloudinary could not upload this photo.");
+  let secureUrl;
+  try { secureUrl = new URL(result.secure_url); } catch { throw new Error("Cloudinary returned an invalid image URL."); }
+  if (secureUrl.protocol !== "https:" || secureUrl.hostname !== "res.cloudinary.com" || !secureUrl.pathname.startsWith(`/${signedUpload.cloudName}/image/upload/`)) {
+    throw new Error("Cloudinary returned an unexpected image URL.");
+  }
+  if (imageUrlField) {
+    imageUrlField.value = secureUrl.href;
+    imageUrlField.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  if (status) status.textContent = "Photo uploaded. Its secure URL is ready to save.";
+  return secureUrl.href;
+}
 
 const restaurantViewInfo = {
   overview: ["Overview", "A quick look at your restaurant workspace."],
@@ -579,6 +648,7 @@ const printedMenuCategories = [
 ];
 function ensureMenuManagementControls() {
   const menuForm = document.querySelector("#menu-form");
+  ensureMenuImageUploadControl(menuForm);
   if (menuForm && !document.querySelector("#menu-portion-image-help")) {
     const help = document.createElement("p");
     help.id = "menu-portion-image-help";
@@ -814,6 +884,7 @@ async function loadMenu() {
     card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p class="menu-item-summary">${escapeHtml(currentCategory)} · ${formatRupees(item.pricePaise)}</p><span class="menu-availability-badge ${item.available ? "is-available" : "is-sold-out"}">${item.available ? "Available to order" : "Sold out · hidden from customers"}</span><button type="button" class="secondary menu-edit-toggle">Edit dish details</button><form class="menu-edit-form" hidden><label>Dish name<input name="name" required maxlength="150" value="${escapeHtml(item.name)}"></label><label>Category<input name="category" required maxlength="80" list="menu-category-suggestions" value="${escapeHtml(currentCategory)}"></label><label>Food type<select name="foodType" required><option value="veg" ${item.foodType === "veg" ? "selected" : ""}>Veg</option><option value="nonVeg" ${item.foodType === "nonVeg" ? "selected" : ""}>Non-Veg</option></select></label><label>Price in rupees<input name="price" type="number" min="0.01" step="0.01" required value="${(Number(item.pricePaise) / 100).toFixed(2)}"></label><label>Description<textarea name="description" maxlength="1000">${escapeHtml(item.description || "")}</textarea></label><label>Dish image URL (HTTPS)<input name="imageUrl" type="url" maxlength="2048" placeholder="https://…" value="${escapeHtml(item.imageUrl || "")}"></label><div class="menu-edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary menu-edit-cancel">Cancel</button></div></form><p class="menu-item-actions"><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary menu-delete">Delete</button></p>`;
     const editToggle = card.querySelector(".menu-edit-toggle");
     const editForm = card.querySelector(".menu-edit-form");
+    ensureMenuImageUploadControl(editForm);
     if (portionSiblings.length) {
       const imageHint = document.createElement("p");
       imageHint.className = "muted menu-portion-image-hint";
@@ -826,6 +897,8 @@ async function loadMenu() {
     });
     card.querySelector(".menu-edit-cancel").addEventListener("click", () => {
       editForm.reset();
+      const uploadStatus = editForm.querySelector("[data-menu-image-upload-status]");
+      if (uploadStatus) uploadStatus.textContent = "";
       editForm.hidden = true;
       editToggle.textContent = "Edit dish details";
     });
@@ -836,7 +909,9 @@ async function loadMenu() {
       saveButton.disabled = true;
       msg.textContent = "";
       try {
-        const imageUrl = String(formData.get("imageUrl") || "").trim();
+        let imageUrl = String(formData.get("imageUrl") || "").trim();
+        const imageFile = editForm.elements.imageFile?.files?.[0];
+        if (imageFile?.size) imageUrl = await uploadMenuImageToCloudinary(imageFile, editForm);
         const updatedItem = {
           _id: item._id,
           name: String(formData.get("name") || "").trim(),
@@ -866,6 +941,8 @@ async function loadMenu() {
             : updatedItem.name + " updated.";
       } catch (error) {
         msg.textContent = error.message;
+        const uploadStatus = editForm.querySelector("[data-menu-image-upload-status]");
+        if (uploadStatus) uploadStatus.textContent = error.message;
         saveButton.disabled = false;
       }
     });
@@ -941,7 +1018,11 @@ function renderCategoryCarouselSettings(saved = restaurantCurrentRestaurant?.cat
     if (item.imageUrl) preview.src = item.imageUrl;
     urlInput.addEventListener("input", () => { preview.hidden = !urlInput.value.trim(); if (!preview.hidden) preview.src = urlInput.value.trim(); });
     preview.onerror = () => { preview.hidden = true; };
-    urlWrap.append(urlInput, preview);
+    const imageFileLabel = document.createElement("span"); imageFileLabel.className = "category-carousel-image-upload-label"; imageFileLabel.textContent = "Or upload a photo";
+    const imageFileInput = document.createElement("input"); imageFileInput.type = "file"; imageFileInput.accept = "image/jpeg,image/png,image/webp"; imageFileInput.setAttribute("aria-label", `Upload ${item.category} carousel photo`); imageFileInput.dataset.carouselImageFile = "true";
+    const imageUploadStatus = document.createElement("small"); imageUploadStatus.className = "category-carousel-image-upload-status"; imageUploadStatus.dataset.carouselImageUploadStatus = "true"; imageUploadStatus.setAttribute("role", "status"); imageUploadStatus.setAttribute("aria-live", "polite");
+    imageFileInput.addEventListener("change", () => { imageUploadStatus.textContent = imageFileInput.files?.[0] ? `${imageFileInput.files[0].name} selected. It will upload when you save.` : ""; });
+    urlWrap.append(urlInput, imageFileLabel, imageFileInput, imageUploadStatus, preview);
     const orderWrap = document.createElement("label"); orderWrap.textContent = "Order";
     const orderInput = document.createElement("input"); orderInput.type = "number"; orderInput.min = "0"; orderInput.max = "100"; orderInput.step = "1"; orderInput.required = true; orderInput.value = String(index + 1); orderInput.dataset.carouselField = "order"; orderWrap.append(orderInput);
     const foodTypeWrap = document.createElement("label"); foodTypeWrap.textContent = "Show for";
@@ -965,7 +1046,8 @@ document.querySelector("#save-category-carousel")?.addEventListener("click", asy
   const status = document.querySelector("#category-carousel-status");
   const root = document.querySelector("#category-carousel-settings");
   if (!root || restaurantIsReadOnly) return;
-  const categories = [...root.querySelectorAll(".category-carousel-row")].map(row => {
+  const rows = [...root.querySelectorAll(".category-carousel-row")];
+  const categories = rows.map(row => {
     const value = name => row.querySelector(`[data-carousel-field="${name}"]`);
     return {
       category: row.querySelector(".category-carousel-source").textContent,
@@ -982,12 +1064,28 @@ document.querySelector("#save-category-carousel")?.addEventListener("click", asy
   }
   button.disabled = true; status.textContent = "Saving carousel settings…";
   try {
+    for (const [index, row] of rows.entries()) {
+      const imageFile = row.querySelector("[data-carousel-image-file]")?.files?.[0];
+      if (!imageFile) continue;
+      status.textContent = `Uploading ${categories[index].label} photo to Cloudinary…`;
+      categories[index].imageUrl = await uploadMenuImageToCloudinary(
+        imageFile,
+        row,
+        row.querySelector('[data-carousel-field="imageUrl"]')
+      );
+    }
+    status.textContent = "Saving carousel settings…";
     const result = await api("/restaurants/owner/category-carousel", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ categories }) });
     restaurantCurrentRestaurant.categoryCarousel = result.categories || categories;
     renderCategoryCarouselSettings(restaurantCurrentRestaurant.categoryCarousel);
     status.textContent = "Carousel saved. The customer site will show these category settings.";
     msg.textContent = "Popular categories carousel updated.";
-  } catch (error) { status.textContent = error.message; }
+  } catch (error) {
+    status.textContent = error.message;
+    root.querySelectorAll("[data-carousel-image-upload-status]").forEach(uploadStatus => {
+      if (uploadStatus.textContent.includes("Uploading") || uploadStatus.textContent.includes("Preparing")) uploadStatus.textContent = error.message;
+    });
+  }
   finally { button.disabled = false; }
 });
 
@@ -1966,9 +2064,11 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
   };
   const matchingPortions = matchingMenuPortions(draftItem);
   const enteredImageUrl = String(form.get("imageUrl") || "").trim();
-  const imageUrl = enteredImageUrl || matchingPortions.find(item => item.imageUrl)?.imageUrl || "";
+  let imageUrl = enteredImageUrl || matchingPortions.find(item => item.imageUrl)?.imageUrl || "";
 
   try {
+    const imageFile = menuForm.elements.imageFile?.files?.[0];
+    if (imageFile?.size) imageUrl = await uploadMenuImageToCloudinary(imageFile, menuForm);
     await api("/restaurants/owner/menu", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1984,6 +2084,8 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
     });
   } catch (error) {
     msg.textContent = error.message;
+    const uploadStatus = menuForm.querySelector("[data-menu-image-upload-status]");
+    if (uploadStatus) uploadStatus.textContent = error.message;
     submitButton.disabled = false;
     return;
   }
@@ -1993,6 +2095,8 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
     : [];
   const failedSyncs = syncResults.filter(result => result.status === "rejected").length;
   menuForm.reset();
+  const uploadStatus = menuForm.querySelector("[data-menu-image-upload-status]");
+  if (uploadStatus) uploadStatus.textContent = "";
   msg.textContent = failedSyncs
     ? "Menu item added, but its image could not be synced to " + failedSyncs + " matching portion" + (failedSyncs === 1 ? "" : "s") + ". Save the image URL on those portions too."
     : matchingPortions.length && imageUrl

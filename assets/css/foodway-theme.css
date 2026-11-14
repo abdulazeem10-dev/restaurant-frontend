@@ -1324,6 +1324,20 @@ html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-f
 html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form label {
   color: #f5f0df !important;
 }
+html[data-theme="dark"] .restaurant-page .menu-image-upload {
+  color: #f5f0df !important;
+}
+html[data-theme="dark"] .restaurant-page .menu-image-upload input[type="file"] {
+  background: #1c1b18 !important;
+  color: #f5f0df !important;
+  border-color: #62583a !important;
+}
+html[data-theme="dark"] .restaurant-page .menu-image-upload :is(small) {
+  color: #c3baa5 !important;
+}
+html[data-theme="dark"] .restaurant-page .menu-image-upload-status {
+  color: #c3baa5 !important;
+}
 
 /* Notification rows have their own light backgrounds in the base stylesheet. */
 html[data-theme="dark"] .restaurant-page .notification-item {
@@ -1497,12 +1511,15 @@ svg { max-width: 100%; }
 }
 .restaurant-page .category-carousel-source { align-self: center; overflow-wrap: anywhere; }
 .restaurant-page .category-carousel-row label { display: grid; gap: .35rem; font-size: .88rem; font-weight: 700; }
+.restaurant-page .category-carousel-image-upload-label,
+.restaurant-page .category-carousel-image-upload-status { color: var(--foodway-muted, #706e68); font-size: .78rem; font-weight: 600; }
 .restaurant-page .category-carousel-row input:not([type="checkbox"]) { width: 100%; min-width: 0; }
 .restaurant-page .category-carousel-row select { width: 100%; min-width: 0; }
 .restaurant-page .category-carousel-image-preview { width: 4rem; height: 4rem; object-fit: cover; border-radius: .65rem; border: 1px solid var(--foodway-border, #e9dba9); }
 .restaurant-page .category-carousel-visible { display: flex !important; align-items: center; gap: .55rem !important; min-height: 3rem; }
 html[data-theme="dark"] .restaurant-page .category-carousel-editor { background: #24231f; border-color: #54492c; }
 html[data-theme="dark"] .restaurant-page .category-carousel-row { background: #1c1b18; border-color: #54492c; }
+html[data-theme="dark"] .restaurant-page :is(.category-carousel-image-upload-label, .category-carousel-image-upload-status) { color: #c3baa5; }
 html[data-theme="dark"] .customer-page .menu-load-retry {
   background: #24231f;
   color: #f5f0df;

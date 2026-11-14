@@ -202,6 +202,10 @@ article h3 { margin-top: 0; }
 .menu-edit-form label { display: grid; gap: .35rem; color: #4e5851; font-size: .9rem; font-weight: 650; }
 .menu-edit-form input, .menu-edit-form select, .menu-edit-form textarea { width: 100%; min-width: 0; }
 .menu-edit-form textarea { min-height: 76px; border: 1px solid #d8cec4; border-radius: .55rem; background: white; }
+.menu-image-upload { display: grid; grid-column: 1 / -1; gap: .4rem; min-width: 0; color: #4e5851; font-size: .9rem; font-weight: 650; }
+.menu-image-upload input[type="file"] { width: 100%; min-width: 0; padding: .65rem; border: 1px dashed #cdbd83; border-radius: .65rem; background: #fffdf7; color: #292a25; }
+.menu-image-upload small, .menu-image-upload-status { color: #706e68; font-size: .82rem; font-weight: 450; }
+.menu-image-upload-status { grid-column: 1 / -1; margin: 0; }
 .menu-edit-actions { display: flex; flex-wrap: wrap; align-items: end; gap: .55rem; }
 .menu-item-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-bottom: 0; }
 .menu-item-actions label { display: inline-flex; align-items: center; gap: .45rem; }
