@@ -1316,6 +1316,14 @@ html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-availa
   color: #f5df63 !important;
   border-color: #786622 !important;
 }
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form {
+  background: #1c1b18 !important;
+  color: #f5f0df !important;
+  border-color: #5a4b22 !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form label {
+  color: #f5f0df !important;
+}
 
 /* Notification rows have their own light backgrounds in the base stylesheet. */
 html[data-theme="dark"] .restaurant-page .notification-item {
