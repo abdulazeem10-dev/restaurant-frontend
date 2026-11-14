@@ -655,6 +655,29 @@ function isWithinConfiguredOpeningHours(openingHours, date = new Date()) {
   return false;
 }
 
+function applyMenuNameSearch() {
+  const root = document.querySelector("#menu-items");
+  const search = document.querySelector("#owner-menu-search");
+  if (!root || !search) return;
+  const term = search.value.trim().toLocaleLowerCase();
+  const cards = [...root.querySelectorAll(".restaurant-menu-item-card")];
+  let visibleCount = 0;
+  cards.forEach(card => {
+    const name = card.querySelector("h3")?.textContent.trim().toLocaleLowerCase() || "";
+    const matches = !term || name.includes(term);
+    card.style.display = matches ? "" : "none";
+    if (matches) visibleCount += 1;
+  });
+  root.querySelector(".menu-search-empty")?.remove();
+  if (term && cards.length && !visibleCount) {
+    const empty = document.createElement("p");
+    empty.className = "menu-search-empty muted";
+    empty.setAttribute("role", "status");
+    empty.textContent = `No dishes found for “${search.value.trim()}”. Try another name or clear the search.`;
+    root.append(empty);
+  }
+}
+
 async function loadMenu() {
   const { restaurant, items = [] } = await api("/restaurants/owner/menu");
   restaurantCurrentRestaurant = restaurant;
@@ -817,6 +840,7 @@ async function loadMenu() {
   }
   if (!restaurantMenuItems.length) root.textContent = "Add your first menu item above.";
   else if (!visibleItems.length) root.textContent = `No ${foodFilter === "veg" ? "Veg" : "Non-Veg"} dishes. Choose another filter.`;
+  applyMenuNameSearch();
 }
 
 function menuCategoryKey(value) { return String(value || "").trim().toLocaleLowerCase(); }
@@ -1157,6 +1181,7 @@ if (groceryStockForm) {
 }
 document.querySelector("#owner-food-filter").addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
 document.querySelector("#owner-availability-filter")?.addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
+document.querySelector("#owner-menu-search")?.addEventListener("input", applyMenuNameSearch);
 document.querySelector("#hours-form").addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;
