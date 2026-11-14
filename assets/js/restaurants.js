@@ -38,8 +38,18 @@ function renderCategoryCarousel() {
   const foodFiltered = getFoodFilteredMenuItems();
   const categories = [...new Set(foodFiltered.map(item => window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, "en"));
+  const configured = currentRestaurant?.categoryCarousel || [];
+  const configByCategory = new Map(configured.map(item => [String(item.category || "").trim().toLocaleLowerCase(), item]));
+  const categoryChoices = categories.map((category, index) => ({ category, index, config: configByCategory.get(category.toLocaleLowerCase()) }))
+    .filter(item => item.config?.visible !== false)
+    .sort((a, b) => {
+      const orderA = Number.isInteger(a.config?.order) ? a.config.order : 1000 + a.index;
+      const orderB = Number.isInteger(b.config?.order) ? b.config.order : 1000 + b.index;
+      return orderA - orderB || a.category.localeCompare(b.category, "en");
+    });
   const choices = [{ value: "all", label: "All dishes", image: "../assets/images/cuisines/all.webp" },
-    ...categories.map(category => ({ value: category, label: category, image: cuisineImageFor({ category }) }))];
+    ...categoryChoices.map(({ category, config }) => ({ value: category, label: config?.label || category, image: config?.imageUrl || cuisineImageFor({ category }) }))];
+  if (!choices.some(choice => choice.value === selectedCuisineFilter)) selectedCuisineFilter = "all";
   cuisineTrack.replaceChildren(...choices.map(choice => {
     const button = document.createElement("button");
     button.className = "cuisine-option";

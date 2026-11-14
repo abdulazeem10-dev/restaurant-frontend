@@ -1183,6 +1183,32 @@ html[data-theme="dark"] .customer-page .loyalty-reward-panel strong { color: #ff
 html[data-theme="dark"] .customer-page .loyalty-reward-panel small { color: #d1c9ad; }
 html[data-theme="dark"] .customer-page .payment-reward-discount { color: #a8dfaa; }
 
+/* Match dish food-type labels to the green/red food filter indicators. */
+.customer-page :is(.dish-food-type, .dish-type-badge) {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #435047;
+  font-size: .76rem;
+  font-weight: 700;
+}
+.customer-page :is(.dish-food-type, .dish-type-badge)::before {
+  width: .48em;
+  height: .48em;
+  margin-right: .42em;
+  border-radius: 50%;
+  background: #39925c;
+  content: "";
+}
+.customer-page :is(.dish-food-type-nonveg, .dish-type-nonveg)::before { background: #ce4d3e; }
+html[data-theme="dark"] .customer-page :is(.dish-food-type, .dish-type-badge) { color: #eee9d8; }
+html[data-theme="dark"] .customer-page :is(.dish-food-type-veg, .dish-type-veg)::before { background: #78d99a; }
+html[data-theme="dark"] .customer-page :is(.dish-food-type-nonveg, .dish-type-nonveg)::before { background: #ff9185; }
+
 /* Dine-in dish picker: spacious, non-overlapping cards and practical filters. */
 .restaurant-page .dine-in-menu-filters {
   grid-template-columns: minmax(240px, 1.5fr) repeat(2, minmax(170px, .8fr));
@@ -1392,4 +1418,41 @@ svg { max-width: 100%; }
   .customer-page :is(.cart-line-card, .customer-order-card) { min-width: 0; }
   .customer-page .support-chat-form { grid-template-columns: minmax(0, 1fr) auto; }
   .customer-page .support-chat-form textarea { min-width: 0; width: 100%; }
+}
+/* Restaurant-managed category carousel editor */
+.restaurant-page .category-carousel-editor {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1.5rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid var(--foodway-border, #e9dba9);
+  border-radius: 1.25rem;
+  background: var(--foodway-surface-soft, #faf8ef);
+}
+.restaurant-page .category-carousel-editor h3 { margin: .15rem 0 .4rem; }
+.restaurant-page .category-carousel-settings { display: grid; gap: .75rem; }
+.restaurant-page .category-carousel-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, .8fr) minmax(10rem, 1fr) minmax(14rem, 1.5fr) minmax(5rem, .4fr) minmax(12rem, .8fr);
+  align-items: end;
+  gap: .8rem;
+  padding: 1rem;
+  border: 1px solid var(--foodway-border, #e9dba9);
+  border-radius: .9rem;
+  background: var(--foodway-surface, #fff);
+}
+.restaurant-page .category-carousel-source { align-self: center; overflow-wrap: anywhere; }
+.restaurant-page .category-carousel-row label { display: grid; gap: .35rem; font-size: .88rem; font-weight: 700; }
+.restaurant-page .category-carousel-row input:not([type="checkbox"]) { width: 100%; min-width: 0; }
+.restaurant-page .category-carousel-image-preview { width: 4rem; height: 4rem; object-fit: cover; border-radius: .65rem; border: 1px solid var(--foodway-border, #e9dba9); }
+.restaurant-page .category-carousel-visible { display: flex !important; align-items: center; gap: .55rem !important; min-height: 3rem; }
+html[data-theme="dark"] .restaurant-page .category-carousel-editor { background: #24231f; border-color: #54492c; }
+html[data-theme="dark"] .restaurant-page .category-carousel-row { background: #1c1b18; border-color: #54492c; }
+@media (max-width: 900px) {
+  .restaurant-page .category-carousel-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .restaurant-page .category-carousel-source, .restaurant-page .category-carousel-visible { grid-column: 1 / -1; }
+}
+@media (max-width: 520px) {
+  .restaurant-page .category-carousel-row { grid-template-columns: minmax(0, 1fr); }
+  .restaurant-page .category-carousel-source, .restaurant-page .category-carousel-visible { grid-column: auto; }
 }

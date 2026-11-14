@@ -9,6 +9,7 @@ let restaurantMenuItems = [];
 let restaurantInventoryItems = [];
 let restaurantCurrentUser = null;
 let restaurantCurrentRestaurant = null;
+let carouselSettingsDraft = [];
 const restaurantViewInfo = {
   overview: ["Overview", "A quick look at your restaurant workspace."],
   menu: ["Menu", "Manage dishes, prices, food types, and availability."],
@@ -662,6 +663,7 @@ async function loadMenu() {
     foodType: window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType || "",
     available: item.available !== false
   }));
+  renderCategoryCarouselSettings(restaurant.categoryCarousel || []);
   const tableCount = restaurant.dineInTableCount || 10;
   const tableCountForm = document.querySelector("#dine-in-table-count-form");
   if (tableCountForm?.elements.dineInTableCount) {
@@ -816,6 +818,74 @@ async function loadMenu() {
   if (!restaurantMenuItems.length) root.textContent = "Add your first menu item above.";
   else if (!visibleItems.length) root.textContent = `No ${foodFilter === "veg" ? "Veg" : "Non-Veg"} dishes. Choose another filter.`;
 }
+
+function menuCategoryKey(value) { return String(value || "").trim().toLocaleLowerCase(); }
+function renderCategoryCarouselSettings(saved = restaurantCurrentRestaurant?.categoryCarousel || []) {
+  const root = document.querySelector("#category-carousel-settings");
+  if (!root) return;
+  const categories = [...new Set(restaurantMenuItems.map(item => window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim()).filter(Boolean))];
+  const savedByCategory = new Map((saved || []).map(item => [menuCategoryKey(item.category), item]));
+  carouselSettingsDraft = categories.map((category, index) => {
+    const previous = savedByCategory.get(menuCategoryKey(category));
+    return { category, label: previous?.label || category, imageUrl: previous?.imageUrl || "", visible: previous?.visible !== false, order: Number.isInteger(previous?.order) ? previous.order : index };
+  }).sort((a, b) => a.order - b.order || a.category.localeCompare(b.category, "en"));
+  root.replaceChildren();
+  if (!carouselSettingsDraft.length) {
+    root.textContent = "Add menu items with categories to configure the carousel.";
+    return;
+  }
+  for (const [index, item] of carouselSettingsDraft.entries()) {
+    const row = document.createElement("article"); row.className = "category-carousel-row";
+    const heading = document.createElement("strong"); heading.className = "category-carousel-source"; heading.textContent = item.category;
+    const labelWrap = document.createElement("label"); labelWrap.textContent = "Display name";
+    const labelInput = document.createElement("input"); labelInput.type = "text"; labelInput.maxLength = 60; labelInput.required = true; labelInput.value = item.label; labelInput.dataset.carouselField = "label"; labelWrap.append(labelInput);
+    const urlWrap = document.createElement("label"); urlWrap.textContent = "Category image URL (HTTPS)";
+    const urlInput = document.createElement("input"); urlInput.type = "url"; urlInput.maxLength = 2048; urlInput.placeholder = "https://…"; urlInput.value = item.imageUrl; urlInput.dataset.carouselField = "imageUrl";
+    const preview = document.createElement("img"); preview.className = "category-carousel-image-preview"; preview.alt = `${item.category} carousel image preview`; preview.hidden = !item.imageUrl;
+    if (item.imageUrl) preview.src = item.imageUrl;
+    urlInput.addEventListener("input", () => { preview.hidden = !urlInput.value.trim(); if (!preview.hidden) preview.src = urlInput.value.trim(); });
+    preview.onerror = () => { preview.hidden = true; };
+    urlWrap.append(urlInput, preview);
+    const orderWrap = document.createElement("label"); orderWrap.textContent = "Order";
+    const orderInput = document.createElement("input"); orderInput.type = "number"; orderInput.min = "0"; orderInput.max = "100"; orderInput.step = "1"; orderInput.required = true; orderInput.value = String(index + 1); orderInput.dataset.carouselField = "order"; orderWrap.append(orderInput);
+    const visibleWrap = document.createElement("label"); visibleWrap.className = "category-carousel-visible";
+    const visibleInput = document.createElement("input"); visibleInput.type = "checkbox"; visibleInput.checked = item.visible; visibleInput.dataset.carouselField = "visible";
+    visibleWrap.append(visibleInput, document.createTextNode("Show in customer carousel"));
+    row.append(heading, labelWrap, urlWrap, orderWrap, visibleWrap); root.append(row);
+  }
+  const editor = document.querySelector(".category-carousel-editor");
+  if (editor) editor.hidden = restaurantIsReadOnly;
+}
+
+document.querySelector("#save-category-carousel")?.addEventListener("click", async event => {
+  const button = event.currentTarget;
+  const status = document.querySelector("#category-carousel-status");
+  const root = document.querySelector("#category-carousel-settings");
+  if (!root || restaurantIsReadOnly) return;
+  const categories = [...root.querySelectorAll(".category-carousel-row")].map(row => {
+    const value = name => row.querySelector(`[data-carousel-field="${name}"]`);
+    return {
+      category: row.querySelector(".category-carousel-source").textContent,
+      label: value("label").value.trim(),
+      imageUrl: value("imageUrl").value.trim(),
+      order: Number(value("order").value) - 1,
+      visible: value("visible").checked
+    };
+  });
+  if (categories.some(item => !item.label || !Number.isInteger(item.order) || item.order < 0 || (item.imageUrl && !/^https:\/\//i.test(item.imageUrl)))) {
+    status.textContent = "Enter a display name, order number, and an HTTPS image URL.";
+    return;
+  }
+  button.disabled = true; status.textContent = "Saving carousel settings…";
+  try {
+    const result = await api("/restaurants/owner/category-carousel", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ categories }) });
+    restaurantCurrentRestaurant.categoryCarousel = result.categories || categories;
+    renderCategoryCarouselSettings(restaurantCurrentRestaurant.categoryCarousel);
+    status.textContent = "Carousel saved. The customer site will show these category settings.";
+    msg.textContent = "Popular categories carousel updated.";
+  } catch (error) { status.textContent = error.message; }
+  finally { button.disabled = false; }
+});
 
 function inventoryToday() {
   const today = new Date();
