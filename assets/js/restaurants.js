@@ -118,16 +118,36 @@ function renderMenuPreview() {
 }
 function renderFoodPassport(orders = []) {
   const stamps = document.querySelector("#passport-stamps"), label = document.querySelector("#passport-progress-label");
-  const bar = document.querySelector("#passport-progress-bar"), hint = document.querySelector("#passport-progress-hint");
-  if (!stamps || !label || !bar || !hint) return;
-  const earned = Boolean(currentRestaurant && orders.some(order => order.status === "delivered" && String(order.restaurantId?._id || order.restaurantId) === String(currentRestaurant._id)));
-  label.textContent = `${earned ? 1 : 0} of 1 Al-Madina orders`;
-  bar.style.width = earned ? "100%" : "0%";
-  hint.textContent = earned ? "You earned your Al-Madina visit stamp." : getToken() ? "Complete an Al-Madina order to collect your stamp." : "Sign in and complete an order to collect your first stamp.";
-  const card = document.createElement("div"); card.className = `food-passport-stamp-card${earned ? " is-visited" : ""}`;
-  const icon = document.createElement("span"); icon.className = "food-passport-stamp-icon"; icon.textContent = earned ? "✓" : "○";
-  const copy = document.createElement("span"), name = document.createElement("strong"), detail = document.createElement("small");
-  name.textContent = brandName; detail.textContent = "Veg and non-veg favourites"; copy.append(name, detail); card.append(icon, copy); stamps.replaceChildren(card);
+  const hint = document.querySelector("#passport-progress-hint");
+  if (!stamps || !label || !hint) return;
+  const restaurantOrders = currentRestaurant
+    ? orders.filter(order => String(order.restaurantId?._id || order.restaurantId) === String(currentRestaurant._id))
+    : [];
+  const delivered = restaurantOrders.filter(order => String(order.status || "").toLowerCase() === "delivered");
+  delivered.sort((a, b) => new Date(b.deliveredAt || b.updatedAt || b.createdAt || 0) - new Date(a.deliveredAt || a.updatedAt || a.createdAt || 0));
+  const hasInProgress = restaurantOrders.some(order => !["delivered", "cancelled", "rejected"].includes(String(order.status || "").toLowerCase()));
+  label.textContent = getToken()
+    ? `${delivered.length} delivered Al-Madina order${delivered.length === 1 ? "" : "s"}`
+    : "Sign in to see your delivered orders";
+  hint.textContent = !getToken()
+    ? "Each delivered Al-Madina order adds one visit stamp. Rewards or redemption offers are not configured yet."
+    : hasInProgress
+      ? "Your visit stamp will appear after the order is marked delivered. Rewards or redemption offers are not configured yet."
+      : delivered.length
+        ? "Each delivered order is recorded as one visit stamp. Rewards or redemption offers are not configured yet."
+        : "Place an Al-Madina order to start collecting visit stamps. Each stamp is recorded after delivery.";
+
+  stamps.replaceChildren(...delivered.map(order => {
+    const card = document.createElement("div"); card.className = "food-passport-stamp-card is-visited";
+    const icon = document.createElement("span"); icon.className = "food-passport-stamp-icon"; icon.textContent = "✓";
+    const copy = document.createElement("span"), name = document.createElement("strong"), detail = document.createElement("small");
+    const shortId = String(order._id || "").slice(-6);
+    const dateValue = order.deliveredAt || order.updatedAt || order.createdAt;
+    const orderDate = dateValue ? new Date(dateValue) : null;
+    name.textContent = "Al-Madina visit stamp";
+    detail.textContent = [shortId ? `Order #${shortId}` : "Delivered order", orderDate && !Number.isNaN(orderDate.valueOf()) ? orderDate.toLocaleDateString("en-IN") : ""].filter(Boolean).join(" · ");
+    copy.append(name, detail); card.append(icon, copy); return card;
+  }));
 }
 function renderRecentOrders(orders = []) {
   const section = document.querySelector("#recent-orders-section"), track = document.querySelector("#recent-orders-track");
@@ -185,6 +205,7 @@ async function loadRestaurants() {
     if (!currentRestaurant) {
       throw new Error("No approved Al-Madina restaurant was returned by the public restaurant API.");
     }
+    renderFoodPassport();
     const menuResponse = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`);
     console.info(`[Al-Madina menu] GET /restaurants/${currentRestaurant._id}/menu → ${menuResponse.status}`);
     if (!menuResponse.ok) throw new Error("Could not load Al-Madina dishes");
