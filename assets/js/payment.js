@@ -3,6 +3,8 @@ const paymentError = document.querySelector("#payment-error");
 const confirmOrderButton = document.querySelector("#confirm-order");
 const paymentChoices = [...document.querySelectorAll("[data-payment-choice]")];
 let checkout = null;
+let paymentSubtotalPaise = 0;
+let stampRewardsAvailable = 0;
 const ORDER_IDEMPOTENCY_KEY = "food-platform-order-idempotency-key";
 
 function getOrderIdempotencyKey() {
@@ -30,6 +32,41 @@ try {
 
 function showPaymentError(message) {
   paymentError.textContent = message;
+}
+
+function updateStampRewardPreview() {
+  const checkbox = document.querySelector("#redeem-stamp-reward");
+  const discountRow = document.querySelector("#payment-reward-discount");
+  if (!checkbox || !discountRow) return;
+  const discount = checkbox.checked && stampRewardsAvailable > 0 ? Math.floor(paymentSubtotalPaise * 0.2) : 0;
+  discountRow.hidden = discount < 1;
+  document.querySelector("#payment-discount-amount").textContent = discount ? `−${formatRupees(discount)}` : "";
+  document.querySelector("#payment-total").textContent = formatRupees(paymentSubtotalPaise - discount);
+}
+
+async function loadStampReward() {
+  const panel = document.querySelector("#loyalty-reward-panel");
+  const checkbox = document.querySelector("#redeem-stamp-reward");
+  const status = document.querySelector("#loyalty-reward-status");
+  if (!panel || !checkbox || !getToken()) return;
+  panel.hidden = false;
+  try {
+    const response = await fetch(`${API_BASE}/customer/loyalty`, { headers: authHeaders() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Could not load stamp balance");
+    const loyalty = data.loyalty || {};
+    stampRewardsAvailable = Number(loyalty.availableRewards) || 0;
+    const stampsAvailable = Number(loyalty.stampsAvailable) || 0;
+    checkbox.disabled = stampRewardsAvailable < 1;
+    status.textContent = stampRewardsAvailable > 0
+      ? `${stampsAvailable} stamps available · ${stampRewardsAvailable} reward${stampRewardsAvailable === 1 ? "" : "s"} ready`
+      : `${stampsAvailable}/20 stamps collected. Earn 1 stamp per delivered order.`;
+  } catch (error) {
+    checkbox.disabled = true;
+    status.textContent = "Stamp balance is temporarily unavailable. You can still place your order.";
+    console.warn("[customer loyalty] checkout reward balance unavailable", error);
+  }
+  updateStampRewardPreview();
 }
 
 function selectedPaymentMethod() {
@@ -61,6 +98,7 @@ function renderPaymentSummary() {
   }
 
   const itemsRoot = document.querySelector("#payment-items");
+  itemsRoot.replaceChildren();
   let subtotal = 0;
   for (const item of paymentCart.items) {
     const lineTotal = item.pricePaise * item.quantity;
@@ -76,12 +114,13 @@ function renderPaymentSummary() {
   }
 
   document.querySelector("#payment-restaurant").textContent = paymentCart.restaurantName || "Your order";
+  paymentSubtotalPaise = subtotal;
   document.querySelector("#payment-recipient").textContent = `${checkout.deliveryDetails.name} · ${checkout.deliveryDetails.phone}`;
   document.querySelector("#payment-address").textContent = checkout.deliveryAddress;
   const area = document.querySelector("#payment-delivery-area");
   area.hidden = !checkout.deliveryDetails.deliveryAreaName;
   area.textContent = checkout.deliveryDetails.deliveryAreaName ? `Restaurant service area: ${checkout.deliveryDetails.deliveryAreaName}` : "";
-  document.querySelector("#payment-total").textContent = formatRupees(subtotal);
+  updateStampRewardPreview();
 }
 
 async function createOrder(paymentMethod) {
@@ -93,6 +132,7 @@ async function createOrder(paymentMethod) {
       deliveryAddress: checkout.deliveryAddress,
       deliveryDetails: Object.fromEntries(["recipientType", "name", "phone", "flatBuilding", "lane", "landmark", "pincode"].map(key => [key, checkout.deliveryDetails[key]])),
       paymentMethod,
+      redeemReward: Boolean(document.querySelector("#redeem-stamp-reward")?.checked && stampRewardsAvailable > 0),
       items: paymentCart.items.map(({ menuItemId, quantity }) => ({ menuItemId, quantity }))
     })
   });
@@ -104,6 +144,10 @@ async function createOrder(paymentMethod) {
   }
   if (!response.ok) throw new Error(data.error || "Could not place your order");
   const order = data.order;
+  const finalDiscount = Number(order.rewardDiscountPaise) || 0;
+  const discountRow = document.querySelector("#payment-reward-discount");
+  discountRow.hidden = finalDiscount < 1;
+  document.querySelector("#payment-discount-amount").textContent = finalDiscount ? `−${formatRupees(finalDiscount)}` : "";
   document.querySelector("#payment-total").textContent = formatRupees(order.totalPaise);
   return order;
 }
@@ -148,4 +192,6 @@ if (savedPaymentMethod && paymentChoices.some(choice => {
 }
 paymentChoices.forEach(choice => choice.querySelector("input").addEventListener("change", updatePaymentChoice));
 renderPaymentSummary();
+loadStampReward();
+document.querySelector("#redeem-stamp-reward")?.addEventListener("change", updateStampRewardPreview);
 updatePaymentChoice();

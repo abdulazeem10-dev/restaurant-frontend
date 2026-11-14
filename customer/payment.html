@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="../assets/css/style.css">
 
   <link rel="stylesheet" href="../assets/css/support-chat.css?v=20261109-3">
-  <link rel="stylesheet" href="../assets/css/foodway-theme.css?v=20261114-19">
+  <link rel="stylesheet" href="../assets/css/foodway-theme.css?v=20261114-20">
 </head>
 <body class="customer-page payment-page">
   <header class="site-header">
@@ -61,6 +61,10 @@
         <h2 id="payment-restaurant">Order summary</h2>
         <div id="payment-items" class="payment-items"></div>
         <div class="payment-delivery"><strong>Delivering to</strong><span id="payment-recipient"></span><span id="payment-address" class="muted"></span><span id="payment-delivery-area" class="muted" hidden></span></div>
+        <section id="loyalty-reward-panel" class="loyalty-reward-panel" hidden aria-label="Al-Madina stamp reward">
+          <label><input id="redeem-stamp-reward" type="checkbox" disabled> <span><strong>Use 20 stamps for 20% off</strong><small id="loyalty-reward-status">Checking your stamp balance…</small></span></label>
+        </section>
+        <div id="payment-reward-discount" class="payment-reward-discount" hidden><span>Al-Madina stamp reward (20%)</span><strong id="payment-discount-amount"></strong></div>
         <div class="payment-total"><span id="payment-total-label">Order total</span><strong id="payment-total"></strong></div>
         <button id="confirm-order" class="cart-submit" type="button">Place order</button>
         <p class="cart-checkout-note">The restaurant will confirm your order after you place it.</p>
@@ -70,7 +74,7 @@
 
   <footer class="site-footer"><a class="wordmark" href="index.html"><img class="brand-logo" src="../assets/images/al-madina-family-restaurant.png" alt="Al Madina Family Restaurant"></a><span>Fresh food from your neighbourhood</span></footer>
   <script src="../assets/js/common.js"></script>
-  <script src="../assets/js/payment.js"></script>
+  <script src="../assets/js/payment.js?v=20261114-1"></script>
   <script src="../assets/js/support-chat.js?v=20261109-3"></script>
 </body>
 </html>

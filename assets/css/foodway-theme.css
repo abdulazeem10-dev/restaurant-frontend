@@ -1162,6 +1162,27 @@ html[data-theme="dark"] body:is(.customer-page, .admin-page, .restaurant-page, .
   .customer-page .site-nav { gap: .28rem; }
 }
 
+/* Stamp reward panel and applied checkout discount */
+.customer-page .loyalty-reward-panel {
+  margin: .9rem 0 .25rem;
+  padding: .9rem 1rem;
+  border: 1px solid #dfc850;
+  border-radius: 14px;
+  background: #fff9dd;
+  color: #211d12;
+}
+.customer-page .loyalty-reward-panel label { display: flex; align-items: flex-start; gap: .7rem; cursor: pointer; }
+.customer-page .loyalty-reward-panel input { width: 1.1rem; height: 1.1rem; flex: 0 0 auto; margin-top: .15rem; accent-color: #d0ad00; }
+.customer-page .loyalty-reward-panel label span { display: grid; gap: .2rem; }
+.customer-page .loyalty-reward-panel strong { color: #211d12; }
+.customer-page .loyalty-reward-panel small { color: #625a43; line-height: 1.45; }
+.customer-page .payment-reward-discount { display: flex; justify-content: space-between; gap: .75rem; padding: .7rem 0; color: #347342; font-weight: 700; }
+.customer-page .payment-reward-discount[hidden] { display: none; }
+html[data-theme="dark"] .customer-page .loyalty-reward-panel { border-color: #756317; background: #292516; color: #f5f0dd; }
+html[data-theme="dark"] .customer-page .loyalty-reward-panel strong { color: #fff5cb; }
+html[data-theme="dark"] .customer-page .loyalty-reward-panel small { color: #d1c9ad; }
+html[data-theme="dark"] .customer-page .payment-reward-discount { color: #a8dfaa; }
+
 /* Dine-in dish picker: spacious, non-overlapping cards and practical filters. */
 .restaurant-page .dine-in-menu-filters {
   grid-template-columns: minmax(240px, 1.5fr) repeat(2, minmax(170px, .8fr));

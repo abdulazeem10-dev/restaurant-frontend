@@ -126,17 +126,20 @@ function renderFoodPassport(orders = [], loyalty = null) {
   const delivered = restaurantOrders.filter(order => String(order.status || "").toLowerCase() === "delivered");
   delivered.sort((a, b) => new Date(b.deliveredAt || b.updatedAt || b.createdAt || 0) - new Date(a.deliveredAt || a.updatedAt || a.createdAt || 0));
   const hasInProgress = restaurantOrders.some(order => !["delivered", "cancelled", "rejected"].includes(String(order.status || "").toLowerCase()));
-  const points = Number(loyalty?.points || 0);
+  const stampsEarned = Number(loyalty?.stampsEarned ?? delivered.length);
+  const stampsAvailable = Number(loyalty?.stampsAvailable || 0);
+  const stampsProgress = Number(loyalty?.stampsTowardNextReward || 0);
+  const rewardsReady = Number(loyalty?.availableRewards || 0);
   label.textContent = getToken()
-    ? `${delivered.length} delivered order${delivered.length === 1 ? "" : "s"} · ${points.toLocaleString("en-IN")} points`
+    ? `${stampsAvailable} available stamp${stampsAvailable === 1 ? "" : "s"} · ${stampsEarned} earned`
     : "Sign in to see your delivered orders";
   hint.textContent = !getToken()
-    ? "Each delivered Al-Madina order adds one visit stamp. Sign in to see your points balance and earning rule."
+    ? "Get 1 stamp for each delivered Al-Madina order. Redeem 20 stamps for 20% off one order. Sign in to see your balance."
     : hasInProgress
-      ? `${loyalty?.rewardMessage || "Points are calculated from delivered orders."} Your visit stamp appears after delivery.`
+      ? `${loyalty?.rewardMessage || "Get 1 stamp for each delivered order. Redeem 20 stamps for 20% off one order."} Your stamp appears after delivery.`
       : delivered.length
-        ? `${loyalty?.rewardMessage || "Points are calculated from delivered orders."} Each delivered order is recorded as one visit stamp.`
-        : `Place an Al-Madina order to start collecting visit stamps. ${loyalty?.rewardMessage || "Points are calculated from delivered orders."}`;
+        ? `${rewardsReady} reward${rewardsReady === 1 ? "" : "s"} ready to use · ${stampsProgress}/20 stamps toward the next reward.`
+        : `Place an Al-Madina order to start collecting stamps. ${loyalty?.rewardMessage || "Get 1 stamp for each delivered order. Redeem 20 stamps for 20% off one order."}`;
 
   stamps.replaceChildren(...delivered.map(order => {
     const card = document.createElement("div"); card.className = "food-passport-stamp-card is-visited";
@@ -145,7 +148,7 @@ function renderFoodPassport(orders = [], loyalty = null) {
     const shortId = String(order._id || "").slice(-6);
     const dateValue = order.deliveredAt || order.updatedAt || order.createdAt;
     const orderDate = dateValue ? new Date(dateValue) : null;
-    name.textContent = "Al-Madina visit stamp";
+    name.textContent = "Al-Madina stamp earned";
     detail.textContent = [shortId ? `Order #${shortId}` : "Delivered order", orderDate && !Number.isNaN(orderDate.valueOf()) ? orderDate.toLocaleDateString("en-IN") : ""].filter(Boolean).join(" · ");
     copy.append(name, detail); card.append(icon, copy); return card;
   }));
@@ -186,7 +189,7 @@ async function loadRecentOrders() {
       const loyaltyResponse = await fetch(`${API_BASE}/customer/loyalty`, { headers: authHeaders() });
       console.info(`[customer loyalty] GET /customer/loyalty → ${loyaltyResponse.status}`);
       if (loyaltyResponse.ok) loyalty = (await loyaltyResponse.json()).loyalty || null;
-    } catch (error) { console.warn("[customer loyalty] could not load points summary", error); }
+    } catch (error) { console.warn("[customer loyalty] could not load stamp summary", error); }
     renderFoodPassport(orders, loyalty);
   }
   catch (error) { console.error("[customer orders] could not load recent orders", error); }

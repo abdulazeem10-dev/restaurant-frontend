@@ -601,18 +601,18 @@ async function loadLoyaltySummary() {
   const response = await fetch(API_BASE + "/customer/loyalty", { headers: authHeaders() });
   const data = await response.json();
   if (response.status === 401) return;
-  if (!response.ok) throw new Error(data.error || "Could not load loyalty points");
+  if (!response.ok) throw new Error(data.error || "Could not load Al-Madina stamps");
   const loyalty = data.loyalty || {};
   const summary = document.querySelector(".order-summary");
   if (!summary) return;
   let card = document.querySelector("#summary-points")?.closest("div");
   if (!card) {
     card = document.createElement("div");
-    card.innerHTML = '<span aria-hidden="true">✦</span><strong id="summary-points">0</strong><small>Foodway points</small>';
+    card.innerHTML = '<span aria-hidden="true">✦</span><strong id="summary-points">0</strong><small>Al-Madina stamps</small>';
     summary.append(card);
   }
-  card.querySelector("#summary-points").textContent = Number(loyalty.points || 0).toLocaleString("en-IN");
-  card.title = loyalty.rewardMessage || "Points earned from delivered orders";
+  card.querySelector("#summary-points").textContent = Number(loyalty.stampsAvailable || 0).toLocaleString("en-IN");
+  card.title = loyalty.rewardMessage || "Earn 1 stamp for each delivered order; redeem 20 for 20% off";
 }
 
 async function loadOrders(force = false) {
