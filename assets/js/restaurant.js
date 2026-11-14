@@ -18,7 +18,8 @@ function menuPortionIdentity(item = {}) {
   const baseName = name.slice(0, match.index).trim();
   if (!baseName) return null;
   const normalize = value => String(value || "").normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
-  return { portion, key: [normalize(baseName), normalize(item.category || "Other"), normalize(item.foodType)].join("\u0000") };
+  // Existing Half/Full rows can have inconsistent category or food-type metadata.
+  return { portion, key: normalize(baseName) };
 }
 function matchingMenuPortions(item, items = restaurantMenuItems) {
   const identity = menuPortionIdentity(item);
@@ -582,7 +583,7 @@ function ensureMenuManagementControls() {
     const help = document.createElement("p");
     help.id = "menu-portion-image-help";
     help.className = "muted";
-    help.textContent = "Matching Half / Full choices share one image automatically when dish name, category, and food type match. Prices and availability stay separate.";
+    help.textContent = "Save the image on either matching Half or Full dish to apply it to both. For an existing pair with different photos, edit either one and save once. Prices and availability stay separate.";
     menuForm.after(help);
   }
   const categoryControl = menuForm?.elements.category;
@@ -816,7 +817,7 @@ async function loadMenu() {
     if (portionSiblings.length) {
       const imageHint = document.createElement("p");
       imageHint.className = "muted menu-portion-image-hint";
-      imageHint.textContent = "This image is shared with matching Half / Full portions. Prices and availability stay separate.";
+      imageHint.textContent = "Saving this image updates the matching Half / Full dish too. Prices and availability stay separate.";
       editForm.insertBefore(imageHint, editForm.querySelector(".menu-edit-actions"));
     }
     editToggle.addEventListener("click", () => {
