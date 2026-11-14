@@ -10,6 +10,32 @@ let restaurantInventoryItems = [];
 let restaurantCurrentUser = null;
 let restaurantCurrentRestaurant = null;
 let carouselSettingsDraft = [];
+function menuPortionIdentity(item = {}) {
+  const name = String(item.name || "").trim();
+  const match = name.match(/\s*(?:\(\s*(half|full)\s*\)|\[\s*(half|full)\s*\]|\b(half|full))\s*$/i);
+  if (!match) return null;
+  const portion = (match[1] || match[2] || match[3]).toLowerCase();
+  const baseName = name.slice(0, match.index).trim();
+  if (!baseName) return null;
+  const normalize = value => String(value || "").normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+  return { portion, key: [normalize(baseName), normalize(item.category || "Other"), normalize(item.foodType)].join("\u0000") };
+}
+function matchingMenuPortions(item, items = restaurantMenuItems) {
+  const identity = menuPortionIdentity(item);
+  if (!identity) return [];
+  return items.filter(candidate => {
+    if (String(candidate._id || "") === String(item._id || "")) return false;
+    return menuPortionIdentity(candidate)?.key === identity.key;
+  });
+}
+async function syncMenuPortionImages(imageUrl, matchingItems) {
+  return Promise.allSettled(matchingItems.map(item => api("/restaurants/owner/menu/" + item._id, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageUrl })
+  })));
+}
+
 const restaurantViewInfo = {
   overview: ["Overview", "A quick look at your restaurant workspace."],
   menu: ["Menu", "Manage dishes, prices, food types, and availability."],
@@ -552,6 +578,13 @@ const printedMenuCategories = [
 ];
 function ensureMenuManagementControls() {
   const menuForm = document.querySelector("#menu-form");
+  if (menuForm && !document.querySelector("#menu-portion-image-help")) {
+    const help = document.createElement("p");
+    help.id = "menu-portion-image-help";
+    help.className = "muted";
+    help.textContent = "Matching Half / Full choices share one image automatically when dish name, category, and food type match. Prices and availability stay separate.";
+    menuForm.after(help);
+  }
   const categoryControl = menuForm?.elements.category;
   if (categoryControl?.tagName === "SELECT") {
     const input = document.createElement("input");
@@ -580,6 +613,21 @@ function ensureMenuManagementControls() {
     label.append(select);
     toolbar.querySelector(".owner-menu-filters")?.prepend(label) || toolbar.append(label);
     select.addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
+  }
+  const menuFilters = toolbar?.querySelector(".owner-menu-filters");
+  if (menuFilters && !document.querySelector("#owner-portion-filter")) {
+    const label = document.createElement("label");
+    label.className = "owner-menu-filter";
+    label.htmlFor = "owner-portion-filter";
+    label.append("Portion");
+    const select = document.createElement("select");
+    select.id = "owner-portion-filter";
+    select.add(new Option("All portions", "all"));
+    select.add(new Option("Half", "half"));
+    select.add(new Option("Full", "full"));
+    select.add(new Option("Regular / other", "regular"));
+    label.append(select);
+    menuFilters.append(label);
   }
   const panel = document.querySelector("[data-restaurant-section='menu'] .panel");
   if (panel && !document.querySelector("#import-almadina-menu")) {
@@ -738,6 +786,7 @@ async function loadMenu() {
   else if (toggle) { toggle.hidden = true; }
   const foodFilter = document.querySelector("#owner-food-filter")?.value || "all";
   const availabilityFilter = document.querySelector("#owner-availability-filter")?.value || "all";
+  const portionFilter = document.querySelector("#owner-portion-filter")?.value || "all";
   const availableCount = restaurantMenuItems.filter(item => item.available !== false).length;
   const availabilitySummary = document.querySelector("#menu-availability-summary");
   if (availabilitySummary) availabilitySummary.textContent = `${availableCount} available · ${items.length - availableCount} sold out`;
@@ -752,6 +801,7 @@ async function loadMenu() {
   categorySuggestions?.replaceChildren(...categories.map(category => new Option(category, category)));
   const visibleItems = restaurantMenuItems.filter(item => (foodFilter === "all" || item.foodType === foodFilter)
     && (availabilityFilter === "all" || (availabilityFilter === "available" ? item.available : !item.available))
+    && (portionFilter === "all" || (menuPortionIdentity(item)?.portion || "regular") === portionFilter)
     && (!categoryFilter || categoryFilter.value === "all" || item.category === categoryFilter.value));
   const menuCategories = categories;
   if (!root) return;
@@ -759,9 +809,16 @@ async function loadMenu() {
     const card = document.createElement("article");
     card.className = "restaurant-menu-item-card";
     const currentCategory = item.category || "Other";
+    const portionSiblings = matchingMenuPortions(item);
     card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p class="menu-item-summary">${escapeHtml(currentCategory)} · ${formatRupees(item.pricePaise)}</p><span class="menu-availability-badge ${item.available ? "is-available" : "is-sold-out"}">${item.available ? "Available to order" : "Sold out · hidden from customers"}</span><button type="button" class="secondary menu-edit-toggle">Edit dish details</button><form class="menu-edit-form" hidden><label>Dish name<input name="name" required maxlength="150" value="${escapeHtml(item.name)}"></label><label>Category<input name="category" required maxlength="80" list="menu-category-suggestions" value="${escapeHtml(currentCategory)}"></label><label>Food type<select name="foodType" required><option value="veg" ${item.foodType === "veg" ? "selected" : ""}>Veg</option><option value="nonVeg" ${item.foodType === "nonVeg" ? "selected" : ""}>Non-Veg</option></select></label><label>Price in rupees<input name="price" type="number" min="0.01" step="0.01" required value="${(Number(item.pricePaise) / 100).toFixed(2)}"></label><label>Description<textarea name="description" maxlength="1000">${escapeHtml(item.description || "")}</textarea></label><label>Dish image URL (HTTPS)<input name="imageUrl" type="url" maxlength="2048" placeholder="https://…" value="${escapeHtml(item.imageUrl || "")}"></label><div class="menu-edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary menu-edit-cancel">Cancel</button></div></form><p class="menu-item-actions"><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary menu-delete">Delete</button></p>`;
     const editToggle = card.querySelector(".menu-edit-toggle");
     const editForm = card.querySelector(".menu-edit-form");
+    if (portionSiblings.length) {
+      const imageHint = document.createElement("p");
+      imageHint.className = "muted menu-portion-image-hint";
+      imageHint.textContent = "This image is shared with matching Half / Full portions. Prices and availability stay separate.";
+      editForm.insertBefore(imageHint, editForm.querySelector(".menu-edit-actions"));
+    }
     editToggle.addEventListener("click", () => {
       editForm.hidden = !editForm.hidden;
       editToggle.textContent = editForm.hidden ? "Edit dish details" : "Close editor";
@@ -778,7 +835,15 @@ async function loadMenu() {
       saveButton.disabled = true;
       msg.textContent = "";
       try {
-        await api(`/restaurants/owner/menu/${item._id}`, {
+        const imageUrl = String(formData.get("imageUrl") || "").trim();
+        const updatedItem = {
+          _id: item._id,
+          name: String(formData.get("name") || "").trim(),
+          category: String(formData.get("category") || "").trim(),
+          foodType: String(formData.get("foodType") || "").trim()
+        };
+        const portionsToSync = matchingMenuPortions(updatedItem);
+        await api("/restaurants/owner/menu/" + item._id, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -787,11 +852,17 @@ async function loadMenu() {
             foodType: formData.get("foodType"),
             pricePaise: Math.round(Number(formData.get("price")) * 100),
             description: formData.get("description"),
-            imageUrl: formData.get("imageUrl").trim()
+            imageUrl
           })
         });
-        msg.textContent = `${formData.get("name").trim()} updated.`;
+        const syncResults = await syncMenuPortionImages(imageUrl, portionsToSync);
+        const failedSyncs = syncResults.filter(result => result.status === "rejected").length;
         await loadMenu();
+        msg.textContent = failedSyncs
+          ? updatedItem.name + " updated, but its image could not be synced to " + failedSyncs + " matching portion" + (failedSyncs === 1 ? "" : "s") + ". Save the image URL on those portions too."
+          : portionsToSync.length
+            ? updatedItem.name + " updated. Image shared with " + portionsToSync.length + " matching Half / Full portion" + (portionsToSync.length === 1 ? "" : "s") + "."
+            : updatedItem.name + " updated.";
       } catch (error) {
         msg.textContent = error.message;
         saveButton.disabled = false;
@@ -1181,6 +1252,7 @@ if (groceryStockForm) {
 }
 document.querySelector("#owner-food-filter").addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
 document.querySelector("#owner-availability-filter")?.addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
+document.querySelector("#owner-portion-filter")?.addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
 document.querySelector("#owner-menu-search")?.addEventListener("input", applyMenuNameSearch);
 document.querySelector("#hours-form").addEventListener("submit", async event => {
   event.preventDefault();
@@ -1886,17 +1958,25 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
   const form = new FormData(menuForm);
   const submitButton = menuForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
+  const draftItem = {
+    name: String(form.get("name") || "").trim(),
+    category: String(form.get("category") || "").trim(),
+    foodType: String(form.get("foodType") || "").trim()
+  };
+  const matchingPortions = matchingMenuPortions(draftItem);
+  const enteredImageUrl = String(form.get("imageUrl") || "").trim();
+  const imageUrl = enteredImageUrl || matchingPortions.find(item => item.imageUrl)?.imageUrl || "";
 
   try {
     await api("/restaurants/owner/menu", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: form.get("name"),
-        category: form.get("category"),
-        foodType: form.get("foodType"),
+        name: draftItem.name,
+        category: draftItem.category,
+        foodType: draftItem.foodType,
         description: form.get("description"),
-        imageUrl: form.get("imageUrl"),
+        imageUrl,
         pricePaise: Math.round(Number(form.get("price")) * 100),
         available: true
       })
@@ -1907,12 +1987,22 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
     return;
   }
 
+  const syncResults = imageUrl && matchingPortions.length
+    ? await syncMenuPortionImages(imageUrl, matchingPortions)
+    : [];
+  const failedSyncs = syncResults.filter(result => result.status === "rejected").length;
   menuForm.reset();
-  msg.textContent = "Menu item added.";
+  msg.textContent = failedSyncs
+    ? "Menu item added, but its image could not be synced to " + failedSyncs + " matching portion" + (failedSyncs === 1 ? "" : "s") + ". Save the image URL on those portions too."
+    : matchingPortions.length && imageUrl
+      ? "Menu item added. Image shared with " + matchingPortions.length + " matching Half / Full portion" + (matchingPortions.length === 1 ? "" : "s") + "."
+      : matchingPortions.length && !imageUrl
+        ? "Menu item added. Matching portions will use the same built-in fallback photo."
+        : "Menu item added.";
   try {
     await loadMenu();
   } catch (error) {
-    msg.textContent = `Menu item added, but the list could not refresh: ${error.message}`;
+    msg.textContent = "Menu item added, but the list could not refresh: " + error.message;
   } finally {
     submitButton.disabled = false;
   }
