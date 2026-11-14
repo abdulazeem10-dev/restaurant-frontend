@@ -15,12 +15,15 @@ let selectedFoodFilter = "all";
 let selectedBudgetFilter = "all";
 let selectedCuisineFilter = "all";
 
+function getFoodFilteredMenuItems() {
+  return window.foodwayFilterMenuItemsByFoodType?.(allMenuItems, selectedFoodFilter)
+    || allMenuItems.filter(item => selectedFoodFilter === "all"
+      || (window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType) === selectedFoodFilter);
+}
 function getVisibleDishes() {
   const term = searchInput.value.trim().toLocaleLowerCase();
   const maxPricePaise = selectedBudgetFilter === "all" ? Infinity : Number(selectedBudgetFilter) * 100;
-  const foodFiltered = window.foodwayFilterMenuItemsByFoodType?.(allMenuItems, selectedFoodFilter)
-    || allMenuItems.filter(item => selectedFoodFilter === "all"
-      || (window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType) === selectedFoodFilter);
+  const foodFiltered = getFoodFilteredMenuItems();
   return foodFiltered.filter(item => {
     const text = [item.name, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
     const category = window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim();
@@ -32,7 +35,8 @@ function getVisibleDishes() {
 }
 function renderCategoryCarousel() {
   if (!cuisineTrack) return;
-  const categories = [...new Set(allMenuItems.map(item => window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim()).filter(Boolean))]
+  const foodFiltered = getFoodFilteredMenuItems();
+  const categories = [...new Set(foodFiltered.map(item => window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, "en"));
   const choices = [{ value: "all", label: "All dishes", image: "../assets/images/cuisines/all.webp" },
     ...categories.map(category => ({ value: category, label: category, image: cuisineImageFor({ category }) }))];
@@ -242,7 +246,12 @@ async function loadRestaurants() {
 }
 searchForm?.addEventListener("submit", event => { event.preventDefault(); renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
 searchInput?.addEventListener("input", renderMenuPreview);
-quickFoodFilters.forEach(button => button.addEventListener("click", () => { selectedFoodFilter = button.dataset.quickFood; renderMenuPreview(); }));
+quickFoodFilters.forEach(button => button.addEventListener("click", () => {
+  selectedFoodFilter = button.dataset.quickFood;
+  selectedCuisineFilter = "all";
+  renderCategoryCarousel();
+  renderMenuPreview();
+}));
 budgetFilters.forEach(button => button.addEventListener("click", () => { selectedBudgetFilter = button.dataset.budgetFilter; renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
 cuisineTrack?.addEventListener("click", event => { const button = event.target.closest("[data-cuisine-filter]"); if (!button) return; selectedCuisineFilter = button.dataset.cuisineFilter; renderMenuPreview(); document.querySelector("#restaurant-listing")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
 document.querySelector("#cuisine-scroll-left")?.addEventListener("click", () => cuisineTrack.scrollBy({ left: -Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" }));
