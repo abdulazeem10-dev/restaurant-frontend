@@ -266,10 +266,11 @@ async function loadRestaurants() {
     }
     renderFoodPassport();
     const menuData = await fetchPublicMenuJson(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`, `GET /restaurants/${currentRestaurant._id}/menu`);
-    allMenuItems = (menuData.items || []).map(item => ({
+    const normalizedItems = (menuData.items || []).map(item => ({
       ...item,
       foodType: window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType || ""
     }));
+    allMenuItems = window.foodwayDeduplicateMenuItems?.(normalizedItems) || normalizedItems;
     if (selectedCuisineFilter !== "all" && !allMenuItems.some(item => (window.foodwayMenuCategoryFor?.(item) || item.category) === selectedCuisineFilter)) selectedCuisineFilter = "all";
     renderCategoryCarousel();
     renderMenuPreview(); await loadRecentOrders();

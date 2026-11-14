@@ -294,7 +294,7 @@ async function loadStorefront() {
     document.querySelector("#restaurant-hours").textContent = formatTodayHours(restaurant.openingHours);
     document.querySelector("#restaurant-delivery-area").hidden = true;
     storefrontHero.setAttribute("aria-busy", "false");
-    allMenuItems = items;
+    allMenuItems = window.foodwayDeduplicateMenuItems?.(items) || items;
     if (menuCategorySelect) {
       const categories = [...new Set(allMenuItems.map(item => window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim()).filter(Boolean))]
         .sort((a, b) => a.localeCompare(b, "en"));

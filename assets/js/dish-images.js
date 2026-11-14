@@ -53,11 +53,55 @@
     return sourceCategory;
   }
 
-  function groupMenuItems(items = []) {
-    const groups = new Map();
+  function normalizeDishIdentity(value = "") {
+    return String(value)
+      .normalize("NFKC")
+      .replace(/\bchi(?:cken)?\.?(?=\s|$)/gi, "chicken")
+      .toLocaleLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim()
+      .replace(/\s+/g, " ");
+  }
+
+  function portionFor(name = "") {
+    const match = String(name).match(/\s+\((half|full)\)$/i);
+    return match ? match[1].toLocaleLowerCase() : "regular";
+  }
+
+  function itemRevision(item = {}) {
+    const value = item.updatedAt || item.createdAt || item.dateAdded;
+    const timestamp = value ? Date.parse(value) : 0;
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  }
+
+  // The public API can contain repeated imports. Keep one customer-facing item
+  // for each category, food type, dish, and portion while retaining Half/Full.
+  function deduplicateMenuItems(items = []) {
+    const unique = new Map();
     for (const item of items) {
       const name = baseDishName(item.name);
-      const key = `${String(item.category || "Menu").trim().toLocaleLowerCase()}\u0000${name.toLocaleLowerCase()}`;
+      const category = menuCategoryFor(item) || item.category || "Menu";
+      const categoryKey = normalizeDishIdentity(category)
+        .replace(/\s+(?:non\s*veg(?:etarian)?|veg(?:etarian)?)$/i, "");
+      const key = [
+        categoryKey,
+        normalizeDishIdentity(name),
+        normalizeFoodType(item.foodType),
+        portionFor(item.name)
+      ].join("\u0000");
+      const previous = unique.get(key);
+      if (!previous || itemRevision(item) > itemRevision(previous)) unique.set(key, item);
+    }
+    return [...unique.values()];
+  }
+
+  function groupMenuItems(items = []) {
+    const groups = new Map();
+    for (const item of deduplicateMenuItems(items)) {
+      const name = baseDishName(item.name);
+      const category = menuCategoryFor(item) || item.category || "Menu";
+      const key = `${normalizeDishIdentity(category)}\u0000${normalizeDishIdentity(name)}\u0000${normalizeFoodType(item.foodType)}`;
       if (!groups.has(key)) groups.set(key, { name, category: item.category || "Menu", variants: [] });
       groups.get(key).variants.push(item);
     }
@@ -75,6 +119,7 @@
   window.foodwayNormalizeFoodType = normalizeFoodType;
   window.foodwayFilterMenuItemsByFoodType = filterMenuItemsByFoodType;
   window.foodwayMenuCategoryFor = menuCategoryFor;
+  window.foodwayDeduplicateMenuItems = deduplicateMenuItems;
   window.foodwayGroupMenuItems = groupMenuItems;
   console.info("[dish images] Local representative food photos ready");
 })();
