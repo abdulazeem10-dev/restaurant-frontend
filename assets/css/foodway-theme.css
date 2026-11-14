@@ -981,6 +981,32 @@ html[data-theme="dark"] .delivery-page :is(
   color: #f5f0df !important;
   border-color: #51482c !important;
 }
+html[data-theme="dark"] .delivery-page .order-admin-request {
+  background: #302e27 !important;
+  color: #f5f0df !important;
+  border-color: #62583a !important;
+}
+html[data-theme="dark"] .delivery-page .order-admin-request :is(p, strong) { color: #f5f0df !important; }
+html[data-theme="dark"] .delivery-page .delivery-status-chip {
+  background: #343126 !important;
+  color: #f5df63 !important;
+  border-color: #62583a !important;
+}
+html[data-theme="dark"] .delivery-page .delivery-status-chip[data-status="delivered"] {
+  background: #203a2a !important;
+  color: #a8e4b7 !important;
+  border-color: #47765b !important;
+}
+html[data-theme="dark"] .delivery-page .delivery-status-chip[data-status="cancelled"] {
+  background: #452a27 !important;
+  color: #ffaaa0 !important;
+  border-color: #8b5149 !important;
+}
+html[data-theme="dark"] .delivery-page .delivery-item-list li { color: #e3dcc9 !important; }
+html[data-theme="dark"] .delivery-page .delivery-receipt-note {
+  background: #203a2a !important;
+  color: #bce8c5 !important;
+}
 html[data-theme="dark"] .delivery-page :is(.delivery-stop-number, .delivery-stop-number--drop) {
   background: #343126 !important;
   color: #f5df63 !important;
