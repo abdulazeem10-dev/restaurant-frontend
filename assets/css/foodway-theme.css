@@ -1293,6 +1293,35 @@ html[data-theme="dark"] .customer-page :is(.dish-food-type-nonveg, .dish-type-no
   .restaurant-page .dine-in-menu-list { max-height: 55vh; }
 }
 
+/* Keep restaurant menu editors aligned even when one dish is being edited. */
+.restaurant-page #menu-items { align-items: stretch; }
+.restaurant-page .restaurant-menu-item-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+.restaurant-page .restaurant-menu-item-card .menu-availability-badge {
+  min-height: 2.2rem;
+  align-items: center;
+  line-height: 1.25;
+}
+.restaurant-page .restaurant-menu-item-card .menu-item-actions { margin-top: auto; }
+.restaurant-page .restaurant-menu-item-card .menu-edit-form {
+  width: 100%;
+  box-sizing: border-box;
+  align-content: start;
+}
+.restaurant-page .restaurant-menu-item-card .menu-edit-form > label { min-width: 0; }
+.restaurant-page .restaurant-menu-item-card .menu-edit-form input,
+.restaurant-page .restaurant-menu-item-card .menu-edit-form select,
+.restaurant-page .restaurant-menu-item-card .menu-edit-form textarea { box-sizing: border-box; }
+@media (max-width: 520px) {
+  .restaurant-page .restaurant-menu-item-card .menu-edit-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Restaurant menu cards are generated dynamically; keep their dark-mode
    surface and all interactive labels readable on every dashboard theme. */
 html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card {
@@ -1316,13 +1345,36 @@ html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-availa
   color: #f5df63 !important;
   border-color: #786622 !important;
 }
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-availability-badge.is-sold-out {
+  background: #ffebe3 !important;
+  color: #762d1c !important;
+  border: 1px solid #edb5a2 !important;
+}
 html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form {
-  background: #1c1b18 !important;
-  color: #f5f0df !important;
-  border-color: #5a4b22 !important;
+  background: #fffefa !important;
+  color: #25231f !important;
+  border-color: #e3dccb !important;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 16%);
 }
 html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form label {
-  color: #f5f0df !important;
+  color: #302d27 !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form :is(input, select, textarea) {
+  background: #fff !important;
+  color: #25231f !important;
+  border-color: #d5cdbb !important;
+  color-scheme: light;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form .menu-image-upload {
+  color: #302d27 !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form .menu-image-upload :is(small, input[type="file"]),
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form .menu-image-upload-status {
+  color: #5b574f !important;
+}
+html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form .menu-image-upload input[type="file"] {
+  background: #fff !important;
+  border-color: #cdbd83 !important;
 }
 html[data-theme="dark"] .restaurant-page .menu-image-upload {
   color: #f5f0df !important;
