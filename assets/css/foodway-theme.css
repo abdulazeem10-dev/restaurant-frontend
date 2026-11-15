@@ -1359,11 +1359,22 @@ html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-f
 html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form label {
   color: #302d27 !important;
 }
-html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form :is(input, select, textarea) {
-  background: #fff !important;
+html[data-theme="dark"] body.restaurant-page .restaurant-menu-item-card form.menu-edit-form :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: #fffefa !important;
   color: #25231f !important;
   border-color: #d5cdbb !important;
   color-scheme: light;
+}
+html[data-theme="dark"] body.restaurant-page .restaurant-menu-item-card form.menu-edit-form :is(input, textarea)::placeholder {
+  color: #777166 !important;
+  opacity: 1;
+}
+html[data-theme="dark"] body.restaurant-page .restaurant-menu-item-card form.menu-edit-form input:-webkit-autofill,
+html[data-theme="dark"] body.restaurant-page .restaurant-menu-item-card form.menu-edit-form input:-webkit-autofill:hover,
+html[data-theme="dark"] body.restaurant-page .restaurant-menu-item-card form.menu-edit-form input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #25231f !important;
+  -webkit-box-shadow: 0 0 0 1000px #fffefa inset !important;
+  caret-color: #25231f;
 }
 html[data-theme="dark"] .restaurant-page .restaurant-menu-item-card .menu-edit-form .menu-image-upload {
   color: #302d27 !important;
