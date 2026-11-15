@@ -17,26 +17,41 @@ let selectedCuisineFilter = "all";
 let restaurantsLoading = false;
 
 const waitBeforeMenuRetry = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
-async function fetchPublicMenuJson(url, label, attempts = 3) {
+const menuRetryDelays = [2000, 4000, 7000, 10000, 15000, 20000];
+async function fetchPublicMenuJson(url, label, attempts = 7, onRetry = () => {}) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { cache: "no-store" });
       console.info(`[Al-Madina menu] ${label} → ${response.status} (attempt ${attempt}/${attempts})`);
       if (!response.ok) {
         const error = new Error(`${label} returned HTTP ${response.status}`);
         error.status = response.status;
-        if (![500, 502, 503, 504, 522, 524].includes(response.status) || attempt === attempts) throw error;
-        lastError = error;
-      } else {
-        return await response.json();
+        throw error;
+      }
+      const contentType = response.headers.get("content-type") || "";
+      if (!/\bjson\b/i.test(contentType)) {
+        const error = new Error(`${label} returned a non-JSON response`);
+        error.status = response.status;
+        error.code = "non_json_api_response";
+        throw error;
+      }
+      try { return await response.json(); }
+      catch {
+        const error = new Error(`${label} returned invalid JSON`);
+        error.status = response.status;
+        error.code = "invalid_json_api_response";
+        throw error;
       }
     } catch (error) {
       lastError = error;
+      if (["non_json_api_response", "invalid_json_api_response"].includes(error.code)) throw error;
       const retryable = !Number.isInteger(error.status) || [500, 502, 503, 504, 522, 524].includes(error.status);
       if (!retryable || attempt === attempts) throw error;
     }
-    await waitBeforeMenuRetry(800 * attempt);
+    const delay = menuRetryDelays[attempt - 1] ?? 20000;
+    onRetry(attempt + 1, attempts, delay, lastError);
+    await waitBeforeMenuRetry(delay);
   }
   throw lastError || new Error("Could not load Al-Madina menu data");
 }
@@ -256,16 +271,20 @@ async function loadRestaurants() {
   restaurantsLoading = true;
   if (featuredSection) featuredSection.hidden = false;
   if (errorMessage) errorMessage.textContent = "";
-  featuredDishesTrack?.replaceChildren(Object.assign(document.createElement("p"), { className: "muted", textContent: "Loading the Al-Madina menu…" }));
+  const loadingMessage = Object.assign(document.createElement("p"), { className: "muted", textContent: "Loading the Al-Madina menu…" });
+  featuredDishesTrack?.replaceChildren(loadingMessage);
+  const showRetryProgress = (nextAttempt, attempts) => {
+    if (loadingMessage.isConnected) loadingMessage.textContent = `The menu server is waking up. Reconnecting (${nextAttempt} of ${attempts})…`;
+  };
   try {
-    const data = await fetchPublicMenuJson(`${API_BASE}/restaurants`, "GET /restaurants");
+    const data = await fetchPublicMenuJson(`${API_BASE}/restaurants`, "GET /restaurants", 7, showRetryProgress);
     const approved = data.restaurants || [];
     currentRestaurant = approved.find(restaurant => alMadinaRestaurantName.test(String(restaurant.name || "").trim())) || null;
     if (!currentRestaurant) {
       throw new Error("No approved Al-Madina restaurant was returned by the public restaurant API.");
     }
     renderFoodPassport();
-    const menuData = await fetchPublicMenuJson(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`, `GET /restaurants/${currentRestaurant._id}/menu`);
+    const menuData = await fetchPublicMenuJson(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`, `GET /restaurants/${currentRestaurant._id}/menu`, 7, showRetryProgress);
     const normalizedItems = (menuData.items || []).map(item => ({
       ...item,
       foodType: window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType || ""
@@ -276,9 +295,12 @@ async function loadRestaurants() {
     renderMenuPreview(); await loadRecentOrders();
   } catch (error) {
     console.error("[Al-Madina menu] load failed", error);
-    if (errorMessage) errorMessage.textContent = "We couldn’t connect to the menu right now. Please try again.";
+    const apiRouteProblem = ["non_json_api_response", "invalid_json_api_response"].includes(error.code);
+    if (errorMessage) errorMessage.textContent = apiRouteProblem
+      ? "The menu connection returned a webpage instead of menu data. Check the Vercel /api rewrite and deployment access settings."
+      : "We couldn’t connect to the menu right now. Please try again.";
     if (viewFullMenu) viewFullMenu.hidden = true;
-    const empty = Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: "We’re having trouble loading the menu right now." });
+    const empty = Object.assign(document.createElement("p"), { className: "featured-dishes-empty", textContent: apiRouteProblem ? "The menu API returned a webpage instead of menu data." : "We’re having trouble loading the menu right now." });
     const retry = Object.assign(document.createElement("button"), { className: "menu-load-retry", type: "button", textContent: "Retry menu" });
     retry.addEventListener("click", loadRestaurants, { once: true });
     featuredDishesTrack?.replaceChildren(empty, retry);

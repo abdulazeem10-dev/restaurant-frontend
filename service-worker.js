@@ -1,4 +1,4 @@
-const CACHE_NAME = "foodway-shell-v55";
+const CACHE_NAME = "foodway-shell-v56";
 const APP_SHELL = [
   "/customer/index.html",
   "/offline.html",
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "/assets/css/contact-us.css?v=20261110-2",
   "/assets/js/common.js",
   "/assets/js/dish-images.js?v=20261114-1",
-  "/assets/js/restaurants.js?v=20261114-10",
+  "/assets/js/restaurants.js?v=20261115-11",
   "/assets/js/pwa.js",
   "/assets/js/support-chat.js?v=20261109-3",
   "/assets/js/contact-us.js",
@@ -31,6 +31,13 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
+  const requestUrl = new URL(request.url);
+  // API responses must not be persisted by the service worker. A stale or
+  // cached HTML proxy error can otherwise be mistaken for menu JSON.
+  if (requestUrl.pathname === "/api" || requestUrl.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
   event.respondWith(fetch(request).then(response => {
     if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
     return response;
