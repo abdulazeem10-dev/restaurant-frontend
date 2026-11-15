@@ -1,6 +1,27 @@
 /* Local representative food photos used when a menu item has no custom image.
    The image library is recorded in assets/images/cuisines/SOURCES.md. */
 (() => {
+  function optimizeCloudinaryImageUrl(imageUrl, width = 800) {
+    const original = String(imageUrl || "");
+    try {
+      const url = new URL(original);
+      if (url.protocol !== "https:" || url.hostname !== "res.cloudinary.com") return original;
+      const uploadPath = "/image/upload/";
+      const uploadIndex = url.pathname.indexOf(uploadPath);
+      if (uploadIndex < 0) return original;
+
+      const pathAfterUpload = url.pathname.slice(uploadIndex + uploadPath.length);
+      // Keep existing transformations and signed delivery URLs unchanged.
+      if (!/^v\d+\//.test(pathAfterUpload)) return original;
+
+      const safeWidth = Math.max(320, Math.min(1600, Math.round(Number(width) || 800)));
+      url.pathname = `${url.pathname.slice(0, uploadIndex)}${uploadPath}f_auto,q_auto,c_limit,w_${safeWidth}/${pathAfterUpload}`;
+      return url.toString();
+    } catch {
+      return original;
+    }
+  }
+
   const imageByPattern = [
     [/dessert|sweet|gulab|ice cream|brownie|cake|kheer|falooda/i, "desserts.webp"],
     [/chinese|manchurian|noodle|schezwan|szechuan|hakka|chilly|chilli/i, "chinese.webp"],
@@ -16,7 +37,7 @@
   ];
 
   function dishImage(item = {}) {
-    if (item.imageUrl) return { src: item.imageUrl, isFallback: false };
+    if (item.imageUrl) return { src: optimizeCloudinaryImageUrl(item.imageUrl), isFallback: false };
     const text = `${item.name || ""} ${item.category || ""}`;
     const match = imageByPattern.find(([pattern]) => pattern.test(text));
     const filename = match?.[1] || "all.webp";
@@ -115,6 +136,7 @@
   }
 
   window.foodwayDishImage = dishImage;
+  window.foodwayOptimizeCloudinaryImageUrl = optimizeCloudinaryImageUrl;
   window.foodwayBaseDishName = baseDishName;
   window.foodwayNormalizeFoodType = normalizeFoodType;
   window.foodwayFilterMenuItemsByFoodType = filterMenuItemsByFoodType;

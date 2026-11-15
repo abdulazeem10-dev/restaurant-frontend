@@ -157,7 +157,7 @@ function renderCategoryCarousel() {
     art.className = "cuisine-art";
     art.setAttribute("aria-hidden", "true");
     const image = document.createElement("img");
-    image.src = choice.image;
+    image.src = window.foodwayOptimizeCloudinaryImageUrl?.(choice.image) || choice.image;
     image.alt = "";
     image.loading = "lazy";
     image.decoding = "async";
@@ -278,7 +278,9 @@ function renderRecentOrders(orders = []) {
       || allMenuItems.find(item => item.name?.trim().toLocaleLowerCase() === firstDish?.name?.trim().toLocaleLowerCase());
     const orderedDish = menuDish || { name: firstDish?.name, category: firstDish?.category };
     const fallbackImage = window.foodwayDishImage?.(orderedDish)?.src || cuisineImageFor(orderedDish);
-    const image = document.createElement("img"); image.className = "recent-order-image"; image.src = menuDish?.imageUrl || firstDish?.imageUrl || fallbackImage;
+    const image = document.createElement("img"); image.className = "recent-order-image";
+    const recentImageUrl = menuDish?.imageUrl || firstDish?.imageUrl || fallbackImage;
+    image.src = window.foodwayOptimizeCloudinaryImageUrl?.(recentImageUrl) || recentImageUrl;
     image.alt = firstDish?.name ? `${firstDish.name} dish` : "Al-Madina dish"; image.loading = "lazy"; image.decoding = "async";
     image.addEventListener("error", () => { if (image.dataset.fallbackApplied) { console.warn(`[dish images] Failed to load recent-order photo → asset unavailable`, image.src); image.remove(); } else { console.warn(`[dish images] Order photo unavailable; using local fallback`, image.src); image.dataset.fallbackApplied = "true"; image.src = fallbackImage; } });
     const name = document.createElement("strong"); name.textContent = brandName;

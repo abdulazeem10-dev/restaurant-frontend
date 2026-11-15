@@ -1015,8 +1015,11 @@ function renderCategoryCarouselSettings(saved = restaurantCurrentRestaurant?.cat
     const urlWrap = document.createElement("label"); urlWrap.textContent = "Category image URL (HTTPS)";
     const urlInput = document.createElement("input"); urlInput.type = "url"; urlInput.maxLength = 2048; urlInput.placeholder = "https://…"; urlInput.value = item.imageUrl; urlInput.dataset.carouselField = "imageUrl";
     const preview = document.createElement("img"); preview.className = "category-carousel-image-preview"; preview.alt = `${item.category} carousel image preview`; preview.hidden = !item.imageUrl;
-    if (item.imageUrl) preview.src = item.imageUrl;
-    urlInput.addEventListener("input", () => { preview.hidden = !urlInput.value.trim(); if (!preview.hidden) preview.src = urlInput.value.trim(); });
+    if (item.imageUrl) preview.src = window.foodwayOptimizeCloudinaryImageUrl?.(item.imageUrl) || item.imageUrl;
+    urlInput.addEventListener("input", () => {
+      preview.hidden = !urlInput.value.trim();
+      if (!preview.hidden) preview.src = window.foodwayOptimizeCloudinaryImageUrl?.(urlInput.value.trim()) || urlInput.value.trim();
+    });
     preview.onerror = () => { preview.hidden = true; };
     const imageFileLabel = document.createElement("span"); imageFileLabel.className = "category-carousel-image-upload-label"; imageFileLabel.textContent = "Or upload a photo";
     const imageFileInput = document.createElement("input"); imageFileInput.type = "file"; imageFileInput.accept = "image/jpeg,image/png,image/webp"; imageFileInput.setAttribute("aria-label", `Upload ${item.category} carousel photo`); imageFileInput.dataset.carouselImageFile = "true";
