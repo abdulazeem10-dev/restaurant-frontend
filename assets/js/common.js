@@ -140,7 +140,7 @@ function clearAccountOwnedCart() {
   updateCartCount();
   window.dispatchEvent(new CustomEvent("foodway:cart-updated"));
 }
-function writeCart(cart) {
+function writeCart(cart, { notify = true } = {}) {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
   updateCartCount();
   cartSyncRevision += 1;
@@ -149,10 +149,10 @@ function writeCart(cart) {
     clearTimeout(cartSyncTimer);
     cartSyncTimer = setTimeout(syncCartToAccount, 450);
   }
-  window.dispatchEvent(new CustomEvent("foodway:cart-updated"));
+  if (notify) window.dispatchEvent(new CustomEvent("foodway:cart-updated"));
 }
 function cartPayload(cart) {
-  return { restaurantId: cart.restaurantId, items: (cart.items || []).map(item => ({ menuItemId: item.menuItemId, quantity: item.quantity })) };
+  return { restaurantId: cart.restaurantId, items: (cart.items || []).map(item => ({ menuItemId: item.menuItemId, quantity: item.quantity, note: String(item.note || "").trim().slice(0, 300) })) };
 }
 async function syncCartToAccount() {
   if (!syncedCustomerId) return;
@@ -198,7 +198,7 @@ async function syncCustomerCart() {
       for (const item of localCart.items) {
         const id = String(item.menuItemId);
         const existing = merged.get(id);
-        merged.set(id, existing ? { ...existing, quantity: Math.min(20, existing.quantity + item.quantity) } : item);
+        merged.set(id, existing ? { ...existing, quantity: Math.min(20, existing.quantity + item.quantity), note: item.note || existing.note || "" } : item);
       }
       restored = savedCart ? { ...savedCart, items: [...merged.values()] } : { ...localCart, items: [...merged.values()] };
     }

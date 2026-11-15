@@ -343,7 +343,7 @@ function renderOrders(orders) {
   for (const order of orders) {
     const card = document.createElement("article");
     card.className = "customer-order-card";
-    const lines = order.items.map(item => `${item.quantity} × ${escapeHtml(item.name)}`).join(", ");
+    const lines = order.items.map(item => `${item.quantity} × ${escapeHtml(item.name)}${item.note?.trim() ? `<br><small>Kitchen note: ${escapeHtml(item.note.trim())}</small>` : ""}`).join("<br>");
     const paymentLabel = order.paymentMethod === "cash_on_delivery"
       ? "Cash on delivery"
       : order.paymentMethod === "upi_qr"

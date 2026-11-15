@@ -1797,7 +1797,15 @@ function renderKitchenQueue(orders) {
       items.className = "kitchen-ticket-items";
       for (const item of order.items) {
         const line = document.createElement("li");
-        line.textContent = `${item.quantity} × ${item.name}`;
+        const itemName = document.createElement("span");
+        itemName.textContent = `${item.quantity} × ${item.name}`;
+        line.append(itemName);
+        if (item.note?.trim()) {
+          const instruction = document.createElement("small");
+          instruction.className = "kitchen-ticket-item-instruction";
+          instruction.textContent = `Kitchen note: ${item.note.trim()}`;
+          line.append(instruction);
+        }
         items.append(line);
       }
       const total = document.createElement("p");
@@ -1886,7 +1894,7 @@ async function loadOrders(fetchLatest = true) {
   const scopeLabel = restaurantOrderMode === "dine_in" ? "dine-in" : restaurantOrderMode === "delivery" ? "home delivery" : "all";
   if (count) count.textContent = `${visibleOrders.length} of ${scopedCount} ${scopeLabel} orders`;
   for (const order of visibleOrders) {
-    const card = document.createElement("article"); card.dataset.orderId = String(order._id); const itemText = order.items.map(item => `${item.quantity} × ${item.name}`).join(", ");
+    const card = document.createElement("article"); card.dataset.orderId = String(order._id); const itemText = order.items.map(item => `${item.quantity} × ${item.name}${item.note?.trim() ? ` — Kitchen note: ${item.note.trim()}` : ""}`).join(", ");
     const recipient = order.deliveryDetails;
     const recipientText = recipient
       ? `${recipient.recipientType === "other" ? "Deliver to" : "Recipient"}: ${recipient.name} · ${recipient.phone}`

@@ -61,18 +61,73 @@ function getFoodFilteredMenuItems() {
     || allMenuItems.filter(item => selectedFoodFilter === "all"
       || (window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType) === selectedFoodFilter);
 }
+const dishSearchStopWords = new Set(["a", "an", "and", "can", "could", "dish", "dishes", "do", "find", "food", "for", "give", "have", "i", "like", "me", "menu", "of", "order", "please", "search", "show", "some", "the", "to", "want", "you"]);
+function normalizeDishSearch(value) {
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+function dishSearchTokens(value) {
+  return normalizeDishSearch(value).split(/\s+/).filter(token => token && !dishSearchStopWords.has(token));
+}
+function dishSearchDistance(left, right, limit) {
+  if (Math.abs(left.length - right.length) > limit) return limit + 1;
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= left.length; row += 1) {
+    const current = [row];
+    let rowMinimum = row;
+    for (let column = 1; column <= right.length; column += 1) {
+      const cost = left[row - 1] === right[column - 1] ? 0 : 1;
+      const distance = Math.min(previous[column] + 1, current[column - 1] + 1, previous[column - 1] + cost);
+      current[column] = distance;
+      rowMinimum = Math.min(rowMinimum, distance);
+    }
+    if (rowMinimum > limit) return limit + 1;
+    previous = current;
+  }
+  return previous[right.length];
+}
+function dishSearchTokenMatches(queryToken, dishToken) {
+  if (queryToken === dishToken) return true;
+  if (queryToken === "chicken" && ["chi", "ch", "chic"].includes(dishToken)) return true;
+  if (queryToken.length >= 3 && dishToken.length >= 3
+    && (queryToken.startsWith(dishToken) || dishToken.startsWith(queryToken))
+    && Math.abs(queryToken.length - dishToken.length) <= 2) return true;
+  if (Math.min(queryToken.length, dishToken.length) < 5) return false;
+  const editLimit = Math.min(queryToken.length, dishToken.length) >= 8 ? 2 : 1;
+  return dishSearchDistance(queryToken, dishToken, editLimit) <= editLimit;
+}
+function scoreDishSearch(item, queryTokens) {
+  if (!queryTokens.length) return 0;
+  const nameTokens = dishSearchTokens(item.name);
+  const category = window.foodwayMenuCategoryFor?.(item) || item.category || "";
+  const contextTokens = dishSearchTokens(`${category} ${item.description || ""}`);
+  let nameHits = 0;
+  let contextHits = 0;
+  for (const queryToken of queryTokens) {
+    if (nameTokens.some(token => dishSearchTokenMatches(queryToken, token))) nameHits += 1;
+    else if (contextTokens.some(token => dishSearchTokenMatches(queryToken, token))) contextHits += 1;
+  }
+  const matchCount = nameHits + contextHits;
+  const minimumMatches = queryTokens.length <= 2 ? queryTokens.length : Math.max(2, Math.ceil(queryTokens.length * 0.6));
+  if (matchCount < minimumMatches) return null;
+  const normalizedPhrase = queryTokens.join(" ");
+  const normalizedName = normalizeDishSearch(item.name);
+  const exactPhraseBonus = normalizedName.includes(normalizedPhrase) ? 8 : 0;
+  return nameHits * 3 + contextHits + exactPhraseBonus + nameHits / queryTokens.length;
+}
 function getVisibleDishes() {
-  const term = searchInput.value.trim().toLocaleLowerCase();
+  const queryTokens = dishSearchTokens(searchInput.value);
   const maxPricePaise = selectedBudgetFilter === "all" ? Infinity : Number(selectedBudgetFilter) * 100;
   const foodFiltered = getFoodFilteredMenuItems();
-  return foodFiltered.filter(item => {
-    const text = [item.name, item.description].filter(Boolean).join(" ").toLocaleLowerCase();
+  return foodFiltered.map((item, index) => ({ item, index, score: scoreDishSearch(item, queryTokens) }))
+    .filter(({ item, score }) => {
     const category = window.foodwayMenuCategoryFor?.(item) || String(item.category || "").trim();
     const matchesCuisine = selectedCuisineFilter === "all" || category === selectedCuisineFilter;
-    return (!term || text.includes(term))
+    return (score !== null)
       && Number(item.pricePaise) <= maxPricePaise
       && matchesCuisine;
-  });
+    })
+    .sort((left, right) => (right.score - left.score) || left.index - right.index)
+    .map(({ item }) => item);
 }
 function renderCategoryCarousel() {
   if (!cuisineTrack) return;

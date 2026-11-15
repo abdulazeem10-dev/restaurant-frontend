@@ -212,6 +212,9 @@ body { color: var(--foodway-ink); }
 .kitchen-ticket h4,.kitchen-ticket p { margin:0; }
 .kitchen-ticket-customer,.kitchen-ticket-note { color:var(--muted,#68736b); font-size:.9rem; }
 .kitchen-ticket-items { display:grid; gap:.35rem; margin:0; padding:.6rem 0 .6rem 1.2rem; border-block:1px solid #eeeae3; }
+.kitchen-ticket-items li { display:grid; gap:.15rem; }
+.kitchen-ticket-item-instruction { color:#8a4d00; font-size:.84rem; font-weight:700; line-height:1.4; }
+html[data-theme="dark"] .restaurant-page .kitchen-ticket-item-instruction { color:#f5df63; }
 .kitchen-ticket-total { color:var(--green,#174b3d); font-weight:750; }
 .kitchen-ticket button { width:100%; }
 .kitchen-queue-empty { grid-column:1/-1; margin:.25rem; padding:1rem; text-align:center; }

@@ -191,6 +191,21 @@ function renderCart() {
     const unitPrice = document.createElement("p");
     unitPrice.className = "muted";
     unitPrice.textContent = `${formatRupees(item.pricePaise)} each`;
+    const noteLabel = document.createElement("label");
+    noteLabel.className = "cart-item-note";
+    const noteLabelText = document.createElement("span");
+    noteLabelText.textContent = "Note for the kitchen (optional)";
+    const noteInput = document.createElement("textarea");
+    noteInput.rows = 2;
+    noteInput.maxLength = 300;
+    noteInput.value = item.note || "";
+    noteInput.placeholder = "e.g. Extra spicy; no green chilli";
+    noteInput.setAttribute("aria-label", `Kitchen note for ${item.name}`);
+    noteInput.addEventListener("input", () => {
+      item.note = noteInput.value;
+      writeCart(cart, { notify: false });
+    });
+    noteLabel.append(noteLabelText, noteInput);
     itemDetails.append(name, unitPrice);
 
     const controls = document.createElement("div");
@@ -230,7 +245,7 @@ function renderCart() {
     remove.addEventListener("click", () => removeCartItem(cart, item));
 
     controls.append(quantityLabel, quantityControl, linePrice, remove);
-    row.append(itemDetails, controls);
+    row.append(itemDetails, controls, noteLabel);
     linesRoot.append(row);
   }
 

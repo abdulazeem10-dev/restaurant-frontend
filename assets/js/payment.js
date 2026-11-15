@@ -133,7 +133,7 @@ async function createOrder(paymentMethod) {
       deliveryDetails: Object.fromEntries(["recipientType", "name", "phone", "flatBuilding", "lane", "landmark", "pincode"].map(key => [key, checkout.deliveryDetails[key]])),
       paymentMethod,
       redeemReward: Boolean(document.querySelector("#redeem-stamp-reward")?.checked && stampRewardsAvailable > 0),
-      items: paymentCart.items.map(({ menuItemId, quantity }) => ({ menuItemId, quantity }))
+      items: paymentCart.items.map(({ menuItemId, quantity, note }) => ({ menuItemId, quantity, note: String(note || "").trim().slice(0, 300) }))
     })
   });
   const data = await response.json().catch(() => ({}));
