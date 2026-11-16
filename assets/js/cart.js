@@ -1,7 +1,53 @@
 const linesRoot = document.querySelector("#cart-lines");
 const checkoutForm = document.querySelector("#checkout-form");
 const addressSelect = document.querySelector("#saved-address-select");
+const CHECKOUT_DRAFT_KEY = "food-platform-checkout-draft";
 let savedAddresses = [];
+let checkoutDraftRestored = false;
+
+function currentCheckoutDraft() {
+  const values = new FormData(checkoutForm);
+  return {
+    recipientType: values.get("recipientType") === "other" ? "other" : "self",
+    recipientName: String(values.get("recipientName") || "").slice(0, 100),
+    recipientPhone: String(values.get("recipientPhone") || "").slice(0, 10),
+    addressSearch: String(values.get("addressSearch") || "").slice(0, 300),
+    flatBuilding: String(values.get("flatBuilding") || "").slice(0, 120),
+    lane: String(values.get("lane") || "").slice(0, 180),
+    landmark: String(values.get("landmark") || "").slice(0, 120),
+    pincode: String(values.get("pincode") || "").slice(0, 6),
+    saveAddress: values.get("saveAddress") === "on",
+    addressLabel: String(values.get("addressLabel") || "Home").slice(0, 40)
+  };
+}
+
+function restoreCheckoutDraft() {
+  let draft;
+  try { draft = JSON.parse(sessionStorage.getItem(CHECKOUT_DRAFT_KEY) || "null"); }
+  catch { sessionStorage.removeItem(CHECKOUT_DRAFT_KEY); return false; }
+  if (!draft || typeof draft !== "object") return false;
+
+  const recipientType = draft.recipientType === "other" ? "other" : "self";
+  const recipientRadio = checkoutForm.querySelector(`input[name="recipientType"][value="${recipientType}"]`);
+  if (recipientRadio) {
+    recipientRadio.checked = true;
+    recipientRadio.dispatchEvent(new Event("change"));
+  }
+  checkoutForm.elements.recipientName.value = String(draft.recipientName || "").slice(0, 100);
+  checkoutForm.elements.recipientPhone.value = String(draft.recipientPhone || "").replace(/\D/g, "").slice(-10);
+  checkoutForm.elements.addressSearch.value = String(draft.addressSearch || "").slice(0, 300);
+  checkoutForm.elements.flatBuilding.value = String(draft.flatBuilding || "").slice(0, 120);
+  checkoutForm.elements.lane.value = String(draft.lane || "").slice(0, 180);
+  checkoutForm.elements.landmark.value = String(draft.landmark || "").slice(0, 120);
+  checkoutForm.elements.pincode.value = String(draft.pincode || "").replace(/\D/g, "").slice(0, 6);
+  checkoutForm.elements.saveAddress.checked = Boolean(draft.saveAddress);
+  checkoutForm.elements.addressLabel.value = String(draft.addressLabel || "Home").slice(0, 40);
+  document.querySelector(".save-address-choice").hidden = false;
+  addressSelect.value = "";
+  checkoutDraftRestored = true;
+  document.querySelector("#notice").textContent = "Your delivery details were restored after sign-in.";
+  return true;
+}
 
 function setupGoogleAddressAutocomplete() {
   const input = document.querySelector("#address-search");
@@ -79,7 +125,7 @@ async function loadSavedAddresses() {
     const rememberedAddressId = localStorage.getItem("foodway-default-address-id");
     const defaultAddress = savedAddresses.find(address => address._id === rememberedAddressId) || savedAddresses[0];
     renderSavedAddresses();
-    if (defaultAddress && !addressSelect.value) {
+    if (defaultAddress && !addressSelect.value && !checkoutDraftRestored) {
       addressSelect.value = defaultAddress._id;
       fillSavedAddress(defaultAddress);
       document.querySelector("#delete-saved-address").hidden = false;
@@ -154,6 +200,7 @@ function renderCart() {
   linesRoot.replaceChildren();
 
   if (!cart?.items?.length) {
+    sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
     const empty = document.createElement("div");
     empty.className = "empty-state cart-empty-state";
     const icon = document.createElement("span");
@@ -279,6 +326,12 @@ checkoutForm.addEventListener("submit", async event => {
   const error = document.querySelector("#error");
   error.textContent = "";
   if (!getToken()) {
+    try {
+      sessionStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(currentCheckoutDraft()));
+    } catch {
+      error.textContent = "Your browser could not keep the address while opening sign-in. Please enable session storage and try again.";
+      return;
+    }
     location.href = `login.html?next=${encodeURIComponent("cart.html")}`;
     return;
   }
@@ -331,6 +384,7 @@ checkoutForm.addEventListener("submit", async event => {
       if (savedData.address?._id) localStorage.setItem("foodway-default-address-id", savedData.address._id);
     }
     sessionStorage.setItem("food-platform-checkout", JSON.stringify({ deliveryDetails, deliveryAddress }));
+    sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
     location.href = "payment.html";
   } catch (submitError) {
     error.textContent = submitError.message;
@@ -338,6 +392,7 @@ checkoutForm.addEventListener("submit", async event => {
   }
 });
 
+restoreCheckoutDraft();
 renderCart();
 document.querySelector(".save-address-choice").hidden = false;
 loadSavedAddresses();

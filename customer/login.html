@@ -44,7 +44,7 @@
   <p class="auth-divider" hidden>or continue with</p>
   <div id="google-signin-button" role="status" hidden></div>
   <p id="message" role="status"></p>
-  <p>New here? <a href="register.html">Create a customer account</a>.</p>
+  <p>New here? <a id="register-link" href="register.html">Create a customer account</a>.</p>
 </main>
 <script src="../assets/js/common.js"></script><script src="../assets/js/google-auth.js"></script><script>
 document.querySelector("#login-form").addEventListener("submit", async event => {
@@ -82,6 +82,10 @@ const phoneForm = document.querySelector("#phone-form");
 const otpForm = document.querySelector("#otp-form");
 const loginMessage = document.querySelector("#message");
 let requestedPhone = "";
+const returnTarget = new URLSearchParams(location.search).get("next");
+if (["cart.html", "payment.html"].includes(returnTarget)) {
+  document.querySelector("#register-link").href = `register.html?next=${encodeURIComponent(returnTarget)}`;
+}
 
 document.querySelector("#show-phone-login").addEventListener("click", () => {
   document.querySelector("#password-login").hidden = true;
