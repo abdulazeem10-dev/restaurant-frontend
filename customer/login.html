@@ -62,6 +62,11 @@ document.querySelector("#login-form").addEventListener("submit", async event => 
 
 function completeLogin(data) {
   completeAuthentication(data);
+  if (data.user.mustChangePassword) {
+    document.querySelector('#login-form [name="password"]').value = "";
+    location.href = "change-password.html";
+    return;
+  }
   if (data.user.role === "restaurant") location.href = "../restaurant/dashboard.html";
   else if (data.user.role === "restaurant_staff") location.href = "../restaurant/staff-dashboard.html";
   else if (data.user.role === "admin") location.href = "../admin/dashboard.html";

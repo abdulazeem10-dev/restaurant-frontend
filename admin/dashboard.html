@@ -51,9 +51,8 @@
           <label>Owner name<br><input name="ownerName" required maxlength="100"></label>
           <label>Owner email / username<br><input name="email" type="email" required maxlength="254"></label>
           <label>Owner phone<br><input name="phone" type="tel" required minlength="8" maxlength="20" autocomplete="tel" placeholder="+91 9876543210"></label>
-          <label>Initial password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
           <button type="submit">Create owner account</button>
-        </form><p class="muted admin-form-note">Paste a publicly accessible image link. The image must already be hosted online. The restaurant still needs approval before accepting customer orders.</p></section>
+        </form><section id="new-owner-credential" class="admin-temporary-credential" aria-live="polite" hidden></section><p class="muted admin-form-note">The system generates a one-time temporary password. Copy it and share it privately with the owner; they must set a new password within 7 days. Paste a publicly accessible image link. The restaurant still needs approval before accepting customer orders.</p></section>
       </section>
 
       <section class="admin-view" data-admin-section="restaurants" hidden>
@@ -67,7 +66,7 @@
     </div>
   </main>
   <script src="../assets/js/common.js"></script>
-  <script src="../assets/js/admin.js?v=20261110-1"></script>
+  <script src="../assets/js/admin.js?v=20261116-1"></script>
   <script src="../assets/js/admin-backup.js?v=20261111-1"></script>
 </body>
 </html>

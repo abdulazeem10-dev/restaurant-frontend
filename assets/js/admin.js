@@ -1,8 +1,8 @@
 const message = document.querySelector("#message");
 const adminPageTitles = {
-  overview: ["Admin overview", "Manage restaurant-owner accounts, subscriptions, and approvals from one place."],
-  "add-restaurant": ["Create restaurant account", "Set up the owner login. The owner buys a plan after signing in."],
-  restaurants: ["Restaurant accounts", "Review owner details, subscription periods, and restaurant approvals."]
+  overview: ["Admin overview", "Manage restaurant-owner accounts and approvals from one place."],
+  "add-restaurant": ["Create restaurant account", "Set up the restaurant owner login."],
+  restaurants: ["Restaurant accounts", "Review owner details and restaurant approvals."]
 };
 
 function showAdminView(view) {
@@ -77,6 +77,41 @@ async function updateRestaurantStatus(restaurantId, status) {
   await loadRestaurants();
 }
 
+function createTemporaryCredentialPanel({ ownerName, name, email, password, expiresAt }) {
+  const panel = document.createElement("section");
+  panel.className = "admin-temporary-credential";
+  panel.setAttribute("aria-live", "polite");
+  const heading = document.createElement("h4");
+  heading.textContent = "Temporary password — shown once";
+  const details = document.createElement("p");
+  details.textContent = `${ownerName || name || "Restaurant owner"} · ${email || ""}. Ask them to sign in and choose a new password. Expires ${new Date(expiresAt).toLocaleString("en-IN")}.`;
+  const value = document.createElement("input");
+  value.type = "text";
+  value.readOnly = true;
+  value.autocomplete = "off";
+  value.spellcheck = false;
+  value.setAttribute("aria-label", "One-time temporary password");
+  value.value = password;
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.textContent = "Copy temporary password";
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(password);
+      copy.textContent = "Copied";
+    } catch {
+      value.focus();
+      value.select();
+      copy.textContent = "Select and copy the password";
+    }
+  });
+  const note = document.createElement("p");
+  note.className = "muted";
+  note.textContent = "This password is not saved for later display. If it is lost, use Reset owner password to generate another.";
+  panel.append(heading, details, value, copy, note);
+  return panel;
+}
+
 async function loadRestaurants() {
   const root = document.querySelector("#restaurants");
   const status = document.querySelector("#restaurants-status");
@@ -140,6 +175,29 @@ async function loadRestaurants() {
     });
     card.append(profileForm);
 
+    const resetOwnerPassword = document.createElement("button");
+    resetOwnerPassword.type = "button";
+    resetOwnerPassword.className = "secondary";
+    resetOwnerPassword.textContent = "Reset owner password";
+    resetOwnerPassword.addEventListener("click", async () => {
+      if (!confirm(`Generate a new temporary password for ${owner.name || restaurant.name}? Their current password and all active sessions will stop working.`)) return;
+      resetOwnerPassword.disabled = true;
+      resetOwnerPassword.textContent = "Generating…";
+      try {
+        const result = await adminRequest(`/admin/restaurants/${encodeURIComponent(restaurant._id)}/password-reset`, { method: "POST" });
+        card.querySelector(".admin-temporary-credential")?.remove();
+        card.append(createTemporaryCredentialPanel({ ...result.owner, password: result.temporaryPassword, expiresAt: result.temporaryPasswordExpiresAt }));
+        message.textContent = "A new temporary password was generated. Copy it now and share it privately with the owner.";
+      } catch (error) {
+        message.textContent = error.message;
+      } finally {
+        resetOwnerPassword.disabled = false;
+        resetOwnerPassword.textContent = "Reset owner password";
+      }
+    });
+    card.append(resetOwnerPassword);
+
+    /* Subscription status and payment history are paused in platform admin; retained for future use.
     const subscription = restaurant.subscription;
     const subscriptionInfo = document.createElement("p");
     subscriptionInfo.className = "muted";
@@ -173,6 +231,7 @@ async function loadRestaurants() {
       history.append(summary, list);
       card.append(history);
     }
+    */
     const deactivateProfile = document.createElement("button");
     deactivateProfile.type = "button";
     deactivateProfile.className = restaurant.profileDeactivatedAt ? "" : "secondary";
@@ -365,20 +424,24 @@ document
     const form = new FormData(restaurantForm);
     const fields = [
       "restaurantName", "address", "description", "imageUrl", "foodType",
-      "cuisine", "ownerName", "email", "phone", "password"
+      "cuisine", "ownerName", "email", "phone"
     ];
     const body = Object.fromEntries(fields.map(key => [key, form.get(key)]));
     let accountCreated = false;
     try {
-      await adminRequest("/admin/restaurants", {
+      const result = await adminRequest("/admin/restaurants", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       });
       accountCreated = true;
       restaurantForm.reset();
-      message.textContent = "Restaurant owner account created. The owner can sign in to buy a plan; the restaurant is pending approval.";
-      await loadRestaurants();
-      showAdminView("restaurants");
+      const credentialPanel = document.querySelector("#new-owner-credential");
+      const newCredentialPanel = createTemporaryCredentialPanel({ ...result.owner, password: result.temporaryPassword, expiresAt: result.temporaryPasswordExpiresAt });
+      newCredentialPanel.id = "new-owner-credential";
+      credentialPanel.replaceWith(newCredentialPanel);
+      message.textContent = "Restaurant owner account created. Copy the one-time temporary password now. The restaurant is pending approval.";
+      try { await loadRestaurants(); }
+      catch (error) { document.querySelector("#restaurants-status").textContent = `Account created; restaurant list refresh failed: ${error.message}`; }
     } catch (error) {
       console.error("[admin] restaurant account creation failed", error);
       if (accountCreated) {

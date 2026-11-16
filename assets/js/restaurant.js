@@ -337,6 +337,72 @@ const restaurantStaffRoles = [
   ["biller_modifier", "Biller / modifier"],
   ["viewer", "Viewer"]
 ];
+function createRestaurantTemporaryPasswordPanel({ name, email, password, expiresAt }) {
+  const panel = document.createElement("section");
+  panel.className = "restaurant-temporary-password";
+  panel.setAttribute("aria-live", "polite");
+  const heading = document.createElement("strong");
+  heading.textContent = "Temporary password — shown once";
+  const details = document.createElement("p");
+  details.textContent = `${name || "Account holder"} · ${email || ""}. Share this privately. They must choose a new password after signing in. Expires ${new Date(expiresAt).toLocaleString("en-IN")}.`;
+  const value = document.createElement("input");
+  value.type = "text";
+  value.readOnly = true;
+  value.autocomplete = "off";
+  value.spellcheck = false;
+  value.setAttribute("aria-label", "One-time temporary password");
+  value.value = password;
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.textContent = "Copy temporary password";
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(password);
+      copy.textContent = "Copied";
+    } catch {
+      value.focus();
+      value.select();
+      copy.textContent = "Select and copy the password";
+    }
+  });
+  const note = document.createElement("p");
+  note.className = "muted";
+  note.textContent = "This password cannot be viewed again. If it is lost, reset it here to generate another.";
+  panel.append(heading, details, value, copy, note);
+  return panel;
+}
+function replaceRestaurantTemporaryPasswordPanel(targetId, data, fallbackName = "Account holder") {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  const panel = createRestaurantTemporaryPasswordPanel({
+    ...(data.account || data.deliveryPartner || {}),
+    name: (data.account || data.deliveryPartner || {}).name || fallbackName,
+    password: data.temporaryPassword,
+    expiresAt: data.temporaryPasswordExpiresAt
+  });
+  panel.id = targetId;
+  target.replaceWith(panel);
+}
+function addManagedAccountPasswordReset(button, account, container) {
+  button.addEventListener("click", async () => {
+    if (!confirm(`Generate a new temporary password for ${account.name}? Their existing password and active sessions will stop working.`)) return;
+    button.disabled = true;
+    try {
+      const result = await api(`/restaurants/owner/accounts/${encodeURIComponent(account._id)}/password-reset`, { method: "POST" });
+      container.querySelector(".restaurant-temporary-password")?.remove();
+      container.append(createRestaurantTemporaryPasswordPanel({
+        ...(result.account || account),
+        password: result.temporaryPassword,
+        expiresAt: result.temporaryPasswordExpiresAt
+      }));
+      msg.textContent = `A new temporary password was generated for ${account.name}. Copy and share it privately now.`;
+    } catch (error) {
+      msg.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
 async function loadDeliveryPartners() {
  const root = document.querySelector("#delivery-partners");
  if (!root) return;
@@ -386,16 +452,20 @@ async function loadDeliveryPartners() {
     await loadDeliveryPartners();
    } catch (error) { msg.textContent = error.message; toggle.disabled = false; }
   });
-  card.append(form,state,toggle); root.append(card);
+  const resetPassword = document.createElement("button"); resetPassword.type = "button"; resetPassword.className = "secondary"; resetPassword.textContent = "Reset password"; resetPassword.hidden = !restaurantCanManageAccounts;
+  addManagedAccountPasswordReset(resetPassword, partner, card);
+  card.append(form,state,toggle,resetPassword); root.append(card);
  }
 }
 document.querySelector("#delivery-partner-form")?.addEventListener("submit", async event => {
  event.preventDefault(); msg.textContent = ""; const form = event.currentTarget; const button = form.querySelector('button[type="submit"]'); button.disabled = true;
  try {
   const values = new FormData(form);
-  const result = await api("/restaurants/owner/delivery-partners", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(["name","email","phone","password"].map(key=>[key,values.get(key)])))});
-  console.log("[restaurant delivery team] account created", result.deliveryPartner.id);
-  form.reset(); msg.textContent = "Delivery login created for " + result.deliveryPartner.name + ". Share the temporary password securely."; await loadDeliveryPartners();
+  const result = await api("/restaurants/owner/delivery-partners", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(["name","email","phone"].map(key=>[key,values.get(key)])))});
+  form.reset();
+  replaceRestaurantTemporaryPasswordPanel("delivery-generated-password", result, result.deliveryPartner.name);
+  msg.textContent = `Delivery login created for ${result.deliveryPartner.name}. Copy the temporary password and share it privately.`;
+  await loadDeliveryPartners();
  } catch (error) { msg.textContent = error.message; } finally { button.disabled = false; }
 });
 
@@ -430,7 +500,13 @@ async function loadStaffAccounts() {
         remove.disabled = false;
       }
     });
-    item.append(details, remove);
+    const resetPassword = document.createElement("button");
+    resetPassword.type = "button";
+    resetPassword.className = "secondary";
+    resetPassword.textContent = "Reset password";
+    resetPassword.hidden = !restaurantCanManageAccounts;
+    addManagedAccountPasswordReset(resetPassword, { ...account, name: account.name, _id: account._id }, item);
+    item.append(details, resetPassword, remove);
     list.append(item);
   }
   if (!form || !roleSelect) return;
@@ -528,13 +604,14 @@ document.querySelector("#owner-staff-form").addEventListener("submit", async eve
   button.disabled = true;
   msg.textContent = "";
   try {
-    const { account } = await api("/restaurants/owner/staff", {
+    const result = await api("/restaurants/owner/staff", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(["staffRole", "name", "email", "phone", "password"].map(key => [key, values.get(key)])))
+      body: JSON.stringify(Object.fromEntries(["staffRole", "name", "email", "phone"].map(key => [key, values.get(key)])))
     });
     form.reset();
-    msg.textContent = `${restaurantStaffRoles.find(([key]) => key === account.staffRole)?.[1] || "Staff"} login created for ${account.name}. Share the temporary password securely.`;
+    replaceRestaurantTemporaryPasswordPanel("staff-generated-password", result, result.account.name);
+    msg.textContent = `${restaurantStaffRoles.find(([key]) => key === result.account.staffRole)?.[1] || "Staff"} login created for ${result.account.name}. Copy the temporary password and share it privately.`;
     await loadStaffAccounts();
   } catch (error) {
     msg.textContent = error.message;

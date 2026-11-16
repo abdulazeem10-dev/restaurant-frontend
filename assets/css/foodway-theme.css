@@ -1600,3 +1600,77 @@ html[data-theme="dark"] .customer-page .menu-load-retry:hover { border-color: #e
   .restaurant-page .category-carousel-row { grid-template-columns: minmax(0, 1fr); }
   .restaurant-page .category-carousel-source, .restaurant-page .category-carousel-visible { grid-column: auto; }
 }
+
+.admin-temporary-credential {
+  display: grid;
+  gap: .65rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #c7b86a;
+  border-radius: .9rem;
+  background: #fff9df;
+  color: #29261c;
+}
+.admin-temporary-credential[hidden] { display: none; }
+.admin-temporary-credential h4,
+.admin-temporary-credential p { margin: 0; }
+.admin-temporary-credential input {
+  width: 100%;
+  min-width: 0;
+  padding: .8rem;
+  border: 1px solid #b5a655;
+  border-radius: .6rem;
+  background: #fff;
+  color: #171612;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 1rem;
+}
+.admin-temporary-credential .muted { color: #665f49; }
+html[data-theme="dark"] .admin-temporary-credential {
+  border-color: #665729;
+  background: #302a18;
+  color: #f5f0df;
+}
+html[data-theme="dark"] .admin-temporary-credential input {
+  border-color: #71602a;
+  background: #1b1a16;
+  color: #fff7dc;
+}
+html[data-theme="dark"] .admin-temporary-credential .muted { color: #c3baa5; }
+
+.restaurant-temporary-password {
+  display: grid;
+  gap: .65rem;
+  width: 100%;
+  margin-block: .9rem;
+  padding: 1rem;
+  border: 1px solid #c7b86a;
+  border-radius: .9rem;
+  background: #fff9df;
+  color: #29261c;
+}
+.restaurant-temporary-password[hidden] { display: none; }
+.restaurant-temporary-password p { margin: 0; }
+.restaurant-temporary-password input {
+  width: 100%;
+  min-width: 0;
+  padding: .8rem;
+  border: 1px solid #b5a655;
+  border-radius: .6rem;
+  background: #fff;
+  color: #171612;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 1rem;
+}
+.restaurant-temporary-password .muted { color: #665f49; }
+html[data-theme="dark"] .restaurant-temporary-password {
+  border-color: #665729;
+  background: #302a18;
+  color: #f5f0df;
+}
+html[data-theme="dark"] .restaurant-temporary-password input {
+  border-color: #71602a;
+  background: #1b1a16;
+  color: #fff7dc;
+}
+html[data-theme="dark"] .restaurant-temporary-password .muted { color: #c3baa5; }
