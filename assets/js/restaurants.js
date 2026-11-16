@@ -17,8 +17,8 @@ let selectedCuisineFilter = "all";
 let restaurantsLoading = false;
 
 const waitBeforeMenuRetry = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
-const menuRetryDelays = [2000, 4000, 7000, 10000, 15000, 20000];
-async function fetchPublicMenuJson(url, label, attempts = 7, onRetry = () => {}) {
+const menuRetryDelays = [2000, 4000, 7000, 10000, 15000, 20000, 20000, 20000];
+async function fetchPublicMenuJson(url, label, attempts = 9, onRetry = () => {}) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
@@ -331,17 +331,17 @@ async function loadRestaurants() {
   const loadingMessage = Object.assign(document.createElement("p"), { className: "muted", textContent: "Loading the Al-Madina menu…" });
   featuredDishesTrack?.replaceChildren(loadingMessage);
   const showRetryProgress = (nextAttempt, attempts) => {
-    if (loadingMessage.isConnected) loadingMessage.textContent = `The menu server is waking up. Reconnecting (${nextAttempt} of ${attempts})…`;
+    if (loadingMessage.isConnected) loadingMessage.textContent = `The menu is taking longer to load. Keep this page open; reconnecting (${nextAttempt} of ${attempts})…`;
   };
   try {
-    const data = await fetchPublicMenuJson(`${API_BASE}/restaurants`, "GET /restaurants", 7, showRetryProgress);
+    const data = await fetchPublicMenuJson(`${API_BASE}/restaurants`, "GET /restaurants", 9, showRetryProgress);
     const approved = data.restaurants || [];
     currentRestaurant = approved.find(restaurant => alMadinaRestaurantName.test(String(restaurant.name || "").trim())) || null;
     if (!currentRestaurant) {
       throw new Error("No approved Al-Madina restaurant was returned by the public restaurant API.");
     }
     renderFoodPassport();
-    const menuData = await fetchPublicMenuJson(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`, `GET /restaurants/${currentRestaurant._id}/menu`, 7, showRetryProgress);
+    const menuData = await fetchPublicMenuJson(`${API_BASE}/restaurants/${encodeURIComponent(currentRestaurant._id)}/menu`, `GET /restaurants/${currentRestaurant._id}/menu`, 9, showRetryProgress);
     const normalizedItems = (menuData.items || []).map(item => ({
       ...item,
       foodType: window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType || ""
