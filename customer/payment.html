@@ -42,10 +42,10 @@
           <span class="payment-option-check" aria-hidden="true">✓</span>
         </label>
         <label class="payment-option payment-option-unavailable" data-payment-choice id="online-payment-choice" aria-disabled="true">
-          <input type="radio" name="paymentMethod" value="online" disabled>
+          <input type="radio" name="paymentMethod" value="razorpay" disabled>
           <span class="payment-option-icon" aria-hidden="true">💳</span>
-          <span class="payment-option-copy"><strong>Online payment</strong><small>Online payment is not available yet. Choose cash on delivery for this order.</small></span>
-          <span class="payment-option-status">Coming soon</span>
+          <span class="payment-option-copy"><strong>Online payment</strong><small>Secure payment by card, UPI, or net banking.</small></span>
+          <span class="payment-option-status" id="online-payment-status">Checking</span>
         </label>
         <label class="payment-option payment-option-unavailable" data-payment-choice id="upi-qr-choice" aria-disabled="true">
           <input type="radio" name="paymentMethod" value="upi_qr" disabled>
@@ -61,10 +61,14 @@
         <h2 id="payment-restaurant">Order summary</h2>
         <div id="payment-items" class="payment-items"></div>
         <div class="payment-delivery"><strong>Delivering to</strong><span id="payment-recipient"></span><span id="payment-address" class="muted"></span><span id="payment-delivery-area" class="muted" hidden></span></div>
+        <form id="coupon-form" class="coupon-checkout-form"><label for="coupon-code">Coupon code</label><div><input id="coupon-code" name="code" maxlength="24" autocomplete="off" placeholder="Enter a coupon code"><button type="submit" class="secondary">Apply</button></div><p id="coupon-status" class="muted" role="status" aria-live="polite"></p></form>
+        <div id="payment-coupon-discount" class="payment-reward-discount" hidden><span id="payment-coupon-label">Coupon discount</span><strong id="payment-coupon-amount"></strong></div>
+        <section class="marketing-preference-panel" aria-label="Marketing preferences"><label><input id="marketing-opt-in" type="checkbox"> Send me optional Al-Madina offers on WhatsApp</label><small id="marketing-preference-status" class="muted">Only customers who opt in may receive offers. Change this setting here at any time.</small></section>
         <section id="loyalty-reward-panel" class="loyalty-reward-panel" hidden aria-label="Al-Madina stamp reward">
           <label><input id="redeem-stamp-reward" type="checkbox" disabled> <span><strong>Use 20 stamps for 20% off</strong><small id="loyalty-reward-status">Checking your stamp balance…</small></span></label>
         </section>
         <div id="payment-reward-discount" class="payment-reward-discount" hidden><span>Al-Madina stamp reward (20%)</span><strong id="payment-discount-amount"></strong></div>
+        <div id="payment-tax-row" class="payment-reward-discount" hidden><span id="payment-tax-label">GST</span><strong id="payment-tax-amount"></strong></div>
         <div class="payment-total"><span id="payment-total-label">Order total</span><strong id="payment-total"></strong></div>
         <button id="confirm-order" class="cart-submit" type="button">Place order</button>
         <p class="cart-checkout-note">The restaurant will confirm your order after you place it.</p>
@@ -74,7 +78,7 @@
 
   <footer class="site-footer"><a class="wordmark" href="index.html"><img class="brand-logo" src="../assets/images/al-madina-family-restaurant.png" alt="Al Madina Family Restaurant"></a><span>Fresh food from your neighbourhood</span></footer>
   <script src="../assets/js/common.js"></script>
-  <script src="../assets/js/payment.js?v=20261116-1"></script>
+  <script src="../assets/js/payment.js?v=20261116-4"></script>
   <script src="../assets/js/support-chat.js?v=20261109-3"></script>
 </body>
 </html>

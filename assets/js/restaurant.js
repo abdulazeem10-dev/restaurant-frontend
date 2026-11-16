@@ -877,6 +877,7 @@ function applyMenuNameSearch() {
 async function loadMenu() {
   const { restaurant, items = [] } = await api("/restaurants/owner/menu");
   restaurantCurrentRestaurant = restaurant;
+  renderRestaurantMenuQr(restaurant);
   restaurantMenuItems = items.map(item => ({
     ...item,
     foodType: window.foodwayNormalizeFoodType?.(item.foodType) || item.foodType || "",
@@ -1571,7 +1572,12 @@ async function loadReports() {
     total.innerHTML = `<span>All orders</span><strong>${data.summary.orders || 0}</strong>`;
     const cancelled = document.createElement("article"); cancelled.className = "report-metric";
     cancelled.innerHTML = `<span>Cancelled</span><strong>${data.summary.cancelled || 0}</strong>`;
-    summary.append(paidSales, delivered, total, cancelled);
+    const ingredientCost = document.createElement("article"); ingredientCost.className = "report-metric";
+    const costLabel = document.createElement("span"); costLabel.textContent = "Recorded ingredient cost";
+    const costValue = document.createElement("strong"); costValue.textContent = formatRupees(data.summary.recordedIngredientCostPaise || 0);
+    const costCoverage = document.createElement("small"); costCoverage.textContent = `${data.summary.ingredientCostedQuantity || 0} of ${data.summary.deliveredQuantity || 0} delivered portions have saved recipes · not profit`;
+    ingredientCost.append(costLabel, costValue, costCoverage);
+    summary.append(paidSales, delivered, total, cancelled, ingredientCost);
 
     const statuses = document.querySelector("#report-status-counts"); statuses.replaceChildren();
     if (!data.statusCounts.length) statuses.textContent = "No orders in this date range.";
@@ -1611,9 +1617,49 @@ function printRestaurantOrderBill(order) {
   const recipient = order.deliveryDetails;
   const address = order.orderType === "dine_in" ? "Dine-in · Table " + order.tableNumber : [recipient?.flatBuilding, recipient?.lane, recipient?.landmark, recipient?.pincode].filter(Boolean).join(", ") || order.deliveryAddress || "—";
   const payment = order.paymentMethod === "cash_on_delivery" ? (order.orderType === "dine_in" ? "Cash" : "Cash on delivery") : order.paymentMethod === "upi_qr" ? "UPI QR" : "Online payment";
-  const html = "<!doctype html><html><head><meta charset='utf-8'><title>Bill " + escapeHtml(order._id.slice(-6)) + "</title><style>body{font:14px Arial,sans-serif;color:#202521;max-width:720px;margin:32px auto;padding:0 24px}h1{margin:0 0 4px;font-size:26px}h2{margin:26px 0 8px;font-size:16px}p{margin:5px 0;color:#59635c;line-height:1.45}.bill-head{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #174b3d;padding-bottom:18px}.bill-meta{text-align:right}.bill-meta strong{display:block;color:#174b3d}.bill-box{margin-top:22px;padding:14px;border:1px solid #dfe2d9;border-radius:10px}.bill-box h2{margin-top:0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid #e9ece6}th:nth-child(n+2),td:nth-child(n+2){text-align:right}.total{margin-top:14px;text-align:right;font-size:18px;font-weight:700}.footer{margin-top:34px;text-align:center;font-size:12px;color:#7a847c}@media print{body{margin:0;max-width:none}.no-print{display:none}}</style></head><body><div class='bill-head'><div><h1>" + escapeHtml(restaurantName) + "</h1><p>Order bill</p></div><div class='bill-meta'><strong>Order #" + escapeHtml(order._id.slice(-6)) + "</strong><span>" + escapeHtml(new Date(order.createdAt).toLocaleString("en-IN")) + "</span></div></div><div class='bill-box'><h2>Customer</h2><p><strong>" + escapeHtml(recipient?.name || order.customerName || order.customerId?.name || "Customer") + "</strong>" + ((recipient?.phone || order.customerPhone) ? " · " + escapeHtml(recipient?.phone || order.customerPhone) : "") + "</p><p>" + escapeHtml(address) + "</p></div><h2>Items</h2><table><thead><tr><th>Dish</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>" + items + "</tbody></table><p class='total'>Total: " + formatRupees(order.totalPaise) + "</p><div class='bill-box'><p><strong>Payment:</strong> " + escapeHtml(payment) + " · " + escapeHtml(order.paymentStatus || "pending") + "</p><p><strong>Service:</strong> " + escapeHtml(order.orderType === "dine_in" ? "Dine-in · Table " + order.tableNumber : "Delivery · " + (order.deliveryPartnerId?.name || "Assigned delivery person")) + "</p></div><p class='footer'>Thank you for ordering from " + escapeHtml(restaurantName) + ".</p><button class='no-print' onclick='window.print()'>Print bill</button></body></html>";
+  const taxPercent = (Number(order.taxRateBasisPoints) || 0) / 100;
+  const discountPaise = (Number(order.rewardDiscountPaise) || 0) + (Number(order.couponDiscountPaise) || 0);
+  const discountLine = discountPaise ? "<p><strong>Discount" + (order.couponCode ? " · " + escapeHtml(order.couponCode) : "") + "</strong>: −" + formatRupees(discountPaise) + "</p>" : "";
+  const taxLine = (order.taxPaise ? "<p><strong>" + escapeHtml(order.taxLabel || "GST") + " (" + taxPercent + "%)</strong>: " + formatRupees(order.taxPaise) + (order.taxInclusive ? " (included)" : "") + "</p>" : "") + (order.gstin ? "<p><strong>GSTIN:</strong> " + escapeHtml(order.gstin) + "</p>" : "");
+  const html = "<!doctype html><html><head><meta charset='utf-8'><title>Bill " + escapeHtml(order._id.slice(-6)) + "</title><style>body{font:14px Arial,sans-serif;color:#202521;max-width:720px;margin:32px auto;padding:0 24px}h1{margin:0 0 4px;font-size:26px}h2{margin:26px 0 8px;font-size:16px}p{margin:5px 0;color:#59635c;line-height:1.45}.bill-head{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #174b3d;padding-bottom:18px}.bill-meta{text-align:right}.bill-meta strong{display:block;color:#174b3d}.bill-box{margin-top:22px;padding:14px;border:1px solid #dfe2d9;border-radius:10px}.bill-box h2{margin-top:0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid #e9ece6}th:nth-child(n+2),td:nth-child(n+2){text-align:right}.total{margin-top:14px;text-align:right;font-size:18px;font-weight:700}.footer{margin-top:34px;text-align:center;font-size:12px;color:#7a847c}@media print{body{margin:0;max-width:none}.no-print{display:none}}</style></head><body><div class='bill-head'><div><h1>" + escapeHtml(restaurantName) + "</h1><p>Order bill</p></div><div class='bill-meta'><strong>Order #" + escapeHtml(order._id.slice(-6)) + "</strong><span>" + escapeHtml(new Date(order.createdAt).toLocaleString("en-IN")) + "</span></div></div><div class='bill-box'><h2>Customer</h2><p><strong>" + escapeHtml(recipient?.name || order.customerName || order.customerId?.name || "Customer") + "</strong>" + ((recipient?.phone || order.customerPhone) ? " · " + escapeHtml(recipient?.phone || order.customerPhone) : "") + "</p><p>" + escapeHtml(address) + "</p></div><h2>Items</h2><table><thead><tr><th>Dish</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>" + items + "</tbody></table><p><strong>Subtotal:</strong> " + formatRupees(order.subtotalPaise) + "</p>" + discountLine + taxLine + "<p class='total'>Total: " + formatRupees(order.totalPaise) + "</p><div class='bill-box'><p><strong>Payment:</strong> " + escapeHtml(payment) + " · " + escapeHtml(order.paymentStatus || "pending") + "</p><p><strong>Service:</strong> " + escapeHtml(order.orderType === "dine_in" ? "Dine-in · Table " + order.tableNumber : "Delivery · " + (order.deliveryPartnerId?.name || "Assigned delivery person")) + "</p></div><p class='footer'>Thank you for ordering from " + escapeHtml(restaurantName) + ".</p><button class='no-print' onclick='window.print()'>Print bill</button></body></html>";
   printWindow.document.write(html); printWindow.document.close(); printWindow.focus();
 }
+
+function printKitchenTicket(order) {
+  const printWindow = window.open("", "_blank", "width=560,height=760");
+  if (!printWindow) { msg.textContent = "Allow pop-ups to print the kitchen ticket."; return; }
+  printWindow.addEventListener("load", () => printWindow.print(), { once: true });
+  const orderType = order.orderType === "dine_in" ? `Dine-in · Table ${order.tableNumber}` : "Home delivery";
+  const rows = (order.items || []).map(item => `<li><strong>${Number(item.quantity) || 0} × ${escapeHtml(item.name || "Dish")}</strong>${item.note?.trim() ? `<p class="note"><b>Kitchen note:</b> ${escapeHtml(item.note.trim())}</p>` : ""}</li>`).join("");
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Kitchen ticket ${escapeHtml(String(order._id).slice(-6))}</title><style>body{font:16px Arial,sans-serif;max-width:420px;margin:24px auto;padding:0 16px;color:#111}h1{font-size:24px;margin-bottom:6px}p{line-height:1.4}ul{list-style:none;padding:0}li{border-top:1px dashed #555;padding:12px 0;font-size:20px}.note{font-size:16px;border-left:4px solid #111;padding:8px;margin:10px 0 0}small{color:#555}@media print{body{margin:0 auto}}</style></head><body><h1>KITCHEN TICKET</h1><p><b>${escapeHtml(orderType)} · #${escapeHtml(String(order._id).slice(-6))}</b></p><p>${escapeHtml(new Date(order.createdAt).toLocaleString("en-IN"))}</p><ul>${rows}</ul><small>Kitchen copy · Do not include with customer bill</small></body></html>`);
+  printWindow.document.close();
+}
+
+function renderRestaurantMenuQr(restaurant) {
+  const input = document.querySelector("#restaurant-menu-link");
+  const image = document.querySelector("#restaurant-menu-qr");
+  const button = document.querySelector("#print-restaurant-menu-qr");
+  const restaurantId = restaurant?._id || restaurant?.id;
+  if (!input || !image || !button || !restaurantId) return;
+  const menuUrl = new URL(`../customer/menu.html?id=${encodeURIComponent(restaurantId)}`, location.href).href;
+  input.value = menuUrl;
+  image.src = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&format=png&data=${encodeURIComponent(menuUrl)}`;
+  image.hidden = false;
+  button.disabled = false;
+  document.querySelector("#qr-menu-status").textContent = "Live customer menu link is ready. Printing the code requires an internet connection.";
+}
+
+document.querySelector("#print-restaurant-menu-qr")?.addEventListener("click", () => {
+  const image = document.querySelector("#restaurant-menu-qr");
+  const url = document.querySelector("#restaurant-menu-link")?.value;
+  if (!image?.src || !url) return;
+  const printWindow = window.open("", "_blank", "width=640,height=760");
+  if (!printWindow) { msg.textContent = "Allow pop-ups to print the QR menu."; return; }
+  printWindow.addEventListener("load", () => printWindow.print(), { once: true });
+  const title = escapeHtml(restaurantCurrentRestaurant?.name || "Restaurant menu");
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title} menu QR</title><style>body{font:18px Arial,sans-serif;text-align:center;margin:36px auto;max-width:540px;color:#161616}img{width:min(80vw,360px);height:auto}p{overflow-wrap:anywhere}</style></head><body><h1>${title}</h1><p>Scan to view our menu and order</p><img src="${escapeHtml(image.src)}" alt="Menu QR code"><p>${escapeHtml(url)}</p></body></html>`);
+  printWindow.document.close();
+});
 
 function renderDineInMenuPicker(root) {
   if (!root) return;
@@ -1892,6 +1938,12 @@ function renderKitchenQueue(orders) {
       total.className = "kitchen-ticket-total";
       total.textContent = formatRupees(order.totalPaise);
       card.append(heading, details, items, total);
+      const printTicket = document.createElement("button");
+      printTicket.type = "button";
+      printTicket.className = "secondary kitchen-ticket-print";
+      printTicket.textContent = "Print KOT";
+      printTicket.addEventListener("click", () => printKitchenTicket(order));
+      card.append(printTicket);
       if (!restaurantIsReadOnly && ["placed", "confirmed", "preparing"].includes(order.status)) {
         const nextStatus = order.status === "preparing" ? "ready" : "preparing";
         const action = document.createElement("button");

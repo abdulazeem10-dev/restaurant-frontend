@@ -1736,3 +1736,42 @@ html[data-theme="dark"] .customer-page .notification-item small { color: #c3baa5
 @media (max-width: 360px) {
   .customer-page.orders-page .order-summary { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* QR menu, KOT printing, and business operations tools. */
+.restaurant-sidebar a.restaurant-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  margin: .25rem 0;
+  padding: .8rem 1rem;
+  border: 1px solid transparent;
+  border-radius: .9rem;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+.restaurant-sidebar a.restaurant-sidebar-link span { color: #e6c500; }
+.restaurant-sidebar a.restaurant-sidebar-link:hover,
+.restaurant-sidebar a.restaurant-sidebar-link:focus-visible { border-color: #786b32; background: rgba(231, 197, 0, .12); }
+.qr-menu-preview { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 1.25rem; align-items: center; }
+.qr-menu-preview img { width: 180px; height: 180px; padding: .5rem; border-radius: .8rem; background: #fff; object-fit: contain; }
+.qr-menu-preview label { display: grid; gap: .4rem; }
+.restaurant-business-shell { width: min(1160px, calc(100% - 2rem)); margin: 2rem auto 5rem; }
+.restaurant-business-shell > .panel { margin-block: 1.25rem; }
+.restaurant-business-shell .form-grid { margin-top: 1rem; }
+.business-checkbox { display: flex; align-items: center; gap: .6rem; }
+.business-record-list { display: grid; gap: .65rem; margin-top: 1rem; }
+.business-record-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-width: 0; padding: .9rem; border: 1px solid var(--line, #625831); border-radius: .75rem; }
+.business-record-row > div { min-width: 0; }
+.business-record-row p,.business-record-row small { display: block; margin: .25rem 0 0; overflow-wrap: anywhere; }
+.business-record-row small { opacity: .75; }
+.restaurant-business-shell .recipe-ingredient-row { display: grid; grid-template-columns: minmax(10rem, 2fr) minmax(8rem, 1fr) minmax(7rem, 1fr) minmax(8rem, 1fr) auto; align-items: end; }
+.restaurant-business-shell .recipe-ingredient-row label { display: grid; gap: .35rem; }
+.restaurant-business-shell .recipe-ingredient-row input { width: 100%; min-width: 0; }
+.kitchen-ticket-print { margin-block: .25rem; }
+@media (max-width: 620px) {
+  .qr-menu-preview { grid-template-columns: minmax(0, 1fr); }
+  .restaurant-business-shell { width: min(100% - 1rem, 1160px); margin-top: 1rem; }
+  .business-record-row { align-items: flex-start; flex-wrap: wrap; }
+  .restaurant-business-shell .recipe-ingredient-row { grid-template-columns: minmax(0, 1fr); }
+}

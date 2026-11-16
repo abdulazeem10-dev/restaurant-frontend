@@ -5,7 +5,10 @@ const paymentChoices = [...document.querySelectorAll("[data-payment-choice]")];
 let checkout = null;
 let paymentSubtotalPaise = 0;
 let stampRewardsAvailable = 0;
+let checkoutTaxSettings = null;
+let couponPreview = null;
 const ORDER_IDEMPOTENCY_KEY = "food-platform-order-idempotency-key";
+let razorpayConfig = { enabled: false, keyId: null };
 
 function getOrderIdempotencyKey() {
   let key = sessionStorage.getItem(ORDER_IDEMPOTENCY_KEY);
@@ -38,10 +41,36 @@ function updateStampRewardPreview() {
   const checkbox = document.querySelector("#redeem-stamp-reward");
   const discountRow = document.querySelector("#payment-reward-discount");
   if (!checkbox || !discountRow) return;
-  const discount = checkbox.checked && stampRewardsAvailable > 0 ? Math.floor(paymentSubtotalPaise * 0.2) : 0;
-  discountRow.hidden = discount < 1;
-  document.querySelector("#payment-discount-amount").textContent = discount ? `−${formatRupees(discount)}` : "";
-  document.querySelector("#payment-total").textContent = formatRupees(paymentSubtotalPaise - discount);
+  const rewardDiscount = checkbox.checked && stampRewardsAvailable > 0 ? Math.floor(paymentSubtotalPaise * 0.2) : 0;
+  const couponDiscount = !rewardDiscount ? Number(couponPreview?.discountPaise) || 0 : 0;
+  discountRow.hidden = rewardDiscount < 1;
+  document.querySelector("#payment-discount-amount").textContent = rewardDiscount ? `−${formatRupees(rewardDiscount)}` : "";
+  const couponRow = document.querySelector("#payment-coupon-discount");
+  couponRow.hidden = couponDiscount < 1;
+  document.querySelector("#payment-coupon-label").textContent = couponPreview ? `Coupon ${couponPreview.code}` : "Coupon discount";
+  document.querySelector("#payment-coupon-amount").textContent = couponDiscount ? `−${formatRupees(couponDiscount)}` : "";
+  checkbox.disabled = stampRewardsAvailable < 1 || Boolean(couponPreview);
+  const taxable = Math.max(0, paymentSubtotalPaise - rewardDiscount - couponDiscount);
+  const settings = checkoutTaxSettings;
+  const rate = settings?.taxEnabled ? Number(settings.taxRateBasisPoints) || 0 : 0;
+  const tax = !rate ? 0 : settings.taxInclusive
+    ? Math.floor(taxable * rate / (10_000 + rate))
+    : Math.floor(taxable * rate / 10_000);
+  const taxRow = document.querySelector("#payment-tax-row");
+  taxRow.hidden = tax < 1;
+  document.querySelector("#payment-tax-label").textContent = `${settings?.taxLabel || "GST"} (${(rate / 100).toFixed(2).replace(/\.00$/, "")}%${settings?.taxInclusive ? " included" : ""})`;
+  document.querySelector("#payment-tax-amount").textContent = formatRupees(tax);
+  document.querySelector("#payment-total").textContent = formatRupees(taxable + (settings?.taxInclusive ? 0 : tax));
+}
+
+async function loadCheckoutTaxSettings() {
+  if (!paymentCart?.restaurantId) return;
+  try {
+    const response = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(paymentCart.restaurantId)}`);
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) checkoutTaxSettings = data.restaurant || null;
+  } catch (error) { console.warn("[checkout] tax preview unavailable", error); }
+  updateStampRewardPreview();
 }
 
 async function loadStampReward() {
@@ -69,6 +98,19 @@ async function loadStampReward() {
   updateStampRewardPreview();
 }
 
+async function loadMarketingPreference() {
+  const checkbox = document.querySelector("#marketing-opt-in");
+  const status = document.querySelector("#marketing-preference-status");
+  if (!checkbox || !getToken()) return;
+  try {
+    const response = await fetch(`${API_BASE}/customer/marketing-preference`, { headers: authHeaders() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Could not load your preference");
+    checkbox.checked = Boolean(data.marketingOptIn);
+    status.textContent = checkbox.checked ? "You opted in to optional WhatsApp offers. Untick this box to opt out." : "You are opted out. Tick the box to choose to receive optional WhatsApp offers.";
+  } catch { status.textContent = "Your marketing preference could not be loaded right now."; }
+}
+
 function selectedPaymentMethod() {
   return document.querySelector('input[name="paymentMethod"]:checked:not(:disabled)')?.value || "cash_on_delivery";
 }
@@ -80,10 +122,10 @@ function updatePaymentChoice() {
     const input = choice.querySelector("input");
     choice.classList.toggle("payment-option-selected", Boolean(input?.checked && !input.disabled));
   });
-  const online = method === "online";
+  const online = method === "razorpay";
   document.querySelector("#payment-total-label").textContent = "Order total";
   document.querySelector("#payment-security-note").textContent = online
-    ? "Online payment selected as your preference. No payment is collected on this page."
+    ? "Secure online payment will open after you place the order. The restaurant receives the order only after payment is verified."
     : method === "upi_qr"
       ? "UPI QR selected as your preference. No QR code or payment is generated on this page."
       : "Cash on delivery selected. Pay the delivery partner when your order arrives.";
@@ -133,6 +175,7 @@ async function createOrder(paymentMethod) {
       deliveryDetails: Object.fromEntries(["recipientType", "name", "phone", "flatBuilding", "lane", "landmark", "pincode"].map(key => [key, checkout.deliveryDetails[key]])),
       paymentMethod,
       redeemReward: Boolean(document.querySelector("#redeem-stamp-reward")?.checked && stampRewardsAvailable > 0),
+      couponCode: couponPreview?.code || "",
       items: paymentCart.items.map(({ menuItemId, quantity, note }) => ({ menuItemId, quantity, note: String(note || "").trim().slice(0, 300) }))
     })
   });
@@ -148,17 +191,123 @@ async function createOrder(paymentMethod) {
   const discountRow = document.querySelector("#payment-reward-discount");
   discountRow.hidden = finalDiscount < 1;
   document.querySelector("#payment-discount-amount").textContent = finalDiscount ? `−${formatRupees(finalDiscount)}` : "";
+  const finalCouponDiscount = Number(order.couponDiscountPaise) || 0;
+  document.querySelector("#payment-coupon-discount").hidden = finalCouponDiscount < 1;
+  document.querySelector("#payment-coupon-label").textContent = order.couponCode ? `Coupon ${order.couponCode}` : "Coupon discount";
+  document.querySelector("#payment-coupon-amount").textContent = finalCouponDiscount ? `−${formatRupees(finalCouponDiscount)}` : "";
+  const taxRow = document.querySelector("#payment-tax-row");
+  taxRow.hidden = !order.taxPaise;
+  if (order.taxPaise) {
+    const rate = (Number(order.taxRateBasisPoints) || 0) / 100;
+    document.querySelector("#payment-tax-label").textContent = `${order.taxLabel || "GST"} (${rate}%${order.taxInclusive ? " included" : ""})`;
+    document.querySelector("#payment-tax-amount").textContent = formatRupees(order.taxPaise);
+  }
   document.querySelector("#payment-total").textContent = formatRupees(order.totalPaise);
   return order;
 }
 
 async function placeOrder() {
-  await createOrder(selectedPaymentMethod());
+  const order = await createOrder(selectedPaymentMethod());
+  if (selectedPaymentMethod() === "razorpay") {
+    await startOnlinePayment(order);
+    return;
+  }
+  finishCheckout();
+}
+
+function finishCheckout() {
   localStorage.removeItem("food-platform-cart");
   sessionStorage.removeItem("food-platform-checkout");
   sessionStorage.removeItem(ORDER_IDEMPOTENCY_KEY);
   sessionStorage.removeItem("food-platform-payment-method");
   location.href = "orders.html?placed=1";
+}
+
+async function startOnlinePayment(order) {
+  if (!razorpayConfig.enabled || !window.Razorpay) {
+    await cancelOnlineOrder(order._id).catch(() => {});
+    sessionStorage.removeItem(ORDER_IDEMPOTENCY_KEY);
+    throw new Error("Online payment could not start. Your order was not placed; choose cash on delivery or try again later.");
+  }
+  const response = await fetch(`${API_BASE}/payments/orders/${encodeURIComponent(order._id)}/razorpay-order`, { method: "POST", headers: authHeaders() });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    await cancelOnlineOrder(order._id).catch(() => {});
+    sessionStorage.removeItem(ORDER_IDEMPOTENCY_KEY);
+    throw new Error(data.error || "Could not start online payment");
+  }
+  await new Promise((resolve, reject) => {
+    let completed = false;
+    const checkout = new window.Razorpay({
+      key: data.keyId,
+      amount: data.amount,
+      currency: data.currency,
+      name: "Al-Madina",
+      description: "Food order payment",
+      order_id: data.razorpayOrderId,
+      prefill: { name: checkoutDetailsName(), contact: checkoutDetailsPhone() },
+      theme: { color: "#e7bd00" },
+      handler: async result => {
+        try {
+          const verified = await fetch(`${API_BASE}/payments/orders/${encodeURIComponent(order._id)}/verify`, {
+            method: "POST",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify(result)
+          });
+          const verification = await verified.json().catch(() => ({}));
+          if (!verified.ok || !verification.paid) throw new Error(verification.error || "Payment is still being confirmed. Check My orders before retrying.");
+          completed = true;
+          finishCheckout();
+          resolve();
+        } catch (error) { reject(error); }
+      },
+      modal: { ondismiss: async () => {
+        if (completed) return;
+        await cancelOnlineOrder(order._id).catch(() => {});
+        sessionStorage.removeItem(ORDER_IDEMPOTENCY_KEY);
+        reject(new Error("Payment was cancelled. Your order was not placed; you can choose cash on delivery."));
+      } }
+    });
+    checkout.on("payment.failed", event => reject(new Error(event?.error?.description || "Payment failed. You can retry or choose cash on delivery.")));
+    checkout.open();
+  });
+}
+
+function checkoutDetailsName() { return checkout?.deliveryDetails?.name || ""; }
+function checkoutDetailsPhone() { return checkout?.deliveryDetails?.phone || ""; }
+async function cancelOnlineOrder(orderId) {
+  return fetch(`${API_BASE}/payments/orders/${encodeURIComponent(orderId)}/cancel`, { method: "POST", headers: authHeaders() });
+}
+
+async function loadPaymentConfiguration() {
+  const option = document.querySelector("#online-payment-choice");
+  const input = option?.querySelector("input");
+  const badge = document.querySelector("#online-payment-status");
+  const copy = option?.querySelector(".payment-option-copy small");
+  try {
+    const response = await fetch(`${API_BASE}/payments/config`);
+    const data = await response.json().catch(() => ({}));
+    razorpayConfig = { enabled: Boolean(response.ok && data.enabled && data.keyId), keyId: data.keyId || null };
+  } catch { razorpayConfig = { enabled: false, keyId: null }; }
+  if (!option || !input) return;
+  if (razorpayConfig.enabled) {
+    try {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error("Razorpay checkout could not load"));
+        document.head.append(script);
+      });
+      razorpayConfig.enabled = typeof window.Razorpay === "function";
+    } catch { razorpayConfig.enabled = false; }
+  }
+  input.disabled = !razorpayConfig.enabled;
+  option.classList.toggle("payment-option-unavailable", !razorpayConfig.enabled);
+  option.setAttribute("aria-disabled", String(!razorpayConfig.enabled));
+  if (badge) badge.textContent = razorpayConfig.enabled ? "Available" : "Unavailable";
+  if (copy && !razorpayConfig.enabled) copy.textContent = "Online payment is not configured yet. Choose cash on delivery.";
 }
 
 confirmOrderButton.addEventListener("click", async () => {
@@ -193,5 +342,56 @@ if (savedPaymentMethod && paymentChoices.some(choice => {
 paymentChoices.forEach(choice => choice.querySelector("input").addEventListener("change", updatePaymentChoice));
 renderPaymentSummary();
 loadStampReward();
+loadPaymentConfiguration();
+loadCheckoutTaxSettings();
+loadMarketingPreference();
 document.querySelector("#redeem-stamp-reward")?.addEventListener("change", updateStampRewardPreview);
+document.querySelector("#coupon-form")?.addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const input = form.elements.code;
+  const status = document.querySelector("#coupon-status");
+  const code = input.value.trim().toUpperCase();
+  if (!code) {
+    couponPreview = null;
+    status.textContent = "Coupon removed.";
+    updateStampRewardPreview();
+    return;
+  }
+  if (document.querySelector("#redeem-stamp-reward")?.checked) {
+    document.querySelector("#redeem-stamp-reward").checked = false;
+  }
+  const button = form.querySelector("button[type='submit']"); button.disabled = true; status.textContent = "Checking coupon…";
+  try {
+    const response = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(paymentCart.restaurantId)}/coupons/preview`, {
+      method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ code, subtotalPaise: paymentSubtotalPaise })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Coupon could not be applied.");
+    couponPreview = { code: data.coupon.code, discountPaise: Number(data.discountPaise) || 0 };
+    status.textContent = `${couponPreview.code} applied · you save ${formatRupees(couponPreview.discountPaise)}. This will be checked again when you place the order.`;
+    updateStampRewardPreview();
+  } catch (error) { couponPreview = null; status.textContent = error.message; updateStampRewardPreview(); }
+  finally { button.disabled = false; }
+});
+document.querySelector("#coupon-code")?.addEventListener("input", event => {
+  if (couponPreview && event.currentTarget.value.trim().toUpperCase() !== couponPreview.code) {
+    couponPreview = null;
+    document.querySelector("#coupon-status").textContent = "Coupon removed. Apply the new code to use it.";
+    updateStampRewardPreview();
+  }
+});
+document.querySelector("#marketing-opt-in")?.addEventListener("change", async event => {
+  const checkbox = event.currentTarget;
+  const status = document.querySelector("#marketing-preference-status");
+  checkbox.disabled = true; status.textContent = "Saving your choice…";
+  try {
+    const response = await fetch(`${API_BASE}/customer/marketing-preference`, { method: "PATCH", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ marketingOptIn: checkbox.checked }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Could not save your preference");
+    status.textContent = data.marketingOptIn ? "You opted in to optional WhatsApp offers. Untick this box to opt out." : "You are opted out of optional WhatsApp offers.";
+  } catch (error) { checkbox.checked = !checkbox.checked; status.textContent = error.message; }
+  finally { checkbox.disabled = false; }
+});
 updatePaymentChoice();
