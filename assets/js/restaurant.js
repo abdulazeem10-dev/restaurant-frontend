@@ -1974,7 +1974,11 @@ async function loadOrders(fetchLatest = true) {
   const scopeLabel = restaurantOrderMode === "dine_in" ? "dine-in" : restaurantOrderMode === "delivery" ? "home delivery" : "all";
   if (count) count.textContent = `${visibleOrders.length} of ${scopedCount} ${scopeLabel} orders`;
   for (const order of visibleOrders) {
-    const card = document.createElement("article"); card.dataset.orderId = String(order._id); const itemText = order.items.map(item => `${item.quantity} × ${item.name}${item.note?.trim() ? ` — Kitchen note: ${item.note.trim()}` : ""}`).join(", ");
+    const card = document.createElement("article"); card.dataset.orderId = String(order._id);
+    const itemText = order.items.map(item => {
+      const note = String(item.note || "").trim();
+      return `<div class="restaurant-order-item"><span class="restaurant-order-item-name">${escapeHtml(item.quantity)} × ${escapeHtml(item.name)}</span>${note ? `<div class="restaurant-order-item-note" role="note"><strong>Kitchen note</strong><span>${escapeHtml(note)}</span></div>` : ""}</div>`;
+    }).join("");
     const recipient = order.deliveryDetails;
     const recipientText = recipient
       ? `${recipient.recipientType === "other" ? "Deliver to" : "Recipient"}: ${recipient.name} · ${recipient.phone}`
@@ -1996,7 +2000,7 @@ async function loadOrders(fetchLatest = true) {
     const addressLabel = dineIn ? "" : `<p>Address: ${escapeHtml(order.deliveryAddress || "—")}</p>`;
     const deliveryLabel = dineIn ? "" : `<p>${escapeHtml(deliveryPartnerText)}</p>`;
     const dineInStatus = dineIn && order.paymentStatus === "paid" ? "Paid · table closed" : statusLabels[order.status] || order.status.replace("_", " ");
-    card.innerHTML = `<h3>${escapeHtml(orderLabel)}</h3><p>${escapeHtml(customerLabel)} · ${escapeHtml(order.customerPhone || recipient?.phone || order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<p>${escapeHtml(itemText)}</p>${addressLabel}${order.deliveryDetails?.deliveryAreaName ? `<p>Delivery area: ${escapeHtml(order.deliveryDetails.deliveryAreaName)}</p>` : ""}${deliveryLabel}<p><strong>${escapeHtml(dineInStatus)}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${!dineIn && ["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
+    card.innerHTML = `<h3>${escapeHtml(orderLabel)}</h3><p>${escapeHtml(customerLabel)} · ${escapeHtml(order.customerPhone || recipient?.phone || order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<div class="restaurant-order-items">${itemText}</div>${addressLabel}${order.deliveryDetails?.deliveryAreaName ? `<p>Delivery area: ${escapeHtml(order.deliveryDetails.deliveryAreaName)}</p>` : ""}${deliveryLabel}<p><strong>${escapeHtml(dineInStatus)}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${!dineIn && ["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
     if (order.deliveryAssignmentStatus === "accepted" || (order.orderType === "dine_in" && !restaurantIsReadOnly)) {
       const printButton = document.createElement("button"); printButton.type = "button";
       printButton.className = "secondary order-print-bill"; printButton.textContent = "Print bill";
