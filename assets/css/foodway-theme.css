@@ -1681,3 +1681,58 @@ html[data-theme="dark"] .restaurant-temporary-password input {
   color: #fff7dc;
 }
 html[data-theme="dark"] .restaurant-temporary-password .muted { color: #c3baa5; }
+
+/* Customer order tracking: keep notification text readable and controls clear
+   of order details on phones. */
+html[data-theme="dark"] .customer-page .notification-item {
+  border-color: #51482c !important;
+  background: #24231f !important;
+  color: #f5f0df !important;
+}
+html[data-theme="dark"] .customer-page .notification-item.is-unread {
+  border-color: #786622 !important;
+  background: #302a1b !important;
+}
+html[data-theme="dark"] .customer-page .notification-item :is(strong, p) { color: #f5f0df !important; }
+html[data-theme="dark"] .customer-page .notification-item small { color: #c3baa5 !important; }
+
+@media (max-width: 620px) {
+  .customer-page.orders-page .orders-main { padding-bottom: 5.5rem; }
+  .customer-page.orders-page .order-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
+  .customer-page.orders-page .order-summary > div { min-width: 0; padding: .75rem; }
+  .customer-page.orders-page .notification-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: .55rem .7rem;
+    padding: .85rem;
+  }
+  .customer-page.orders-page .notification-item::before { grid-column: 1; grid-row: 1; }
+  .customer-page.orders-page .notification-item > div { grid-column: 2; }
+  .customer-page.orders-page .notification-item button { grid-column: 2; justify-self: start; margin: 0; }
+  .customer-page.orders-page .customer-order-card { padding: 1rem; }
+  .customer-page.orders-page .order-progress { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .customer-page.orders-page .support-chat-launcher {
+    right: max(.75rem, env(safe-area-inset-right));
+    bottom: max(.75rem, env(safe-area-inset-bottom));
+    display: grid;
+    width: 52px;
+    height: 52px;
+    min-height: 52px;
+    place-items: center;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0;
+  }
+  .customer-page.orders-page .support-chat-launcher::before { content: "✦"; font-size: 1.5rem; line-height: 1; }
+  .customer-page.orders-page .support-chat-panel {
+    right: max(.6rem, env(safe-area-inset-right));
+    bottom: calc(4.5rem + env(safe-area-inset-bottom));
+    width: min(420px, calc(100vw - 1.2rem));
+    max-height: min(78dvh, 700px);
+  }
+}
+
+@media (max-width: 360px) {
+  .customer-page.orders-page .order-summary { grid-template-columns: minmax(0, 1fr); }
+}
