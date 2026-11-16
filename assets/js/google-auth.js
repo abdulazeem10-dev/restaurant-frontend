@@ -65,18 +65,39 @@ async function handleGoogleCredential(response) {
   if (message) setStatusMessage(message, "Signing in with Google…");
 
   try {
-    const result = await fetch(`${API_BASE}/auth/google`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ credential: response.credential })
-    });
-    const data = await result.json();
+    let result;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      result = await fetch(`${API_BASE}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: response.credential })
+      });
+      if (![502, 503, 504].includes(result.status) || attempt === 1) break;
+      await result.text();
+      if (message) setStatusMessage(message, "The server is waking up. Retrying sign-in…");
+      await new Promise(resolve => setTimeout(resolve, 1200));
+    }
+    if ([502, 503, 504].includes(result.status)) {
+      throw new Error("The backend is still waking up. Please wait a moment and try Google sign-in again.");
+    }
+
+    const responseText = await result.text();
+    let data;
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      const contentType = result.headers.get("content-type") || "unknown content type";
+      const isHtml = /text\/html|<!doctype\s+html|<html/i.test(`${contentType} ${responseText.slice(0, 200)}`);
+      if (isHtml) {
+        throw new Error(`Google sign-in reached a web page instead of the API (HTTP ${result.status}). Check the Vercel /api rewrite and Render deployment, then try again.`);
+      }
+      throw new Error(`Google sign-in returned an unreadable response (HTTP ${result.status}). Please try again.`);
+    }
     if (!result.ok) throw new Error(data.error || "Google sign-in failed");
 
     completeAuthentication(data);
-    location.href = new URLSearchParams(location.search).get("next") === "cart.html"
-      ? "cart.html"
-      : "index.html";
+    const next = new URLSearchParams(location.search).get("next");
+    location.href = ["cart.html", "payment.html"].includes(next) ? next : "index.html";
   } catch (error) {
     if (message) setStatusMessage(message, error.message, "error");
   }
