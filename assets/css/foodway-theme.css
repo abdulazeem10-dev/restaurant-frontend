@@ -1775,3 +1775,47 @@ html[data-theme="dark"] .customer-page .notification-item small { color: #c3baa5
   .business-record-row { align-items: flex-start; flex-wrap: wrap; }
   .restaurant-business-shell .recipe-ingredient-row { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Keep the restaurant overview readable when generic panel styles apply. */
+.restaurant-page .restaurant-content .panel.restaurant-overview-card {
+  border-color: #514718;
+  background: linear-gradient(120deg, #171511, #302a14);
+  color: #fff9dc;
+}
+.restaurant-page .restaurant-content .panel.restaurant-overview-card h2,
+.restaurant-page .restaurant-content .panel.restaurant-overview-card #restaurant-state {
+  color: #fff9dc;
+}
+.restaurant-page .restaurant-content .panel.restaurant-overview-card .eyebrow {
+  color: #f0d21b;
+}
+.restaurant-page .restaurant-content .panel.restaurant-overview-card #open-toggle {
+  border-color: #e2c000;
+  background: #e2c000;
+  color: #171511;
+}
+
+/* Keep sidebar links and navigation visible before hover and in disabled states. */
+.restaurant-page .restaurant-sidebar button,
+.restaurant-page .restaurant-sidebar a.restaurant-sidebar-link {
+  color: #f6f1db;
+}
+.restaurant-page .restaurant-sidebar button span,
+.restaurant-page .restaurant-sidebar a.restaurant-sidebar-link span {
+  color: #f0d21b;
+}
+.restaurant-page .restaurant-sidebar button:disabled,
+.restaurant-page .restaurant-sidebar button[aria-disabled="true"] {
+  background: transparent;
+  color: #f6f1db;
+  opacity: 1;
+  cursor: not-allowed;
+}
+.restaurant-page .restaurant-sidebar button:disabled span,
+.restaurant-page .restaurant-sidebar button[aria-disabled="true"] span {
+  color: #f0d21b;
+}
+.restaurant-page .restaurant-sidebar a.restaurant-sidebar-link:hover,
+.restaurant-page .restaurant-sidebar a.restaurant-sidebar-link:focus-visible {
+  color: #fff9dc;
+}
