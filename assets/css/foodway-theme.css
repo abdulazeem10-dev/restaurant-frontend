@@ -1820,13 +1820,51 @@ html[data-theme="dark"] .customer-page .notification-item small { color: #c3baa5
   color: #fff9dc;
 }
 
+/* Let dine-in pickers respond to their table card width, not just the viewport. */
+.restaurant-page .dine-in-menu-options {
+  box-sizing: border-box;
+  width: 100%;
+  container-type: inline-size;
+}
+.restaurant-page .dine-in-menu-filters {
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, .8fr));
+  min-width: 0;
+}
+.restaurant-page .dine-in-menu-filters > *,
+.restaurant-page .dine-in-menu-filters input,
+.restaurant-page .dine-in-menu-filters select {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.restaurant-page .dine-in-menu-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  min-width: 0;
+}
+.restaurant-page .dine-in-menu-choice {
+  grid-template-columns: 1.15rem minmax(0, 1fr) 4.25rem;
+  min-width: 0;
+  padding: .65rem;
+}
+@container (max-width: 720px) {
+  .restaurant-page .dine-in-menu-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .restaurant-page .dine-in-dish-search { grid-column: 1 / -1; }
+}
+@container (max-width: 400px) {
+  .restaurant-page .dine-in-menu-filters { grid-template-columns: minmax(0, 1fr); }
+  .restaurant-page .dine-in-dish-search { grid-column: auto; }
+}
+
 /* Order-card actions should stay easy to tap in the two-column table view. */
 .restaurant-page .restaurant-content #orders.grid > article {
   box-sizing: border-box;
   min-width: 0;
   container-type: inline-size;
 }
-.restaurant-page .restaurant-content #orders.grid > article > :is(.order-print-bill, .order-done-button) {
+.restaurant-page .restaurant-content #orders.grid > article :is(.order-print-bill, .order-done-button) {
   box-sizing: border-box;
   min-height: 44px;
   max-width: 100%;
@@ -1834,11 +1872,21 @@ html[data-theme="dark"] .customer-page .notification-item small { color: #c3baa5
   line-height: 1.25;
 }
 @container (max-width: 420px) {
-  .restaurant-page .restaurant-content #orders.grid > article > :is(.order-print-bill, .order-done-button) {
+  .restaurant-page .restaurant-content #orders.grid > article :is(.order-print-bill, .order-done-button) {
     display: block;
     width: 100%;
     margin-inline: 0;
     margin-block: .55rem 0;
     text-align: center;
   }
+}
+
+.restaurant-page .restaurant-content #orders.grid > .paid-order-card {
+  align-self: start;
+  padding-block: .5rem;
+}
+.paid-order-details > summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding-block: .55rem;
 }

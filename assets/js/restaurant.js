@@ -817,6 +817,18 @@ async function importPrintedAlMadinaMenu() {
   }
 }
 ensureMenuManagementControls();
+const menuManagementView = document.querySelector("#menu-management-view");
+if (menuManagementView) {
+  const dishes = document.querySelector("#menu-management-dishes");
+  const carousel = document.querySelector("#menu-management-carousel");
+  const showMenuManagementView = () => {
+    const showCarousel = menuManagementView.value === "carousel";
+    dishes.hidden = showCarousel;
+    carousel.hidden = !showCarousel;
+  };
+  menuManagementView.addEventListener("change", showMenuManagementView);
+  showMenuManagementView();
+}
 function isWithinConfiguredOpeningHours(openingHours, date = new Date()) {
   if (!openingHours) return true;
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -2010,7 +2022,13 @@ async function loadOrders(fetchLatest = true) {
     const data = await api("/orders/restaurant");
     restaurantOrdersCache = data.orders || []; populateDineInTableOptions(document.querySelector("#dine-in-table-count-form")?.elements.dineInTableCount.value || 10);
   }
-  const orders = restaurantOrdersCache; const root = document.querySelector("#orders"); if (!root) return; root.replaceChildren();
+  const orders = restaurantOrdersCache;
+  const root = document.querySelector("#orders");
+  if (!root) return;
+  const expandedPaidOrders = new Set(
+    Array.from(root.querySelectorAll(".paid-order-details[open]"), details => details.parentElement.dataset.orderId)
+  );
+  root.replaceChildren();
   renderActiveTableBoard(orders);
   if (restaurantOrderMode === "kitchen") {
     const activeCount = orders.filter(order => ["placed", "confirmed", "preparing", "ready"].includes(order.status) && !(order.orderType === "dine_in" && order.paymentStatus === "paid")).length;
@@ -2146,6 +2164,17 @@ async function loadOrders(fetchLatest = true) {
     if (order.paymentStatus === "paid") { const cancelIndex = next.indexOf("cancelled"); if (cancelIndex >= 0) next.splice(cancelIndex, 1); }
     const statusActionLabels = { preparing: "Start preparing", ready: "Ready for pickup", out_for_delivery: "Mark out for delivery", cancelled: "Cancel" };
     if (!restaurantIsReadOnly) for (const status of next) { const button = document.createElement("button"); button.textContent = statusActionLabels[status] || `Mark ${status}`; if (status === "cancelled") button.className = "secondary"; button.addEventListener("click", async () => { try { await api(`/orders/restaurant/${order._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); await loadOrders(); } catch (error) { msg.textContent = error.message; } }); card.append(button); }
+    if (dineIn && order.paymentStatus === "paid") {
+      const details = document.createElement("details");
+      details.className = "paid-order-details";
+      details.open = expandedPaidOrders.has(card.dataset.orderId);
+      const summary = document.createElement("summary");
+      summary.textContent = `${orderLabel} · ${dineInStatus} · ${formatRupees(order.totalPaise)}`;
+      card.querySelector("h3").remove();
+      details.append(summary, ...card.childNodes);
+      card.append(details);
+      card.classList.add("paid-order-card");
+    }
     root.append(card);
   }
   if (!visibleOrders.length) {
