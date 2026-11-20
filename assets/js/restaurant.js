@@ -581,21 +581,6 @@ if (restaurantProfileForm) restaurantProfileForm.addEventListener("submit", asyn
   }
 });
 
-const deactivateOwnProfileButton = document.querySelector("#deactivate-own-profile");
-if (deactivateOwnProfileButton) deactivateOwnProfileButton.addEventListener("click", async () => {
-  const confirmed = confirm("Deactivate your owner login and close the restaurant to new orders? Your account, restaurant data, and order history will be kept. You will need the platform admin to reactivate the profile.");
-  if (!confirmed) return;
-  deactivateOwnProfileButton.disabled = true;
-  try {
-    await api("/restaurants/owner/deactivate-profile", { method: "PATCH" });
-    await logoutSession();
-    location.replace("../customer/login.html");
-  } catch (error) {
-    msg.textContent = error.message;
-    deactivateOwnProfileButton.disabled = false;
-  }
-});
-
 document.querySelector("#owner-staff-form").addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;
