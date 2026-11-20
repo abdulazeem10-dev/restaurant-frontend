@@ -473,7 +473,7 @@ body.customer-page::-webkit-scrollbar { display: none !important; width: 0 !impo
 .customer-page .store-location-bar > a { display:flex; align-items:center; gap:.3rem; margin-left:auto; color:#6e5900; font-size:.78rem; font-weight:750; text-decoration:none; white-space:nowrap; }
 .customer-page .promo-carousel { position:relative; min-height:300px; overflow:hidden; border:1px solid #413710; border-radius:25px; background:#11100d; box-shadow:0 18px 44px #1a160c22; }
 .customer-page .promo-slides { min-height:300px; }
-.customer-page .promo-slide { position:relative; display:flex; min-height:300px; align-items:center; overflow:hidden; padding:clamp(1.4rem,4vw,3rem); color:#fff; isolation:isolate; }
+.customer-page .promo-slide { position:relative; display:flex; min-height:300px; align-items:center; overflow:hidden; padding:clamp(1.4rem,4vw,3rem); color:#fff; background:#11100d; border:0; border-radius:0; box-shadow:none; isolation:isolate; }
 .customer-page .promo-slide[hidden] { display:none; }
 .customer-page .promo-slide::after { position:absolute; z-index:-1; inset:0; background:linear-gradient(90deg,#11100d 0%,#11100df2 34%,#11100d91 62%,#11100d10 100%); content:""; }
 .customer-page .promo-slide > img { position:absolute; z-index:-2; inset:0 0 0 auto; width:62%; height:100%; object-fit:contain; object-position:right center; }
