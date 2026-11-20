@@ -61,7 +61,7 @@ function ensureMenuImageUploadControl(form) {
     const file = input.files?.[0];
     status.textContent = file ? `${file.name} selected. It will upload when you save.` : "";
   });
-  imageUrlField.closest("label")?.after(label, status);
+  imageUrlField.after(label, status);
 }
 async function uploadMenuImageToCloudinary(file, container, imageUrlField = container?.elements?.imageUrl) {
   const status = container?.querySelector("[data-menu-image-upload-status], [data-carousel-image-upload-status]");
@@ -971,7 +971,7 @@ async function loadMenu() {
     card.className = "restaurant-menu-item-card";
     const currentCategory = item.category || "Other";
     const portionSiblings = matchingMenuPortions(item);
-    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p class="menu-item-summary">${escapeHtml(currentCategory)} · ${formatRupees(item.pricePaise)}</p><span class="menu-availability-badge ${item.available ? "is-available" : "is-sold-out"}">${item.available ? "Available to order" : "Sold out · hidden from customers"}</span><button type="button" class="secondary menu-edit-toggle">Edit dish details</button><form class="menu-edit-form" hidden><label>Dish name<input name="name" required maxlength="150" value="${escapeHtml(item.name)}"></label><label>Category<input name="category" required maxlength="80" list="menu-category-suggestions" value="${escapeHtml(currentCategory)}"></label><label>Food type<select name="foodType" required><option value="veg" ${item.foodType === "veg" ? "selected" : ""}>Veg</option><option value="nonVeg" ${item.foodType === "nonVeg" ? "selected" : ""}>Non-Veg</option></select></label><label>Price in rupees<input name="price" type="number" min="0.01" step="0.01" required value="${(Number(item.pricePaise) / 100).toFixed(2)}"></label><label>Description<textarea name="description" maxlength="1000">${escapeHtml(item.description || "")}</textarea></label><label>Dish image URL (HTTPS)<input name="imageUrl" type="url" maxlength="2048" placeholder="https://…" value="${escapeHtml(item.imageUrl || "")}"></label><div class="menu-edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary menu-edit-cancel">Cancel</button></div></form><p class="menu-item-actions"><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary menu-delete">Delete</button></p>`;
+    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p class="menu-item-summary">${escapeHtml(currentCategory)} · ${formatRupees(item.pricePaise)}</p><span class="menu-availability-badge ${item.available ? "is-available" : "is-sold-out"}">${item.available ? "Available to order" : "Sold out · hidden from customers"}</span><button type="button" class="secondary menu-edit-toggle">Edit dish details</button><form class="menu-edit-form" hidden><label>Dish name<input name="name" required maxlength="150" value="${escapeHtml(item.name)}"></label><label>Category<input name="category" required maxlength="80" list="menu-category-suggestions" value="${escapeHtml(currentCategory)}"></label><label>Food type<select name="foodType" required><option value="veg" ${item.foodType === "veg" ? "selected" : ""}>Veg</option><option value="nonVeg" ${item.foodType === "nonVeg" ? "selected" : ""}>Non-Veg</option></select></label><label>Price in rupees<input name="price" type="number" min="0.01" step="0.01" required value="${(Number(item.pricePaise) / 100).toFixed(2)}"></label><label>Description<textarea name="description" maxlength="1000">${escapeHtml(item.description || "")}</textarea></label><input name="imageUrl" type="hidden" value="${escapeHtml(item.imageUrl || "")}"><div class="menu-edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary menu-edit-cancel">Cancel</button></div></form><p class="menu-item-actions"><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary menu-delete">Delete</button></p>`;
     const editToggle = card.querySelector(".menu-edit-toggle");
     const editForm = card.querySelector(".menu-edit-form");
     ensureMenuImageUploadControl(editForm);
@@ -1291,6 +1291,9 @@ function renderInventory() {
     const matchesStatus = statusFilter === "all" || (statusFilter === "low" && inventoryIsLow(item)) || (statusFilter === "expiring" && inventoryIsExpiring(item)) || (statusFilter === "expired" && inventoryIsExpired(item));
     return matchesText && (selectedCategory === "all" || item.category === selectedCategory) && matchesStatus;
   });
+  const expandedBatches = new Set(
+    Array.from(root.querySelectorAll(".inventory-batch-details[open]"), details => details.dataset.batchId)
+  );
   root.replaceChildren();
   if (!restaurantInventoryItems.length || !visible.length) {
     const empty = document.createElement("p");
@@ -1304,26 +1307,26 @@ function renderInventory() {
   for (const item of visible) {
     const card = document.createElement("article");
     card.className = "inventory-item-card";
-    const top = document.createElement("div");
-    top.className = "inventory-item-top";
-    const heading = document.createElement("div");
-    const title = document.createElement("h3");
-    title.textContent = item.name;
-    const category = document.createElement("p");
-    category.className = "muted";
-    category.textContent = item.category || "Other";
-    heading.append(title, category);
-    const badges = document.createElement("div");
+    const badges = document.createElement("span");
     badges.className = "inventory-badges";
     const addBadge = (text, warning = false) => { const badge = document.createElement("span"); badge.className = `inventory-status${warning ? " is-low" : ""}`; badge.textContent = text; badges.append(badge); };
     if (inventoryIsLow(item)) addBadge("Low stock", true); else addBadge("In stock");
     if (inventoryIsExpired(item)) addBadge("Expired", true);
     else if (inventoryIsExpiring(item)) { const days = inventoryDaysUntil(item.expiryDate); addBadge(`Expires in ${days} day${days === 1 ? "" : "s"}`, true); }
-    top.append(heading, badges);
+    const batch = document.createElement("details");
+    batch.className = "compact-disclosure inventory-batch-details";
+    batch.dataset.batchId = String(item._id);
+    batch.open = expandedBatches.has(batch.dataset.batchId);
+    const summary = document.createElement("summary");
+    const quantity = `${Number(item.quantity).toLocaleString("en-IN")} ${item.unit}`;
+    summary.textContent = `${item.name} · ${quantity} · ${item.category || "Other"}`;
+    summary.append(badges);
+    batch.append(summary);
+    card.append(batch);
     const details = document.createElement("dl");
     details.className = "inventory-stock-details";
     const addDetail = (labelText, value) => { const wrapper = document.createElement("div"); const term = document.createElement("dt"); term.textContent = labelText; const detail = document.createElement("dd"); detail.textContent = value; wrapper.append(term, detail); details.append(wrapper); };
-    addDetail("Quantity available", `${Number(item.quantity).toLocaleString("en-IN")} ${item.unit}`);
+    addDetail("Quantity available", quantity);
     addDetail("Received on", inventoryDisplayDate(item.receivedDate));
     addDetail("Expiry date", item.expiryDate ? inventoryDisplayDate(item.expiryDate) : "Not applicable");
     addDetail("Supplier", item.supplier || "Not recorded");
@@ -1334,7 +1337,7 @@ function renderInventory() {
     const actions = document.createElement("div");
     actions.className = "inventory-item-actions";
     if (restaurantIsReadOnly) {
-      card.append(top, details);
+      batch.append(details);
       root.append(card);
       continue;
     }
@@ -1392,7 +1395,7 @@ function renderInventory() {
       } catch (error) { msg.textContent = error.message; remove.disabled = false; }
     });
     actions.append(remove);
-    card.append(top, details, actions);
+    batch.append(details, actions);
     root.append(card);
   }
 }
@@ -2026,7 +2029,7 @@ async function loadOrders(fetchLatest = true) {
   const root = document.querySelector("#orders");
   if (!root) return;
   const expandedPaidOrders = new Set(
-    Array.from(root.querySelectorAll(".paid-order-details[open]"), details => details.parentElement.dataset.orderId)
+    Array.from(root.querySelectorAll(".order-card-details[open]"), details => details.parentElement.dataset.orderId)
   );
   root.replaceChildren();
   renderActiveTableBoard(orders);
@@ -2164,16 +2167,16 @@ async function loadOrders(fetchLatest = true) {
     if (order.paymentStatus === "paid") { const cancelIndex = next.indexOf("cancelled"); if (cancelIndex >= 0) next.splice(cancelIndex, 1); }
     const statusActionLabels = { preparing: "Start preparing", ready: "Ready for pickup", out_for_delivery: "Mark out for delivery", cancelled: "Cancel" };
     if (!restaurantIsReadOnly) for (const status of next) { const button = document.createElement("button"); button.textContent = statusActionLabels[status] || `Mark ${status}`; if (status === "cancelled") button.className = "secondary"; button.addEventListener("click", async () => { try { await api(`/orders/restaurant/${order._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); await loadOrders(); } catch (error) { msg.textContent = error.message; } }); card.append(button); }
-    if (dineIn && order.paymentStatus === "paid") {
+    if (order.orderType === "delivery" || (dineIn && order.paymentStatus === "paid")) {
       const details = document.createElement("details");
-      details.className = "paid-order-details";
+      details.className = "compact-disclosure order-card-details";
       details.open = expandedPaidOrders.has(card.dataset.orderId);
       const summary = document.createElement("summary");
       summary.textContent = `${orderLabel} · ${dineInStatus} · ${formatRupees(order.totalPaise)}`;
       card.querySelector("h3").remove();
       details.append(summary, ...card.childNodes);
       card.append(details);
-      card.classList.add("paid-order-card");
+      card.classList.add("compact-order-card");
     }
     root.append(card);
   }

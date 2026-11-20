@@ -1881,12 +1881,24 @@ html[data-theme="dark"] .customer-page .notification-item small { color: #c3baa5
   }
 }
 
-.restaurant-page .restaurant-content #orders.grid > .paid-order-card {
+.restaurant-page .restaurant-content #orders.grid > .compact-order-card {
   align-self: start;
   padding-block: .5rem;
 }
-.paid-order-details > summary {
+.restaurant-page .compact-disclosure > summary {
   cursor: pointer;
   font-weight: 700;
   padding-block: .55rem;
+}
+
+.restaurant-page .inventory-item-card {
+  align-self: start;
+}
+.restaurant-page .inventory-batch-details > summary .inventory-badges {
+  display: inline-flex;
+  justify-content: flex-start;
+  margin-inline-start: .5rem;
+}
+.restaurant-page .inventory-batch-details > .inventory-item-actions {
+  margin-top: .75rem;
 }
