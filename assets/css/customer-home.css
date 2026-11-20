@@ -476,7 +476,7 @@ body.customer-page::-webkit-scrollbar { display: none !important; width: 0 !impo
 .customer-page .promo-slide { position:relative; display:flex; min-height:300px; align-items:center; overflow:hidden; padding:clamp(1.4rem,4vw,3rem); color:#fff; isolation:isolate; }
 .customer-page .promo-slide[hidden] { display:none; }
 .customer-page .promo-slide::after { position:absolute; z-index:-1; inset:0; background:linear-gradient(90deg,#11100d 0%,#11100df2 34%,#11100d91 62%,#11100d10 100%); content:""; }
-.customer-page .promo-slide > img { position:absolute; z-index:-2; inset:0 0 0 auto; width:62%; height:100%; object-fit:cover; object-position:center; }
+.customer-page .promo-slide > img { position:absolute; z-index:-2; inset:0 0 0 auto; width:62%; height:100%; object-fit:contain; object-position:right center; }
 .customer-page .promo-copy { width:min(58%,590px); }
 .customer-page .promo-copy .eyebrow { margin:0 0 .6rem; color:#f0d21b; font-size:.72rem; font-weight:850; letter-spacing:.14em; }
 .customer-page .promo-copy h1,.customer-page .promo-copy h2 { max-width:590px; margin:0 0 .55rem; color:#fff; font-size:clamp(1.85rem,4.5vw,3.1rem); line-height:1.04; letter-spacing:-.055em; }
@@ -514,7 +514,7 @@ body.customer-page::-webkit-scrollbar { display: none !important; width: 0 !impo
   .customer-page .promo-carousel,.customer-page .promo-slides,.customer-page .promo-slide { min-height:245px; }
   .customer-page .promo-carousel { border-radius:19px; }
   .customer-page .promo-slide { align-items:flex-end; padding:1.15rem 1rem 3.4rem; }
-  .customer-page .promo-slide > img { width:100%; object-position:center 45%; }
+  .customer-page .promo-slide > img { width:100%; object-position:center; }
   .customer-page .promo-slide::after { background:linear-gradient(90deg,#11100de8 0%,#11100d9c 58%,#11100d32 100%),linear-gradient(0deg,#11100dc7 0%,transparent 78%); }
   .customer-page .promo-copy { width:min(88%,420px); }
   .customer-page .promo-copy .eyebrow { margin-bottom:.35rem; font-size:.62rem; }
