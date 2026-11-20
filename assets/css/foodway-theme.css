@@ -1885,7 +1885,7 @@ html[data-theme="dark"] .customer-page .notification-item small { color: #c3baa5
   align-self: start;
   padding-block: .5rem;
 }
-.restaurant-page .compact-disclosure > summary {
+.compact-disclosure > summary {
   cursor: pointer;
   font-weight: 700;
   padding-block: .55rem;
@@ -1901,4 +1901,18 @@ html[data-theme="dark"] .customer-page .notification-item small { color: #c3baa5
 }
 .restaurant-page .inventory-batch-details > .inventory-item-actions {
   margin-top: .75rem;
+}
+
+.admin-restaurant-disclosure {
+  min-width: 0;
+  align-self: start;
+}
+.admin-restaurant-disclosure > summary {
+  padding: .75rem 1rem;
+  border: 1px solid var(--foodway-line);
+  border-radius: .75rem;
+  overflow-wrap: anywhere;
+}
+.admin-restaurant-disclosure[open] > summary {
+  margin-bottom: .5rem;
 }

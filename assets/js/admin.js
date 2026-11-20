@@ -116,7 +116,6 @@ async function loadRestaurants() {
   const root = document.querySelector("#restaurants");
   const status = document.querySelector("#restaurants-status");
   if (status) status.textContent = "Loading restaurant accounts…";
-  root.replaceChildren();
   const { restaurants } = await adminRequest("/admin/restaurants");
   console.log("[admin] restaurant list loaded", restaurants.length);
 
@@ -124,6 +123,9 @@ async function loadRestaurants() {
   document.querySelector("#stat-approved").textContent = restaurants.filter(item => item.status === "approved").length;
   document.querySelector("#stat-pending").textContent = restaurants.filter(item => item.status === "pending").length;
 
+  const expandedRestaurants = new Set(
+    Array.from(root.querySelectorAll(".admin-restaurant-disclosure[open]"), details => details.dataset.restaurantId)
+  );
   root.replaceChildren();
 
   for (const restaurant of restaurants) {
@@ -402,7 +404,15 @@ async function loadRestaurants() {
       card.append(button);
     }
 
-    root.append(card);
+    const details = document.createElement("details");
+    details.className = "compact-disclosure admin-restaurant-disclosure";
+    details.dataset.restaurantId = String(restaurant._id);
+    details.open = expandedRestaurants.has(details.dataset.restaurantId);
+    const summary = document.createElement("summary");
+    const profileStatus = restaurant.profileDeactivatedAt ? "Deactivated" : restaurant.status;
+    summary.textContent = `${restaurant.name} · ${profileStatus}`;
+    details.append(summary, card);
+    root.append(details);
   }
 
   if (!restaurants.length) {
