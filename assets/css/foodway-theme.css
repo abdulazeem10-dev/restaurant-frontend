@@ -1657,6 +1657,20 @@ html[data-theme="dark"] .admin-temporary-credential .muted { color: #c3baa5; }
   color: #29261c;
 }
 .restaurant-temporary-password[hidden] { display: none; }
+
+.restaurant-page #delivery-partner-form,
+.restaurant-page #delivery-partners .form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+}
+.delivery-account-actions:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.delivery-account-actions > button {
+  flex: 1 1 min(100%, 11.5rem);
+  min-width: 0;
+}
 .restaurant-temporary-password p { margin: 0; }
 .restaurant-temporary-password input {
   width: 100%;

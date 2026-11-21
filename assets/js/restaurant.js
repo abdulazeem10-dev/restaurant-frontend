@@ -454,7 +454,11 @@ async function loadDeliveryPartners() {
   });
   const resetPassword = document.createElement("button"); resetPassword.type = "button"; resetPassword.className = "secondary"; resetPassword.textContent = "Reset password"; resetPassword.hidden = !restaurantCanManageAccounts;
   addManagedAccountPasswordReset(resetPassword, partner, card);
-  card.append(form,state,toggle,resetPassword); root.append(card);
+  const actions = document.createElement("div");
+  actions.className = "delivery-account-actions";
+  actions.hidden = !restaurantCanManageAccounts;
+  actions.append(toggle, resetPassword);
+  card.append(form, state, actions); root.append(card);
  }
 }
 document.querySelector("#delivery-partner-form")?.addEventListener("submit", async event => {
